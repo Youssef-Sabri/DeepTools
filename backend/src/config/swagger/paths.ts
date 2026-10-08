@@ -19,6 +19,10 @@ import {
   PurchaseResponseSchema,
   UserLicenseSchema,
   TemplateDownloadResponseSchema,
+  CreateUploadInputDocs,
+  UpdateUploadInputDocs,
+  SellerProductSchema,
+  PaginatedSellerProductsSchema,
 } from './schemas';
 
 const LangQueryParam = z
@@ -622,6 +626,192 @@ registry.registerPath({
     },
     422: {
       description: 'Validation failed',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 7. Seller Uploads Endpoints
+// ==========================================
+registry.registerPath({
+  method: 'post',
+  path: '/uploads',
+  tags: ['Uploads'],
+  summary:
+    'Upload a solution file and create a marketplace product (Pending approval)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'multipart/form-data': {
+          schema: CreateUploadInputDocs,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Upload created successfully with status = pending',
+      content: {
+        'application/json': {
+          schema: envelope(SellerProductSchema),
+        },
+      },
+    },
+    400: {
+      description: 'Bad request or invalid file',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    422: {
+      description: 'Validation failed or float price provided',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    429: {
+      description: 'Too many requests (rate limited)',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/uploads/mine',
+  tags: ['Uploads'],
+  summary: 'List own uploads with pagination and status filter',
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      page: z.coerce.number().optional().openapi({ example: 1 }),
+      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      status: z
+        .enum(['pending', 'approved', 'rejected'])
+        .optional()
+        .openapi({ example: 'pending' }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Seller uploads retrieved successfully',
+      content: {
+        'application/json': {
+          schema: envelope(PaginatedSellerProductsSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/uploads/mine/{id}',
+  tags: ['Uploads'],
+  summary: 'Get details of an upload owned by the current seller',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description: 'Upload details retrieved',
+      content: {
+        'application/json': {
+          schema: envelope(SellerProductSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found or not owned by seller',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/uploads/mine/{id}',
+  tags: ['Uploads'],
+  summary: 'Edit and resubmit an upload (resets status to pending)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: {
+        'multipart/form-data': {
+          schema: UpdateUploadInputDocs,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Upload updated and status reset to pending',
+      content: {
+        'application/json': {
+          schema: envelope(SellerProductSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    422: {
+      description: 'Validation failed',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/uploads/mine/{id}',
+  tags: ['Uploads'],
+  summary: 'Delete a pending or rejected upload (removes disk file)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description: 'Upload and associated disk file deleted successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            message: z
+              .string()
+              .openapi({ example: 'Upload deleted successfully' }),
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Cannot delete an approved product',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
   },

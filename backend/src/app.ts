@@ -8,6 +8,7 @@ import authRoutes from './modules/auth/auth.routes';
 import productsRoutes from './modules/products/products.routes';
 import templatesRoutes from './modules/templates/templates.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import uploadsRoutes from './modules/uploads/uploads.routes';
 import { requestIdMiddleware } from './middleware/requestId.middleware';
 import { notFoundMiddleware } from './middleware/notFound.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
@@ -73,6 +74,7 @@ export const createApp = (): Application => {
   app.use('/api/v1/products', productsRoutes);
   app.use('/api/v1/templates', templatesRoutes);
   app.use('/api/v1/admin', adminRoutes);
+  app.use('/api/v1/uploads', uploadsRoutes);
 
   // 6. 404 handler
   app.use(notFoundMiddleware);

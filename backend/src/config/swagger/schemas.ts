@@ -310,3 +310,163 @@ export const TemplateDownloadResponseSchema = registry.register(
     downloadUrl: z.string().openapi({ example: '#' }),
   }),
 );
+
+// 7. Seller Upload Schemas
+export const CreateUploadInputDocs = registry.register(
+  'CreateUploadInput',
+  z
+    .object({
+      file: z.string().openapi({
+        type: 'string',
+        format: 'binary',
+        description:
+          'Solution source code, script, workflow, or project archive file',
+      }),
+      name: z
+        .string()
+        .min(2)
+        .max(100)
+        .openapi({ example: 'Next.js SaaS Boilerplate' }),
+      nameAr: z
+        .string()
+        .max(100)
+        .optional()
+        .openapi({ example: 'قالب ساس المتكامل' }),
+      description: z.string().min(10).max(2000).openapi({
+        example:
+          'Complete enterprise boilerplate with auth, Stripe, and Prisma.',
+      }),
+      descriptionAr: z.string().max(2000).optional().openapi({
+        example: 'قالب ساس متكامل مع المصادقة والمدفوعات وقاعدة البيانات.',
+      }),
+      category: z
+        .enum(['workflow', 'script', 'code', 'agentic'])
+        .openapi({ example: 'code' }),
+      price: z
+        .number()
+        .int()
+        .nonnegative()
+        .openapi({ example: 4900, description: 'Price in cents ($49.00)' }),
+      version: z
+        .string()
+        .default('1.0.0')
+        .optional()
+        .openapi({ example: '1.0.0' }),
+    })
+    .openapi({
+      description: 'Seller file upload and product registration payload',
+    }),
+);
+
+export const UpdateUploadInputDocs = registry.register(
+  'UpdateUploadInput',
+  z
+    .object({
+      file: z.string().optional().openapi({
+        type: 'string',
+        format: 'binary',
+        description: 'Optional replacement solution file',
+      }),
+      name: z
+        .string()
+        .min(2)
+        .max(100)
+        .optional()
+        .openapi({ example: 'Updated SaaS Boilerplate' }),
+      nameAr: z
+        .string()
+        .max(100)
+        .optional()
+        .openapi({ example: 'قالب ساس محدث' }),
+      description: z
+        .string()
+        .min(10)
+        .max(2000)
+        .optional()
+        .openapi({ example: 'Updated description and feature breakdown.' }),
+      descriptionAr: z.string().max(2000).optional().openapi({
+        example: 'وصف محدث للحل البرمجي.',
+      }),
+      category: z
+        .enum(['workflow', 'script', 'code', 'agentic'])
+        .optional()
+        .openapi({ example: 'code' }),
+      price: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .openapi({ example: 3900 }),
+      version: z.string().optional().openapi({ example: '1.1.0' }),
+    })
+    .openapi({ description: 'Update and resubmit upload payload' }),
+);
+
+export const SellerProductSchema = registry.register(
+  'SellerProduct',
+  z.object({
+    id: z
+      .string()
+      .uuid()
+      .openapi({ example: '175e0e43-bd01-4f05-8b0d-85a15af96810' }),
+    sellerId: z
+      .string()
+      .uuid()
+      .openapi({ example: 'b2d8e34a-9c71-4621-b3f8-2c286d9a1f2e' }),
+    name: z.string().openapi({ example: 'Next.js SaaS Boilerplate' }),
+    nameAr: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: 'قالب ساس المتكامل' }),
+    description: z
+      .string()
+      .openapi({ example: 'Complete enterprise boilerplate with auth.' }),
+    descriptionAr: z.string().nullable().optional(),
+    category: z.string().openapi({ example: 'code' }),
+    price: z.number().int().openapi({ example: 4900 }),
+    version: z.string().openapi({ example: '1.0.0' }),
+    status: z
+      .enum(['pending', 'approved', 'rejected'])
+      .openapi({ example: 'pending' }),
+    fileKey: z.string().nullable().optional().openapi({
+      example: 'uploads/550e8400-e29b-41d4-a716-446655440000.zip',
+    }),
+    fileSize: z
+      .number()
+      .int()
+      .nullable()
+      .optional()
+      .openapi({ example: 1048576 }),
+    fileMime: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: 'application/zip' }),
+    fileChecksum: z.string().nullable().optional().openapi({
+      example:
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    }),
+    rejectionNote: z.string().nullable().optional().openapi({ example: null }),
+    reviewedAt: z.string().datetime().nullable().optional(),
+    createdAt: z
+      .string()
+      .datetime()
+      .openapi({ example: '2026-10-08T10:00:00.000Z' }),
+    updatedAt: z
+      .string()
+      .datetime()
+      .openapi({ example: '2026-10-08T10:00:00.000Z' }),
+  }),
+);
+
+export const PaginatedSellerProductsSchema = registry.register(
+  'PaginatedSellerProducts',
+  z.object({
+    items: z.array(SellerProductSchema),
+    total: z.number().int().openapi({ example: 15 }),
+    page: z.number().int().openapi({ example: 1 }),
+    limit: z.number().int().openapi({ example: 20 }),
+    totalPages: z.number().int().openapi({ example: 1 }),
+  }),
+);

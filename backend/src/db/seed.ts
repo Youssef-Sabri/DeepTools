@@ -13,11 +13,25 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.template.deleteMany();
 
+  // 0. Ensure a verified seller exists for default products
+  const verifiedSeller = await prisma.user.upsert({
+    where: { email: 'admin@deeptools.ai' },
+    update: {},
+    create: {
+      name: 'DeepTools Verified Seller',
+      email: 'admin@deeptools.ai',
+      password: '$2b$12$K8yR2uC8eA.7o9UqH4x9ceK1p8.T7P6X0R9H0f1Y8z7W6v5U4t3S2', // Default hashed pass
+      role: 'admin',
+    },
+  });
+
   // 1. Seed Products (Bilingual EN & AR)
   console.log('Seeding bilingual products...');
   await prisma.product.createMany({
     data: [
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'QueryOptimizer AI',
         nameAr: 'مُحسّن الاستعلامات الذكي (QueryOptimizer AI)',
         description:
@@ -32,6 +46,8 @@ async function main() {
         downloadUrl: '#',
       },
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'DBGuard Monitor',
         nameAr: 'نظام مراقبة دي بي جارد (DBGuard Monitor)',
         description:
@@ -46,6 +62,8 @@ async function main() {
         downloadUrl: '#',
       },
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'MigrateFlow',
         nameAr: 'أداة ترحيل البيانات مايجريت فلو (MigrateFlow)',
         description:
@@ -60,6 +78,8 @@ async function main() {
         downloadUrl: '#',
       },
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'DataClean Pro',
         nameAr: 'داتا كلين برو (DataClean Pro)',
         description:
@@ -74,6 +94,8 @@ async function main() {
         downloadUrl: '#',
       },
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'SQL Script Library',
         nameAr: 'مكتبة سكربتات SQL الاحترافية',
         description:
@@ -88,6 +110,8 @@ async function main() {
         downloadUrl: '#',
       },
       {
+        sellerId: verifiedSeller.id,
+        status: 'approved',
         name: 'ETL Pipeline Builder',
         nameAr: 'منشئ خطوط نقل ومعالجة البيانات (ETL Builder)',
         description:

@@ -68,7 +68,8 @@ pids
 *.seed
 *.pid.lock
 
-# Uploads & User files
-uploads/
-**/uploads/
+# Uploads storage directories (never track uploaded user files)
+/uploads/
+backend/uploads/
+!backend/src/modules/uploads/**
 files/*

@@ -20,28 +20,40 @@ model User {
   subscriptions Subscription[]
   licenses      License[]
   orders        Order[]
+  sellerProducts Product[] @relation("SellerProducts")
 
   @@map("users")
 }
 
 // 2. Products Model
 model Product {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
+  sellerId      String    @map("seller_id") @db.Uuid
   name          String
-  nameAr        String?  @map("name_ar")
+  nameAr        String?   @map("name_ar")
   description   String
-  descriptionAr String?  @map("description_ar")
-  category      String   @db.VarChar(50)
+  descriptionAr String?   @map("description_ar")
+  category      String    @db.VarChar(50)
   price         Int
-  version       String   @default("1.0.0") @db.VarChar(20)
-  downloadUrl   String?  @map("download_url")
-  badge         String?  @db.VarChar(20)
-  badgeAr       String?  @map("badge_ar") @db.VarChar(30)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  version       String    @default("1.0.0") @db.VarChar(20)
+  status        String    @default("pending") @db.VarChar(20)
+  fileKey       String?   @map("file_key")
+  fileSize      Int?      @map("file_size")
+  fileMime      String?   @map("file_mime") @db.VarChar(100)
+  fileChecksum  String?   @map("file_checksum")
+  rejectionNote String?   @map("rejection_note")
+  reviewedAt    DateTime? @map("reviewed_at")
+  downloadUrl   String?   @map("download_url")
+  badge         String?   @db.VarChar(20)
+  badgeAr       String?   @map("badge_ar") @db.VarChar(30)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  seller   User      @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Cascade)
   licenses License[]
 
+  @@index([sellerId])
+  @@index([status])
   @@index([category])
   @@map("products")
 }

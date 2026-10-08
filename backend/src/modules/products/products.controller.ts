@@ -23,6 +23,7 @@ export class ProductsController {
   create = async (req: Request, res: Response): Promise<void> => {
     const newProduct = await this.service.create(
       req.body as CreateProductInput,
+      req.user!.id,
     );
     res.status(201).json({ success: true, data: newProduct });
   };

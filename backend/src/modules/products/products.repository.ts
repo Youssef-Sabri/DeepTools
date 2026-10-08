@@ -12,6 +12,7 @@ export class ProductsRepository {
   }
 
   async create(data: {
+    sellerId: string;
     name: string;
     nameAr?: string | null;
     description: string;
@@ -19,7 +20,12 @@ export class ProductsRepository {
     category: string;
     price: number;
     version?: string;
-    downloadUrl?: string;
+    status?: string;
+    fileKey?: string | null;
+    fileSize?: number | null;
+    fileMime?: string | null;
+    fileChecksum?: string | null;
+    downloadUrl?: string | null;
     badge?: string | null;
     badgeAr?: string | null;
   }) {

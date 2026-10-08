@@ -37,9 +37,10 @@ export class ProductsService {
     return this.formatProduct(product, lang);
   }
 
-  async create(data: CreateProductInput) {
+  async create(data: CreateProductInput, sellerId: string) {
     return this.repo.create({
       ...data,
+      sellerId,
       nameAr: data.nameAr ?? null,
       descriptionAr: data.descriptionAr ?? null,
       badge: data.badge ?? null,
