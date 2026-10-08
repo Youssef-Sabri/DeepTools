@@ -6,18 +6,18 @@ export class AdminController {
 
   getAllUsers = async (req: Request, res: Response): Promise<void> => {
     const users = await this.service.findAllUsers();
-    res.status(200).json(users);
+    res.status(200).json({ success: true, data: users });
   };
 
   deleteUser = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const result = await this.service.deleteUser(id);
-    res.status(200).json(result);
+    res.status(200).json({ success: true, data: result });
   };
 
   getAllLicenses = async (req: Request, res: Response): Promise<void> => {
     const licenses = await this.service.findAllLicenses();
-    res.status(200).json(licenses);
+    res.status(200).json({ success: true, data: licenses });
   };
 
   toggleLicense = async (req: Request, res: Response): Promise<void> => {
@@ -25,7 +25,7 @@ export class AdminController {
     const body = req.body as { isActive?: boolean };
     const isActive = Boolean(body.isActive);
     const result = await this.service.toggleLicenseStatus(id, isActive);
-    res.status(200).json(result);
+    res.status(200).json({ success: true, data: result });
   };
 }
 

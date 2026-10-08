@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { productsController } from './products.controller';
 import { authenticate, requireRole } from '../../middleware/auth.middleware';
 import { validateBody } from '../../middleware/validation.middleware';
+import { authRateLimiter } from '../../middleware/rateLimit.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { createProductSchema, updateProductSchema } from './products.validator';
 
@@ -44,9 +45,10 @@ router.delete(
   asyncHandler(productsController.remove),
 );
 
-// Authenticated route to purchase product
+// Authenticated route to purchase product (rate-limited, Rule 5.5)
 router.post(
   '/:id/purchase',
+  authRateLimiter,
   authenticate,
   asyncHandler(productsController.purchase),
 );

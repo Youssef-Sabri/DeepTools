@@ -1,19 +1,36 @@
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
 dotenv.config();
 
-export const env = {
-  PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : 4000,
-  DATABASE_URL:
-    process.env.DATABASE_URL ||
-    'postgresql://postgres:postgres@localhost:5439/dataforge_db',
-  JWT_SECRET:
-    process.env.JWT_SECRET || 'super-secret-jwt-key-change-this-in-production',
-  JWT_EXPIRATION: process.env.JWT_EXPIRATION || '3600s',
-  JWT_REFRESH_SECRET:
-    process.env.JWT_REFRESH_SECRET || 'another-super-secret-refresh-key',
-  JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION || '604800s',
-  CORS_ORIGIN: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['http://localhost:3000', 'http://localhost:4000'],
-};
+const envSchema = z.object({
+  PORT: z.coerce.number().default(4000),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required and cannot be empty'),
+  JWT_EXPIRATION: z.string().default('3600s'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(1, 'JWT_REFRESH_SECRET is required and cannot be empty'),
+  JWT_REFRESH_EXPIRATION: z.string().default('604800s'),
+  CORS_ORIGIN: z
+    .string()
+    .default('http://localhost:3000,http://localhost:4000')
+    .transform((val) => val.split(',').map((origin) => origin.trim())),
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  const missingKeys = parsedEnv.error.issues
+    .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+    .join('\n  ');
+  console.error(
+    `❌ [Fatal Config Error] Environment validation failed:\n  ${missingKeys}`,
+  );
+  process.exit(1);
+}
+
+export const env = parsedEnv.data;

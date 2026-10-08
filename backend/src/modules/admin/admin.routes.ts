@@ -21,5 +21,10 @@ router.patch(
   validateBody(toggleLicenseSchema),
   asyncHandler(adminController.toggleLicense),
 );
+router.patch(
+  '/licenses/:id/toggle',
+  validateBody(toggleLicenseSchema),
+  asyncHandler(adminController.toggleLicense),
+);
 
 export default router;

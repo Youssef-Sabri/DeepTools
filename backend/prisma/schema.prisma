@@ -42,6 +42,7 @@ model Product {
 
   licenses License[]
 
+  @@index([category])
   @@map("products")
 }
 
@@ -59,7 +60,9 @@ model Template {
   downloads     Int      @default(0)
   downloadUrl   String?  @map("download_url")
   createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
+  @@index([category])
   @@map("templates")
 }
 
@@ -76,6 +79,7 @@ model Subscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("subscriptions")
 }
 
@@ -88,23 +92,31 @@ model License {
   isActive   Boolean   @default(true) @map("is_active")
   expiresAt  DateTime? @map("expires_at")
   createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([productId])
   @@map("licenses")
 }
 
 // 6. Orders Model
 model Order {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  amount         Int
-  status         String   @default("completed") @db.VarChar(20)
-  paymentGateway String   @default("stripe") @map("payment_gateway") @db.VarChar(50)
-  createdAt      DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  amount            Int
+  commissionPercent Int      @default(10) @map("commission_percent")
+  commissionAmount  Int      @default(0) @map("commission_amount")
+  sellerAmount      Int      @default(0) @map("seller_amount")
+  status            String   @default("completed") @db.VarChar(20)
+  paymentGateway    String   @default("stripe") @map("payment_gateway") @db.VarChar(50)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("orders")
 }

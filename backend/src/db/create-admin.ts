@@ -13,8 +13,8 @@ async function main() {
   const password = process.env.ADMIN_SEED_PASSWORD || 'admin1234';
   const name = 'System Administrator';
 
-  // Hash password
-  const salt = await bcrypt.genSalt(10);
+  // Hash password with bcrypt cost 12 (Rule 5.3)
+  const salt = await bcrypt.genSalt(12);
   const hashedPassword = await bcrypt.hash(password, salt);
 
   for (const email of emails) {

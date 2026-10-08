@@ -62,18 +62,31 @@ export class ProductsService {
     const product = await this.findOne(productId);
 
     const licenseKey = `DF-${crypto.randomBytes(4).toString('hex').toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-    const newLicense = await this.repo.createLicense({
+    // Rule 7.1-7.4: Server-calculated integer commission & order snapshot in single transaction
+    const commissionPercent = 10;
+    const commissionAmount = Math.round(
+      (product.price * commissionPercent) / 100,
+    );
+    const sellerAmount = product.price - commissionAmount;
+
+    const { license, order } = await this.repo.createPurchaseTransaction({
       userId,
       productId,
       licenseKey,
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      expiresAt,
+      amount: product.price,
+      commissionPercent,
+      commissionAmount,
+      sellerAmount,
     });
 
     return {
       message: 'Purchase completed successfully',
       product,
-      license: newLicense,
+      license,
+      order,
     };
   }
 

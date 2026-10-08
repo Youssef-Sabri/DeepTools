@@ -398,7 +398,7 @@ export default function AdminDashboardPage() {
                   <button
                     onClick={() => {
                       setEditingProduct(null)
-                      setProductForm({ name: '', description: '', category: 'aiAgents', price: 4900, version: '1.0.0', badge: '', downloadUrl: '' })
+                      setProductForm({ name: '', nameAr: '', description: '', descriptionAr: '', category: 'aiAgents', price: 4900, version: '1.0.0', badge: '', badgeAr: '', downloadUrl: '' })
                       setShowProductModal(true)
                     }}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-cyan to-accent-violet hover:shadow-glow-cyan"

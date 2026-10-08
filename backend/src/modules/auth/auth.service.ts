@@ -18,27 +18,25 @@ export class AuthService {
   constructor(private readonly repo: AuthRepository = authRepository) {}
 
   async register(data: RegisterInput) {
-    const { email, password, name, role } = data;
+    const { email, password, name } = data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // 1. Check if user already exists
-    const existingUser = await this.repo.findByEmail(email);
+    const existingUser = await this.repo.findByEmail(normalizedEmail);
     if (existingUser) {
       throw new ConflictError('Email already registered');
     }
 
-    // 2. Hash password
-    const salt = await bcrypt.genSalt(10);
+    // 2. Hash password with bcrypt cost 12 (Rule 5.3)
+    const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. First user gets admin automatically
-    const totalUsers = await this.repo.countUsers();
-    const userRole = totalUsers === 0 ? 'admin' : role || 'user';
-
+    // 3. Client can never choose role; public registration is strictly 'user' (Rule 5.1)
     const newUser = await this.repo.createUser({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
-      role: userRole,
+      role: 'user',
     });
 
     // 4. Generate token
@@ -52,9 +50,10 @@ export class AuthService {
 
   async login(data: LoginInput) {
     const { email, password } = data;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // 1. Find user
-    const user = await this.repo.findByEmail(email);
+    // 1. Find user (lowercase email normalization, Rule 6)
+    const user = await this.repo.findByEmail(normalizedEmail);
     if (!user) {
       throw new UnauthorizedError('Invalid email or password');
     }
@@ -81,9 +80,10 @@ export class AuthService {
 
   async forgotPassword(data: ForgotPasswordInput) {
     const { email } = data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // 1. Find user
-    const user = await this.repo.findByEmail(email);
+    const user = await this.repo.findByEmail(normalizedEmail);
 
     // Always return success to prevent email enumeration
     if (!user) {

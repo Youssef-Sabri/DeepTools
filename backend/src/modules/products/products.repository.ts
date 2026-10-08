@@ -66,6 +66,42 @@ export class ProductsRepository {
     });
   }
 
+  async createPurchaseTransaction(data: {
+    userId: string;
+    productId: string;
+    licenseKey: string;
+    expiresAt: Date;
+    amount: number;
+    commissionPercent: number;
+    commissionAmount: number;
+    sellerAmount: number;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const license = await tx.license.create({
+        data: {
+          userId: data.userId,
+          productId: data.productId,
+          licenseKey: data.licenseKey,
+          expiresAt: data.expiresAt,
+        },
+      });
+
+      const order = await tx.order.create({
+        data: {
+          userId: data.userId,
+          amount: data.amount,
+          commissionPercent: data.commissionPercent,
+          commissionAmount: data.commissionAmount,
+          sellerAmount: data.sellerAmount,
+          status: 'completed',
+          paymentGateway: 'stripe',
+        },
+      });
+
+      return { license, order };
+    });
+  }
+
   async findUserLicenses(userId: string) {
     const list = await prisma.license.findMany({
       where: { userId },

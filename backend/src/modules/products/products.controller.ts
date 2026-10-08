@@ -9,7 +9,7 @@ export class ProductsController {
     const lang =
       (req.query.lang as string) || (req.headers['accept-language'] as string);
     const products = await this.service.findAll(lang);
-    res.status(200).json(products);
+    res.status(200).json({ success: true, data: products });
   };
 
   getOne = async (req: Request, res: Response): Promise<void> => {
@@ -17,14 +17,14 @@ export class ProductsController {
     const lang =
       (req.query.lang as string) || (req.headers['accept-language'] as string);
     const product = await this.service.findOne(id, lang);
-    res.status(200).json(product);
+    res.status(200).json({ success: true, data: product });
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
     const newProduct = await this.service.create(
       req.body as CreateProductInput,
     );
-    res.status(201).json(newProduct);
+    res.status(201).json({ success: true, data: newProduct });
   };
 
   update = async (req: Request, res: Response): Promise<void> => {
@@ -33,26 +33,26 @@ export class ProductsController {
       id,
       req.body as UpdateProductInput,
     );
-    res.status(200).json(updated);
+    res.status(200).json({ success: true, data: updated });
   };
 
   remove = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const result = await this.service.remove(id);
-    res.status(200).json(result);
+    res.status(200).json({ success: true, data: result });
   };
 
   purchase = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const userId = req.user!.id;
     const result = await this.service.purchase(userId, id);
-    res.status(201).json(result);
+    res.status(201).json({ success: true, data: result });
   };
 
   getMyLicenses = async (req: Request, res: Response): Promise<void> => {
     const userId = req.user!.id;
     const licenses = await this.service.findUserLicenses(userId);
-    res.status(200).json(licenses);
+    res.status(200).json({ success: true, data: licenses });
   };
 }
 

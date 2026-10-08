@@ -1,0 +1,25 @@
+/* eslint-disable @typescript-eslint/no-namespace */
+import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
+
+declare global {
+  namespace Express {
+    interface Request {
+      id?: string;
+    }
+  }
+}
+
+/**
+ * Middleware that assigns a unique request ID to each incoming request (Section 9)
+ */
+export const requestIdMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  const requestId = (req.headers['x-request-id'] as string) || randomUUID();
+  req.id = requestId;
+  res.setHeader('X-Request-Id', requestId);
+  next();
+};

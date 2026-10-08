@@ -21,15 +21,23 @@ export const errorMiddleware = (
         ? err.status
         : 500;
 
-  const message = err.message || 'Internal Server Error';
+  // Sanitize 500 message to prevent leaking internal database / system details (Section 4, 9)
+  const message =
+    statusCode === 500
+      ? 'Internal Server Error'
+      : err.message || 'Error occurred';
 
   if (statusCode === 500) {
-    console.error(`[Error] ${req.method} ${req.url}:`, err);
+    console.error(
+      `[Error ${req.id || 'unknown'}] ${req.method} ${req.originalUrl}:`,
+      err,
+    );
   }
 
   res.status(statusCode).json({
+    success: false,
     statusCode,
     message,
-    ...(err.errors ? { errors: err.errors } : {}),
+    errors: err.errors || [],
   });
 };
