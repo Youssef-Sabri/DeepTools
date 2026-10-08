@@ -1,15 +1,26 @@
 import { Router } from 'express';
 import { productsController } from './products.controller';
 import { authenticate, requireRole } from '../../middleware/auth.middleware';
-import { validateBody } from '../../middleware/validation.middleware';
+import {
+  validateBody,
+  validateQuery,
+} from '../../middleware/validation.middleware';
 import { authRateLimiter } from '../../middleware/rateLimit.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { createProductSchema, updateProductSchema } from './products.validator';
+import {
+  createProductSchema,
+  updateProductSchema,
+  listPublicProductsQuerySchema,
+} from './products.validator';
 
 const router = Router();
 
 // Public route to list products
-router.get('/', asyncHandler(productsController.getAll));
+router.get(
+  '/',
+  validateQuery(listPublicProductsQuerySchema),
+  asyncHandler(productsController.getAll),
+);
 
 // Authenticated route for user licenses - MUST be defined before /:id
 router.get(

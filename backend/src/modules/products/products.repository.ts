@@ -1,13 +1,74 @@
 import { prisma } from '../../config/database';
+import { Prisma } from '@prisma/client';
 
 export class ProductsRepository {
-  async findAll() {
-    return prisma.product.findMany();
+  async findAll(params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    status?: string;
+  }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+    const status = params?.status || 'approved';
+
+    const where: Prisma.ProductWhereInput = {
+      ...(status !== 'all' ? { status } : {}),
+      ...(params?.category ? { category: params.category } : {}),
+      ...(params?.search
+        ? {
+            OR: [
+              { name: { contains: params.search, mode: 'insensitive' } },
+              { nameAr: { contains: params.search, mode: 'insensitive' } },
+              { description: { contains: params.search, mode: 'insensitive' } },
+              {
+                descriptionAr: {
+                  contains: params.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
-  async findById(id: string) {
-    return prisma.product.findUnique({
-      where: { id },
+  async findById(id: string, status: string = 'approved') {
+    return prisma.product.findFirst({
+      where: {
+        id,
+        ...(status ? { status } : {}),
+      },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   }
 

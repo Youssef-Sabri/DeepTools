@@ -147,6 +147,11 @@ export const ProductSchema = registry.register(
       .nullable()
       .optional()
       .openapi({ example: 'Popular' }),
+    sellerId: z
+      .string()
+      .uuid()
+      .openapi({ example: 'b2d8e34a-9c71-4621-b3f8-2c286d9a1f2e' }),
+    sellerName: z.string().openapi({ example: 'Verified Seller' }),
     createdAt: z
       .string()
       .datetime()
@@ -155,6 +160,17 @@ export const ProductSchema = registry.register(
       .string()
       .datetime()
       .openapi({ example: '2026-10-08T10:00:00.000Z' }),
+  }),
+);
+
+export const PaginatedProductsSchema = registry.register(
+  'PaginatedProducts',
+  z.object({
+    items: z.array(ProductSchema),
+    total: z.number().int().openapi({ example: 42 }),
+    page: z.number().int().openapi({ example: 1 }),
+    limit: z.number().int().openapi({ example: 20 }),
+    totalPages: z.number().int().openapi({ example: 3 }),
   }),
 );
 

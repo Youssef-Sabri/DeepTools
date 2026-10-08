@@ -18,3 +18,21 @@ export const validateBody = (schema: ZodSchema) => {
     }
   };
 };
+
+export const validateQuery = (schema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = schema.parse(req.query);
+      req.query = parsed as Request['query'];
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const message = error.issues
+          .map((i) => `${i.path.join('.') || 'query'}: ${i.message}`)
+          .join(', ');
+        return next(new ValidationError(message, error.issues));
+      }
+      next(error);
+    }
+  };
+};

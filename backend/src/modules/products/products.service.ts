@@ -1,40 +1,123 @@
 import crypto from 'crypto';
 import { productsRepository, ProductsRepository } from './products.repository';
 import { NotFoundError } from '../../utils/apiError';
-import { CreateProductInput, UpdateProductInput } from './products.validator';
+import {
+  CreateProductInput,
+  UpdateProductInput,
+  ListPublicProductsQuery,
+} from './products.validator';
 import { Product } from '@prisma/client';
 
-export interface LocalizedProduct extends Product {
+export type ProductWithSeller = Product & {
+  seller?: { id: string; name: string } | null;
+};
+
+export interface PublicProduct {
+  id: string;
+  name: string;
+  nameAr: string | null;
+  description: string;
+  descriptionAr: string | null;
+  category: string;
+  price: number;
+  version: string;
+  badge: string | null;
+  badgeAr: string | null;
+  downloadUrl?: string | null;
   displayName: string;
   displayDescription: string;
   displayBadge: string | null;
+  sellerId: string;
+  sellerName: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaginatedPublicProducts {
+  items: PublicProduct[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export class ProductsService {
   constructor(private readonly repo: ProductsRepository = productsRepository) {}
 
-  private formatProduct(p: Product, lang?: string): LocalizedProduct {
+  /**
+   * Format product for public consumption:
+   * - Localizes text based on lang (en or ar)
+   * - Strips private fileKey and internal fields
+   * - Exposes seller as { sellerId, sellerName }
+   */
+  private formatPublicProduct(
+    p: ProductWithSeller,
+    lang?: string,
+  ): PublicProduct {
     const isAr = lang?.toLowerCase().startsWith('ar');
     return {
-      ...p,
+      id: p.id,
+      name: p.name,
+      nameAr: p.nameAr,
+      description: p.description,
+      descriptionAr: p.descriptionAr,
+      category: p.category,
+      price: p.price,
+      version: p.version,
+      badge: p.badge,
+      badgeAr: p.badgeAr,
+      downloadUrl: p.downloadUrl,
       displayName: isAr && p.nameAr ? p.nameAr : p.name,
       displayDescription:
         isAr && p.descriptionAr ? p.descriptionAr : p.description,
       displayBadge: isAr && p.badgeAr ? p.badgeAr : p.badge,
+      sellerId: p.sellerId,
+      sellerName: p.seller?.name || 'Verified Seller',
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
     };
   }
 
-  async findAll(lang?: string): Promise<LocalizedProduct[]> {
-    const list = await this.repo.findAll();
-    return list.map((p) => this.formatProduct(p, lang));
+  /**
+   * List approved products with pagination, search, category filtering, and localization.
+   */
+  async findAll(
+    query: ListPublicProductsQuery = { page: 1, limit: 20 },
+  ): Promise<PaginatedPublicProducts> {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+
+    const { items, total } = await this.repo.findAll({
+      page,
+      limit,
+      category: query.category,
+      search: query.search,
+      status: 'approved',
+    });
+
+    return {
+      items: items.map((p) => this.formatPublicProduct(p, query.lang)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
-  async findOne(id: string, lang?: string): Promise<LocalizedProduct> {
-    const product = await this.repo.findById(id);
+  /**
+   * Retrieve a single approved product by ID.
+   * Unapproved products return 404.
+   */
+  async findOne(
+    id: string,
+    lang?: string,
+    status: string = 'approved',
+  ): Promise<PublicProduct> {
+    const product = await this.repo.findById(id, status);
     if (!product) {
       throw new NotFoundError('Product not found');
     }
-    return this.formatProduct(product, lang);
+    return this.formatPublicProduct(product, lang);
   }
 
   async create(data: CreateProductInput, sellerId: string) {
@@ -45,16 +128,23 @@ export class ProductsService {
       descriptionAr: data.descriptionAr ?? null,
       badge: data.badge ?? null,
       badgeAr: data.badgeAr ?? null,
+      status: 'approved',
     });
   }
 
   async update(id: string, data: UpdateProductInput) {
-    await this.findOne(id);
+    const existing = await this.repo.findById(id, '');
+    if (!existing) {
+      throw new NotFoundError('Product not found');
+    }
     return this.repo.update(id, data);
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    const existing = await this.repo.findById(id, '');
+    if (!existing) {
+      throw new NotFoundError('Product not found');
+    }
     await this.repo.delete(id);
     return { message: 'Product deleted successfully' };
   }

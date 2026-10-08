@@ -1,22 +1,25 @@
 import { Request, Response } from 'express';
 import { productsService, ProductsService } from './products.service';
-import { CreateProductInput, UpdateProductInput } from './products.validator';
+import {
+  CreateProductInput,
+  UpdateProductInput,
+  listPublicProductsQuerySchema,
+} from './products.validator';
 
 export class ProductsController {
   constructor(private readonly service: ProductsService = productsService) {}
 
   getAll = async (req: Request, res: Response): Promise<void> => {
-    const lang =
-      (req.query.lang as string) || (req.headers['accept-language'] as string);
-    const products = await this.service.findAll(lang);
-    res.status(200).json({ success: true, data: products });
+    const query = listPublicProductsQuerySchema.parse(req.query);
+    const result = await this.service.findAll(query);
+    res.status(200).json({ success: true, data: result });
   };
 
   getOne = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const lang =
       (req.query.lang as string) || (req.headers['accept-language'] as string);
-    const product = await this.service.findOne(id, lang);
+    const product = await this.service.findOne(id, lang, 'approved');
     res.status(200).json({ success: true, data: product });
   };
 

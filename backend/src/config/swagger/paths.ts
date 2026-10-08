@@ -9,6 +9,7 @@ import {
   AuthResponseSchema,
   UserSchema,
   ProductSchema,
+  PaginatedProductsSchema,
   CreateProductInputDocs,
   UpdateProductInputDocs,
   TemplateSchema,
@@ -204,15 +205,25 @@ registry.registerPath({
   method: 'get',
   path: '/products',
   tags: ['Products'],
-  summary: 'Retrieve all digital products',
+  summary:
+    'List approved digital products (paginated, with search and category filtering)',
   request: {
-    query: z.object({ lang: LangQueryParam }),
+    query: z.object({
+      page: z.coerce.number().optional().openapi({ example: 1 }),
+      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      category: z
+        .enum(['workflow', 'script', 'code', 'agentic'])
+        .optional()
+        .openapi({ example: 'code' }),
+      search: z.string().optional().openapi({ example: 'ai' }),
+      lang: LangQueryParam,
+    }),
   },
   responses: {
     200: {
-      description: 'List of products with localized fields',
+      description: 'Paginated list of approved products with localized fields',
       content: {
-        'application/json': { schema: envelope(z.array(ProductSchema)) },
+        'application/json': { schema: envelope(PaginatedProductsSchema) },
       },
     },
   },
