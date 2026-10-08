@@ -66,6 +66,14 @@ export class AdminController {
       data: result,
     });
   };
+
+  getMarketplaceInsights = async (
+    _req: Request,
+    res: Response,
+  ): Promise<void> => {
+    const data = await this.service.getMarketplaceInsights();
+    res.status(200).json({ success: true, data });
+  };
 }
 
 export const adminController = new AdminController();

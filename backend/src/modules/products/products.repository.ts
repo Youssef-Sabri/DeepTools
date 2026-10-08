@@ -165,6 +165,7 @@ export class ProductsRepository {
       const order = await tx.order.create({
         data: {
           userId: data.userId,
+          productId: data.productId,
           amount: data.amount,
           commissionPercent: data.commissionPercent,
           commissionAmount: data.commissionAmount,

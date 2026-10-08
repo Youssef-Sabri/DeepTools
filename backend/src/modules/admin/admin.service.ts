@@ -115,6 +115,13 @@ export class AdminService {
 
     return updated;
   }
+
+  /**
+   * Platform-wide marketplace metrics (uploads, orders, revenue, payouts, sellers, top products)
+   */
+  async getMarketplaceInsights() {
+    return await this.repo.getMarketplaceInsights();
+  }
 }
 
 export const adminService = new AdminService();

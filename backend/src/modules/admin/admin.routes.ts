@@ -55,4 +55,10 @@ router.patch(
 // System settings management
 router.use('/settings', settingsRoutes);
 
+// Platform marketplace insights
+router.get(
+  '/insights/marketplace',
+  asyncHandler(adminController.getMarketplaceInsights),
+);
+
 export default router;

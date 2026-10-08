@@ -555,3 +555,86 @@ export const UpdateCommissionInputDocs = registry.register(
     })
     .openapi({ description: 'Commission percentage update payload' }),
 );
+
+// 10. Orders & Sales Schemas
+export const BuyerOrderItemSchema = registry.register(
+  'BuyerOrderItem',
+  z.object({
+    id: z.string().uuid(),
+    amount: z.number().int().openapi({ example: 4900 }),
+    status: z.string().openapi({ example: 'completed' }),
+    paymentGateway: z.string().openapi({ example: 'simulated' }),
+    createdAt: z.string().datetime(),
+    product: z
+      .object({
+        id: z.string().uuid(),
+        name: z.string().openapi({ example: 'Next.js Boilerplate' }),
+        nameAr: z.string().nullable().optional(),
+        category: z.string().openapi({ example: 'code' }),
+        price: z.number().int().openapi({ example: 4900 }),
+      })
+      .nullable()
+      .optional(),
+  }),
+);
+
+export const BuyerOrdersResponseSchema = registry.register(
+  'BuyerOrdersResponse',
+  z.object({
+    orders: z.array(BuyerOrderItemSchema),
+    total: z.number().int().openapi({ example: 3 }),
+  }),
+);
+
+export const SellerSaleItemSchema = registry.register(
+  'SellerSaleItem',
+  z.object({
+    orderId: z.string().uuid(),
+    productId: z.string().uuid(),
+    productName: z.string().openapi({ example: 'QueryOptimizer AI' }),
+    productNameAr: z.string().nullable().optional(),
+    amount: z.number().int().openapi({ example: 4900 }),
+    commissionPercent: z.number().int().openapi({ example: 10 }),
+    commissionAmount: z.number().int().openapi({ example: 490 }),
+    sellerAmount: z.number().int().openapi({ example: 4410 }),
+    createdAt: z.string().datetime(),
+  }),
+);
+
+export const SellerSalesResponseSchema = registry.register(
+  'SellerSalesResponse',
+  z.object({
+    sales: z.array(SellerSaleItemSchema),
+    totalSales: z.number().int().openapi({ example: 12 }),
+    totalSellerEarnings: z.number().int().openapi({ example: 52920 }),
+  }),
+);
+
+// 11. Admin Marketplace Insights Schema
+export const MarketplaceInsightsSchema = registry.register(
+  'MarketplaceInsights',
+  z.object({
+    uploads: z.object({
+      total: z.number().int().openapi({ example: 100 }),
+      pending: z.number().int().openapi({ example: 12 }),
+      approved: z.number().int().openapi({ example: 75 }),
+      rejected: z.number().int().openapi({ example: 13 }),
+    }),
+    orders: z.object({
+      total: z.number().int().openapi({ example: 342 }),
+      totalRevenue: z.number().int().openapi({ example: 1670000 }),
+      totalCommission: z.number().int().openapi({ example: 167000 }),
+      totalSellerPayouts: z.number().int().openapi({ example: 1503000 }),
+    }),
+    sellers: z.object({
+      total: z.number().int().openapi({ example: 28 }),
+    }),
+    topProducts: z.array(
+      z.object({
+        productId: z.string().uuid(),
+        productName: z.string().openapi({ example: 'Next.js Boilerplate' }),
+        salesCount: z.number().int().openapi({ example: 45 }),
+      }),
+    ),
+  }),
+);

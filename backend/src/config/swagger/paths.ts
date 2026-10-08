@@ -29,6 +29,9 @@ import {
   PaginatedAdminUploadsSchema,
   CommissionResponseSchema,
   UpdateCommissionInputDocs,
+  BuyerOrdersResponseSchema,
+  SellerSalesResponseSchema,
+  MarketplaceInsightsSchema,
 } from './schemas';
 
 const LangQueryParam = z
@@ -1125,6 +1128,82 @@ registry.registerPath({
     422: {
       description:
         'Validation failed (commissionPercent not an integer between 0 and 100)',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 9. Orders & Sales Endpoints
+// ==========================================
+registry.registerPath({
+  method: 'get',
+  path: '/orders/mine',
+  tags: ['Orders'],
+  summary: 'List own order purchase history (as buyer)',
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Buyer purchases retrieved successfully',
+      content: {
+        'application/json': {
+          schema: envelope(BuyerOrdersResponseSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/orders/sales',
+  tags: ['Orders'],
+  summary: 'List own product sales history and net earnings (as seller)',
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Seller sales history and net earnings retrieved',
+      content: {
+        'application/json': {
+          schema: envelope(SellerSalesResponseSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 10. Admin Insights Endpoints
+// ==========================================
+registry.registerPath({
+  method: 'get',
+  path: '/admin/insights/marketplace',
+  tags: ['Admin'],
+  summary: 'Platform-wide marketplace metrics and insights (Admin only)',
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Marketplace dashboard metrics retrieved successfully',
+      content: {
+        'application/json': {
+          schema: envelope(MarketplaceInsightsSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
   },

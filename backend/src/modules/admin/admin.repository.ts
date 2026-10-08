@@ -140,6 +140,92 @@ export class AdminRepository {
       },
     });
   }
+
+  /**
+   * Aggregate marketplace-wide insights across uploads, orders, revenue, sellers, and top products
+   */
+  async getMarketplaceInsights() {
+    const [
+      totalUploads,
+      pendingUploads,
+      approvedUploads,
+      rejectedUploads,
+      orderAggregates,
+      totalOrders,
+      distinctSellers,
+      topProductOrders,
+    ] = await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { status: 'pending' } }),
+      prisma.product.count({ where: { status: 'approved' } }),
+      prisma.product.count({ where: { status: 'rejected' } }),
+      prisma.order.aggregate({
+        _sum: {
+          amount: true,
+          commissionAmount: true,
+          sellerAmount: true,
+        },
+      }),
+      prisma.order.count(),
+      prisma.product.groupBy({
+        by: ['sellerId'],
+      }),
+      prisma.order.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { not: null },
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: 'desc',
+          },
+        },
+        take: 10,
+      }),
+    ]);
+
+    const productIds = topProductOrders
+      .map((t) => t.productId)
+      .filter((id): id is string => Boolean(id));
+
+    const products =
+      productIds.length > 0
+        ? await prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+    const productMap = new Map(products.map((p) => [p.id, p.name]));
+
+    const topProducts = topProductOrders.map((t) => ({
+      productId: t.productId ?? '',
+      productName: productMap.get(t.productId ?? '') ?? 'Unknown Product',
+      salesCount: t._count.id,
+    }));
+
+    return {
+      uploads: {
+        total: totalUploads,
+        pending: pendingUploads,
+        approved: approvedUploads,
+        rejected: rejectedUploads,
+      },
+      orders: {
+        total: totalOrders,
+        totalRevenue: orderAggregates._sum.amount ?? 0,
+        totalCommission: orderAggregates._sum.commissionAmount ?? 0,
+        totalSellerPayouts: orderAggregates._sum.sellerAmount ?? 0,
+      },
+      sellers: {
+        total: distinctSellers.length,
+      },
+      topProducts,
+    };
+  }
 }
 
 export const adminRepository = new AdminRepository();
