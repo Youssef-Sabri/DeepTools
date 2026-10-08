@@ -524,3 +524,34 @@ export const PaginatedAdminUploadsSchema = registry.register(
     totalPages: z.number().int().openapi({ example: 2 }),
   }),
 );
+
+// 9. Commission Settings Schemas
+export const CommissionResponseSchema = registry.register(
+  'CommissionResponse',
+  z.object({
+    commissionPercent: z
+      .number()
+      .int()
+      .min(0)
+      .max(100)
+      .openapi({ example: 10 }),
+    updatedAt: z
+      .string()
+      .datetime()
+      .optional()
+      .openapi({ example: '2026-10-08T12:00:00.000Z' }),
+  }),
+);
+
+export const UpdateCommissionInputDocs = registry.register(
+  'UpdateCommissionInput',
+  z
+    .object({
+      commissionPercent: z.number().int().min(0).max(100).openapi({
+        example: 15,
+        description:
+          'Marketplace platform commission percentage (integer 0-100)',
+      }),
+    })
+    .openapi({ description: 'Commission percentage update payload' }),
+);

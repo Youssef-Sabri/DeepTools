@@ -27,6 +27,8 @@ import {
   RejectUploadInputDocs,
   AdminUploadDetailSchema,
   PaginatedAdminUploadsSchema,
+  CommissionResponseSchema,
+  UpdateCommissionInputDocs,
 } from './schemas';
 
 const LangQueryParam = z
@@ -996,6 +998,82 @@ registry.registerPath({
     },
     404: {
       description: 'Upload not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 8. Admin Settings Endpoints
+// ==========================================
+registry.registerPath({
+  method: 'get',
+  path: '/admin/settings/commission',
+  tags: ['Admin'],
+  summary:
+    'Get current marketplace platform commission percentage (Admin only)',
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Current commission settings retrieved',
+      content: {
+        'application/json': {
+          schema: envelope(CommissionResponseSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/admin/settings/commission',
+  tags: ['Admin'],
+  summary: 'Update marketplace platform commission percentage (Admin only)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateCommissionInputDocs,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Commission percentage updated successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            message: z.string().openapi({
+              example: 'Commission percentage updated successfully',
+            }),
+            data: CommissionResponseSchema,
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    422: {
+      description:
+        'Validation failed (commissionPercent not an integer between 0 and 100)',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
   },

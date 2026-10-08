@@ -11,6 +11,7 @@ import {
   rejectUploadSchema,
   listAdminUploadsQuerySchema,
 } from './admin.validator';
+import settingsRoutes from '../settings/settings.routes';
 
 const router = Router();
 
@@ -50,5 +51,8 @@ router.patch(
   validateBody(rejectUploadSchema),
   asyncHandler(adminController.rejectUpload),
 );
+
+// System settings management
+router.use('/settings', settingsRoutes);
 
 export default router;
