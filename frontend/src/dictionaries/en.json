@@ -1,0 +1,583 @@
+{
+  "metadata": {
+    "siteName": "DeepTools",
+    "siteDescription": "Advanced Digital Products & Intelligent Tools",
+    "siteTagline": "Advanced Digital Products & Intelligent Tools"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "templates": "Templates",
+    "products": "Products",
+    "pricing": "Pricing",
+    "journal": "Journal",
+    "contact": "Contact",
+    "login": "Sign In",
+    "register": "Sign Up",
+    "dashboard": "Dashboard",
+    "getStarted": "Get Started",
+    "switchLanguage": "العربية"
+  },
+  "hero": {
+    "badge": "Advanced Digital Products & Intelligent Tools",
+    "title": "Transform Your Workflows",
+    "titleHighlight": "With DeepTools",
+    "description": "Supercharge your digital productivity with intelligent automation, AI-powered tools, and advanced products built for modern professionals.",
+    "cta": "Explore Solutions",
+    "ctaSecondary": "View Pricing",
+    "stats": {
+      "products": "50+",
+      "productsLabel": "Intelligent Tools",
+      "users": "10K+",
+      "usersLabel": "Active Users",
+      "uptime": "99.9%",
+      "uptimeLabel": "Uptime",
+      "support": "24/7",
+      "supportLabel": "Support"
+    }
+  },
+  "features": {
+    "title": "Why DeepTools?",
+    "subtitle": "Built by experts, powered by cutting-edge AI and intelligent engineering",
+    "items": [
+      {
+        "title": "AI-Powered Agents",
+        "description": "Intelligent agents that automate complex database tasks, monitoring, optimization, and maintenance with zero manual intervention."
+      },
+      {
+        "title": "Database Utilities",
+        "description": "Professional-grade tools for PostgreSQL, SQL Server, Oracle, and MySQL. Performance tuning, backup automation, and migration assistance."
+      },
+      {
+        "title": "Workflow Automation",
+        "description": "Pre-built automation templates for ETL pipelines, data cleaning, monitoring alerts, and deployment workflows."
+      },
+      {
+        "title": "Enterprise Solutions",
+        "description": "Scalable solutions for enterprise teams including team licensing, custom development, priority support, and dedicated infrastructure."
+      },
+      {
+        "title": "Data Analytics",
+        "description": "Advanced analytics dashboards, reporting tools, and BI integrations that transform raw data into actionable insights."
+      },
+      {
+        "title": "Security First",
+        "description": "Enterprise-grade security with role-based access control, audit logging, encryption at rest, and compliance-ready features."
+      }
+    ]
+  },
+  "products": {
+    "title": "Digital Products",
+    "subtitle": "Tools designed for modern database professionals",
+    "viewAll": "View All Products",
+    "categories": {
+      "all": "All",
+      "aiAgents": "AI Agents",
+      "utilities": "Utilities",
+      "scripts": "SQL Scripts",
+      "templates": "Templates",
+      "dashboards": "Dashboards"
+    },
+    "items": [
+      {
+        "name": "QueryOptimizer AI",
+        "description": "AI agent that automatically analyzes and optimizes slow SQL queries across PostgreSQL & SQL Server.",
+        "category": "AI Agents",
+        "price": "$49/mo",
+        "badge": "Popular"
+      },
+      {
+        "name": "DBGuard Monitor",
+        "description": "Real-time database monitoring with intelligent alerting, anomaly detection, and performance insights.",
+        "category": "Utilities",
+        "price": "$29/mo",
+        "badge": "New"
+      },
+      {
+        "name": "MigrateFlow",
+        "description": "Seamless database migration tool supporting cross-platform transfers with zero downtime.",
+        "category": "Utilities",
+        "price": "$39/mo",
+        "badge": ""
+      },
+      {
+        "name": "DataClean Pro",
+        "description": "Automated data quality tool with AI-powered deduplication, validation, and standardization.",
+        "category": "AI Agents",
+        "price": "$35/mo",
+        "badge": ""
+      },
+      {
+        "name": "SQL Script Library",
+        "description": "500+ production-ready SQL scripts for DBA tasks, performance tuning, and maintenance.",
+        "category": "SQL Scripts",
+        "price": "$19/mo",
+        "badge": ""
+      },
+      {
+        "name": "ETL Pipeline Builder",
+        "description": "Visual ETL pipeline designer with pre-built connectors for 50+ data sources.",
+        "category": "Templates",
+        "price": "$59/mo",
+        "badge": "Featured"
+      }
+    ],
+    "learnMore": "Learn More",
+    "buyNow": "Buy Now"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that fits your needs. Upgrade or downgrade at any time.",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "annualDiscount": "Save 20%",
+    "popular": "Most Popular",
+    "getStarted": "Get Started",
+    "contactSales": "Contact Sales",
+    "currentPlan": "Current Plan",
+    "features": "Features",
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "items": [
+        {
+          "question": "Can I switch plans at any time?",
+          "answer": "Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle."
+        },
+        {
+          "question": "Is there a free trial?",
+          "answer": "Yes! Our Free plan gives you access to basic features with no time limit. You can upgrade to Professional or Enterprise whenever you're ready."
+        },
+        {
+          "question": "What payment methods do you accept?",
+          "answer": "We accept all major credit cards, PayPal, and bank transfers for Enterprise plans."
+        },
+        {
+          "question": "Do you offer refunds?",
+          "answer": "Yes, we offer a 30-day money-back guarantee on all paid plans. No questions asked."
+        }
+      ]
+    },
+    "plans": [
+      {
+        "name": "Free",
+        "price": "$0",
+        "period": "/month",
+        "description": "Perfect for getting started",
+        "features": [
+          "5 Downloads per month",
+          "Community Access",
+          "Basic Documentation",
+          "Email Support",
+          "1 Project"
+        ]
+      },
+      {
+        "name": "Professional",
+        "price": "$49",
+        "period": "/month",
+        "description": "For serious database professionals",
+        "features": [
+          "Unlimited Downloads",
+          "All Premium Templates",
+          "Priority Product Updates",
+          "Priority Email Support",
+          "10 Projects",
+          "API Access",
+          "Advanced Analytics"
+        ]
+      },
+      {
+        "name": "Enterprise",
+        "price": "$199",
+        "period": "/month",
+        "description": "For teams and organizations",
+        "features": [
+          "Everything in Professional",
+          "Unlimited Projects",
+          "Team Licensing (up to 50)",
+          "Custom Development",
+          "Dedicated Support Manager",
+          "SLA Guarantee",
+          "On-premise Deployment",
+          "Custom Integrations"
+        ]
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Trusted by Professionals",
+    "subtitle": "See what our customers say about DeepTools",
+    "items": [
+      {
+        "name": "Sarah Chen",
+        "role": "Senior Engineer, TechCorp",
+        "text": "DeepTools has completely transformed how we manage our digital workflows. The AI optimization agent alone saved us 40% on cloud costs.",
+        "rating": 5
+      },
+      {
+        "name": "Ahmed Hassan",
+        "role": "Data Engineer, MedData Inc",
+        "text": "The workflow automation templates are a game-changer. What used to take days now takes minutes. Absolutely essential for any data team.",
+        "rating": 5
+      },
+      {
+        "name": "Maria Rodriguez",
+        "role": "CTO, DataStream",
+        "text": "We evaluated several solutions before choosing DeepTools. The enterprise features, security, and support are unmatched in the industry.",
+        "rating": 5
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to Transform Your Digital Workflows?",
+    "description": "Join thousands of professionals who are already using DeepTools to automate, optimize, and scale their digital operations.",
+    "button": "Start Free Trial",
+    "buttonSecondary": "Schedule a Demo"
+  },
+  "about": {
+    "title": "About DeepTools",
+    "subtitle": "Empowering the world's professionals with intelligent solutions",
+    "story": {
+      "title": "Our Story",
+      "content": "Founded in 2024, DeepTools was born from a simple observation: modern professionals spend too much time on repetitive tasks that could be automated. Our team of experienced engineers, designers, and AI researchers came together to build the tools we wished we had.",
+      "content2": "Today, we serve over 10,000 professionals worldwide, helping them automate complex workflows, optimize performance, and focus on what truly matters — building great products."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "content": "To democratize intelligent automation by providing advanced digital tools that are accessible, reliable, and built for real-world production environments."
+    },
+    "vision": {
+      "title": "Our Vision",
+      "content": "A world where every professional has access to intelligent automation, allowing them to focus on innovation rather than maintenance."
+    },
+    "expertise": {
+      "title": "Our Expertise",
+      "items": ["PostgreSQL", "SQL Server", "Oracle", "MySQL", "MongoDB", "Redis", "Apache Kafka", "Apache Spark", "Kubernetes", "Docker", "Python", "TypeScript"]
+    },
+    "whyChooseUs": {
+      "title": "Why Choose Us",
+      "items": [
+        { "title": "Expert Team", "description": "Built by database professionals with 50+ years of combined experience." },
+        { "title": "Production Ready", "description": "Every tool is battle-tested in production environments handling millions of queries." },
+        { "title": "Open Source First", "description": "We believe in open source. Many of our tools are freely available on GitHub." },
+        { "title": "24/7 Support", "description": "Enterprise customers get round-the-clock support from our expert team." }
+      ]
+    },
+    "industries": {
+      "title": "Industries We Serve",
+      "items": ["Healthcare", "Finance", "E-Commerce", "Telecommunications", "Government", "Education", "Manufacturing", "Media"]
+    }
+  },
+  "templates": {
+    "title": "Workflow Automation Templates",
+    "subtitle": "Pre-built, production-ready automation templates to accelerate your database workflows",
+    "search": "Search templates...",
+    "categories": {
+      "all": "All Templates",
+      "postgresql": "PostgreSQL",
+      "sqlserver": "SQL Server",
+      "backup": "Backup & Recovery",
+      "etl": "ETL Pipelines",
+      "monitoring": "Monitoring",
+      "devops": "DevOps",
+      "ai": "AI & ML",
+      "reporting": "Reporting"
+    },
+    "items": [
+      {
+        "name": "PostgreSQL Auto-Tuner",
+        "description": "Automatically tunes PostgreSQL configuration parameters based on workload patterns and hardware resources.",
+        "category": "postgresql",
+        "compatibility": ["PostgreSQL 14+", "Linux", "Docker"],
+        "version": "2.1.0",
+        "downloads": "2.4K",
+        "price": "Free"
+      },
+      {
+        "name": "SQL Server Backup Orchestrator",
+        "description": "Complete backup automation with full, differential, and log backups. Supports Azure Blob Storage and S3.",
+        "category": "backup",
+        "compatibility": ["SQL Server 2019+", "Windows", "Azure"],
+        "version": "3.0.1",
+        "downloads": "5.1K",
+        "price": "$29"
+      },
+      {
+        "name": "ETL Pipeline Starter Kit",
+        "description": "Production-ready ETL pipeline template with data validation, error handling, and monitoring built-in.",
+        "category": "etl",
+        "compatibility": ["Python 3.10+", "PostgreSQL", "Any OS"],
+        "version": "1.5.0",
+        "downloads": "3.8K",
+        "price": "$19"
+      },
+      {
+        "name": "Real-Time DB Monitor",
+        "description": "Comprehensive monitoring dashboard with Grafana integration, alerting, and performance baselines.",
+        "category": "monitoring",
+        "compatibility": ["PostgreSQL", "MySQL", "Docker", "Grafana"],
+        "version": "2.0.0",
+        "downloads": "4.2K",
+        "price": "Free"
+      },
+      {
+        "name": "CI/CD Database Deployer",
+        "description": "GitOps-style database deployment pipeline with migration management, rollback support, and testing.",
+        "category": "devops",
+        "compatibility": ["GitHub Actions", "PostgreSQL", "SQL Server"],
+        "version": "1.8.0",
+        "downloads": "1.9K",
+        "price": "$39"
+      },
+      {
+        "name": "AI Query Advisor",
+        "description": "ML-powered query analysis template that identifies slow queries and suggests optimizations.",
+        "category": "ai",
+        "compatibility": ["Python 3.10+", "PostgreSQL", "SQL Server"],
+        "version": "1.2.0",
+        "downloads": "2.7K",
+        "price": "$49"
+      },
+      {
+        "name": "Automated Report Generator",
+        "description": "Template for generating scheduled PDF/Excel reports from database queries with email delivery.",
+        "category": "reporting",
+        "compatibility": ["Python 3.10+", "Any Database", "SMTP"],
+        "version": "2.3.0",
+        "downloads": "3.1K",
+        "price": "$24"
+      },
+      {
+        "name": "SQL Server Index Optimizer",
+        "description": "Automatically identifies missing indexes, unused indexes, and index fragmentation issues.",
+        "category": "sqlserver",
+        "compatibility": ["SQL Server 2017+", "Windows"],
+        "version": "1.6.0",
+        "downloads": "2.0K",
+        "price": "Free"
+      }
+    ],
+    "viewDetails": "View Details",
+    "download": "Download",
+    "purchase": "Purchase"
+  },
+  "journal": {
+    "title": "Journal & News",
+    "subtitle": "Insights, tutorials, and updates from our team",
+    "search": "Search articles...",
+    "readMore": "Read More",
+    "readTime": "min read",
+    "categories": {
+      "all": "All",
+      "ai": "AI",
+      "postgresql": "PostgreSQL",
+      "sqlserver": "SQL Server",
+      "automation": "Automation",
+      "tutorials": "Tutorials",
+      "news": "Company News"
+    },
+    "articles": [
+      {
+        "title": "How AI is Revolutionizing Database Administration",
+        "excerpt": "Explore how modern AI agents are transforming the way DBAs work, from automated query optimization to predictive maintenance.",
+        "category": "ai",
+        "date": "2025-12-15",
+        "readTime": "8",
+        "author": "DeepTools Team"
+      },
+      {
+        "title": "PostgreSQL 17: What's New for DBAs",
+        "excerpt": "A comprehensive overview of the latest PostgreSQL 17 features and how they impact database administration workflows.",
+        "category": "postgresql",
+        "date": "2025-12-10",
+        "readTime": "12",
+        "author": "Alex Johnson"
+      },
+      {
+        "title": "Building Production-Ready ETL Pipelines",
+        "excerpt": "Step-by-step guide to creating robust ETL pipelines with error handling, monitoring, and automated recovery.",
+        "category": "tutorials",
+        "date": "2025-12-05",
+        "readTime": "15",
+        "author": "Maria Garcia"
+      },
+      {
+        "title": "DeepTools 2.0 Launch Announcement",
+        "excerpt": "We're excited to announce the launch of DeepTools 2.0 with new AI agents, improved automation templates, and enterprise features.",
+        "category": "news",
+        "date": "2025-11-28",
+        "readTime": "5",
+        "author": "DeepTools Team"
+      },
+      {
+        "title": "SQL Server Performance Tuning with AI",
+        "excerpt": "Learn how to use AI-powered tools to identify and resolve SQL Server performance bottlenecks automatically.",
+        "category": "sqlserver",
+        "date": "2025-11-20",
+        "readTime": "10",
+        "author": "James Wilson"
+      },
+      {
+        "title": "Automating Database Backups: A Complete Guide",
+        "excerpt": "Everything you need to know about automating database backups, from scheduling to cloud storage integration.",
+        "category": "automation",
+        "date": "2025-11-15",
+        "readTime": "11",
+        "author": "Sarah Chen"
+      }
+    ],
+    "newsletter": {
+      "title": "Stay Updated",
+      "description": "Subscribe to our newsletter for the latest articles, product updates, and exclusive offers.",
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe"
+    }
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
+    "form": {
+      "name": "Full Name",
+      "email": "Email Address",
+      "subject": "Subject",
+      "message": "Your Message",
+      "submit": "Send Message",
+      "sending": "Sending...",
+      "success": "Message sent successfully!",
+      "error": "Failed to send message. Please try again."
+    },
+    "info": {
+      "title": "Contact Information",
+      "email": "support@deeptools.ai",
+      "whatsapp": "+1 (555) 123-4567",
+      "address": "San Francisco, CA, USA"
+    },
+    "social": {
+      "title": "Follow Us",
+      "github": "GitHub",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "whatsapp": "WhatsApp"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "items": [
+        {
+          "question": "How quickly do you respond?",
+          "answer": "We typically respond within 24 hours on business days. Enterprise customers receive priority support with response times under 4 hours."
+        },
+        {
+          "question": "Do you offer custom development?",
+          "answer": "Yes! Our Enterprise plan includes custom development services. Contact us to discuss your specific requirements."
+        },
+        {
+          "question": "Can I request a demo?",
+          "answer": "Absolutely! Use the contact form or reach out via WhatsApp to schedule a personalized demo of any of our products."
+        }
+      ]
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your DeepTools account",
+      "email": "Email Address",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign Up"
+    },
+"register": {
+      "title": "Create Account",
+      "subtitle": "Join thousands of professionals using DeepTools",
+      "name": "Full Name",
+      "email": "Email Address",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "role": "Role",
+      "userRole": "User",
+      "adminRole": "Admin",
+      "terms": "I agree to the Terms of Service and Privacy Policy",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign Up"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password?",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "email": "Email Address",
+      "submit": "Send Reset Link",
+      "success": "If the email exists, a reset link has been sent"
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your new password below",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Reset Password",
+      "success": "Password has been reset successfully",
+      "error": "Failed to reset password",
+      "invalidToken": "Invalid or expired reset token",
+      "passwordsMismatch": "Passwords do not match",
+      "shortPassword": "Password must be at least 8 characters",
+      "backToLogin": "Back to Login",
+      "requestNew": "Request a new link",
+      "invalidTitle": "Invalid Reset Link"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "overview": "Overview",
+    "subscriptions": "Subscriptions",
+    "downloads": "Downloads",
+    "licenses": "Licenses",
+    "favorites": "Favorites",
+    "orders": "Orders",
+    "settings": "Settings",
+    "stats": {
+      "activeSubscription": "Active Subscription",
+      "totalDownloads": "Total Downloads",
+      "activeLicenses": "Active Licenses",
+      "savedItems": "Saved Items"
+    }
+  },
+  "footer": {
+    "description": "Advanced digital products and intelligent tools for modern creators, developers, and enterprises.",
+    "products": {
+      "title": "Products",
+      "items": ["AI Agents", "Database Utilities", "SQL Scripts", "Automation Templates", "Dashboards"]
+    },
+    "company": {
+      "title": "Company",
+      "items": ["About Us", "Journal", "Careers", "Contact"]
+    },
+    "resources": {
+      "title": "Resources",
+      "items": ["Documentation", "API Reference", "Community", "GitHub"]
+    },
+    "legal": {
+      "title": "Legal",
+      "items": ["Privacy Policy", "Terms of Service", "License"]
+    },
+    "newsletter": {
+      "title": "Stay Updated",
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe"
+    },
+    "copyright": "© 2026 DeepTools. All rights reserved."
+  },
+  "common": {
+    "learnMore": "Learn More",
+    "viewAll": "View All",
+    "backToHome": "Back to Home",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "notFound": "Page not found",
+    "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
+  }
+}
