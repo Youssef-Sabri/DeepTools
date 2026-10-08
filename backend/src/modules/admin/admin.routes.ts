@@ -1,9 +1,16 @@
 import { Router } from 'express';
 import { adminController } from './admin.controller';
 import { authenticate, requireRole } from '../../middleware/auth.middleware';
-import { validateBody } from '../../middleware/validation.middleware';
+import {
+  validateBody,
+  validateQuery,
+} from '../../middleware/validation.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { toggleLicenseSchema } from './admin.validator';
+import {
+  toggleLicenseSchema,
+  rejectUploadSchema,
+  listAdminUploadsQuerySchema,
+} from './admin.validator';
 
 const router = Router();
 
@@ -25,6 +32,23 @@ router.patch(
   '/licenses/:id/toggle',
   validateBody(toggleLicenseSchema),
   asyncHandler(adminController.toggleLicense),
+);
+
+// Uploads review queue & decisions
+router.get(
+  '/uploads',
+  validateQuery(listAdminUploadsQuerySchema),
+  asyncHandler(adminController.getUploads),
+);
+router.get('/uploads/:id', asyncHandler(adminController.getUploadById));
+router.patch(
+  '/uploads/:id/approve',
+  asyncHandler(adminController.approveUpload),
+);
+router.patch(
+  '/uploads/:id/reject',
+  validateBody(rejectUploadSchema),
+  asyncHandler(adminController.rejectUpload),
 );
 
 export default router;

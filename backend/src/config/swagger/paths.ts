@@ -24,6 +24,9 @@ import {
   UpdateUploadInputDocs,
   SellerProductSchema,
   PaginatedSellerProductsSchema,
+  RejectUploadInputDocs,
+  AdminUploadDetailSchema,
+  PaginatedAdminUploadsSchema,
 } from './schemas';
 
 const LangQueryParam = z
@@ -637,6 +640,176 @@ registry.registerPath({
     },
     422: {
       description: 'Validation failed',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/admin/uploads',
+  tags: ['Admin'],
+  summary: 'List all uploads with status filter and pagination (Admin only)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      page: z.coerce.number().optional().openapi({ example: 1 }),
+      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      status: z
+        .enum(['pending', 'approved', 'rejected'])
+        .optional()
+        .openapi({ example: 'pending' }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Uploads queue retrieved successfully',
+      content: {
+        'application/json': {
+          schema: envelope(PaginatedAdminUploadsSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/admin/uploads/{id}',
+  tags: ['Admin'],
+  summary:
+    'View upload detail with file metadata and seller details (Admin only)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description: 'Upload detail retrieved',
+      content: {
+        'application/json': {
+          schema: envelope(AdminUploadDetailSchema),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/admin/uploads/{id}/approve',
+  tags: ['Admin'],
+  summary: 'Approve a pending or rejected product (Admin only)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description:
+        'Product approved successfully (status = approved, reviewedAt set)',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            message: z
+              .string()
+              .openapi({ example: 'Product approved successfully' }),
+            data: AdminUploadDetailSchema,
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: 'Conflict: Product is already approved',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/admin/uploads/{id}/reject',
+  tags: ['Admin'],
+  summary: 'Reject a pending or approved product with reason (Admin only)',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: RejectUploadInputDocs,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description:
+        'Product rejected successfully (status = rejected, rejectionNote saved)',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            message: z
+              .string()
+              .openapi({ example: 'Product rejected successfully' }),
+            data: AdminUploadDetailSchema,
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: Admin access required',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Upload not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: 'Conflict: Product is already rejected',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    422: {
+      description:
+        'Validation failed (rejectionNote missing or outside 10-500 chars)',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
   },

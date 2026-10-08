@@ -486,3 +486,41 @@ export const PaginatedSellerProductsSchema = registry.register(
     totalPages: z.number().int().openapi({ example: 1 }),
   }),
 );
+
+// 8. Admin Upload Review Schemas
+export const RejectUploadInputDocs = registry.register(
+  'RejectUploadInput',
+  z
+    .object({
+      rejectionNote: z.string().min(10).max(500).openapi({
+        example: 'File does not meet quality standards. Missing documentation.',
+        description:
+          'Detailed explanation for why upload was rejected (10-500 chars)',
+      }),
+    })
+    .openapi({ description: 'Rejection reason payload' }),
+);
+
+export const AdminUploadDetailSchema = registry.register(
+  'AdminUploadDetail',
+  SellerProductSchema.extend({
+    seller: z
+      .object({
+        id: z.string().uuid(),
+        name: z.string(),
+        email: z.string().email(),
+      })
+      .optional(),
+  }),
+);
+
+export const PaginatedAdminUploadsSchema = registry.register(
+  'PaginatedAdminUploads',
+  z.object({
+    items: z.array(AdminUploadDetailSchema),
+    total: z.number().int().openapi({ example: 25 }),
+    page: z.number().int().openapi({ example: 1 }),
+    limit: z.number().int().openapi({ example: 20 }),
+    totalPages: z.number().int().openapi({ example: 2 }),
+  }),
+);

@@ -68,6 +68,78 @@ export class AdminRepository {
       data: { isActive },
     });
   }
+
+  async findAllUploads(params: {
+    page: number;
+    limit: number;
+    status?: string;
+  }) {
+    const skip = (params.page - 1) * params.limit;
+    const where = params.status ? { status: params.status } : {};
+
+    const [items, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take: params.limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  async findUploadById(id: string) {
+    return prisma.product.findUnique({
+      where: { id },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateUploadReview(
+    id: string,
+    data: {
+      status: string;
+      rejectionNote: string | null;
+      reviewedAt: Date;
+    },
+  ) {
+    return prisma.product.update({
+      where: { id },
+      data: {
+        status: data.status,
+        rejectionNote: data.rejectionNote,
+        reviewedAt: data.reviewedAt,
+      },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
 }
 
 export const adminRepository = new AdminRepository();
