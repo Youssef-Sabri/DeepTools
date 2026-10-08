@@ -19,6 +19,8 @@ const envSchema = z.object({
     .string()
     .default('http://localhost:3000,http://localhost:4000')
     .transform((val) => val.split(',').map((origin) => origin.trim())),
+  UPLOAD_DIR: z.string().default('./uploads'),
+  MAX_FILE_SIZE_MB: z.coerce.number().default(50),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

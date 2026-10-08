@@ -2,7 +2,7 @@
 node_modules/
 **/node_modules/
 
-# Production builds
+# Production builds & compiled output
 dist/
 **/dist/
 build/
@@ -28,16 +28,25 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
 # OS & Editor
 .DS_Store
 Thumbs.db
 .vscode/*
 !.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 !.vscode/extensions.json
 .idea/
 *.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
 
 # Testing & Coverage
 coverage/
@@ -47,4 +56,19 @@ coverage/
 # TypeScript cache
 *.tsbuildinfo
 **/*.tsbuildinfo
+
+# Temp directory & Diagnostic reports
+.temp
+.tmp
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Uploads & User files
+uploads/
+**/uploads/
 files/*
