@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
 import { adminService, AdminService } from './admin.service';
-import {
-  listAdminUploadsQuerySchema,
-  RejectUploadInput,
-} from './admin.validator';
+import { listAdminUploadsQuerySchema } from './admin.validator';
 
 export class AdminController {
   constructor(private readonly service: AdminService = adminService) {}
@@ -58,7 +55,8 @@ export class AdminController {
   rejectUpload = async (req: Request, res: Response): Promise<void> => {
     const adminId = req.user!.id;
     const id = req.params.id as string;
-    const { rejectionNote } = req.body as RejectUploadInput;
+    const body = req.body as { reason?: string; rejectionNote?: string };
+    const rejectionNote = (body.reason || body.rejectionNote)!;
     const result = await this.service.rejectUpload(adminId, id, rejectionNote);
     res.status(200).json({
       success: true,

@@ -4,12 +4,23 @@ export const toggleLicenseSchema = z.object({
   isActive: z.boolean(),
 });
 
-export const rejectUploadSchema = z.object({
-  rejectionNote: z
-    .string({ message: 'Rejection note is required' })
-    .min(10, 'Rejection note must be between 10 and 500 characters')
-    .max(500, 'Rejection note must be between 10 and 500 characters'),
-});
+export const rejectUploadSchema = z
+  .object({
+    reason: z
+      .string()
+      .min(10, 'Rejection reason must be between 10 and 500 characters')
+      .max(500, 'Rejection reason must be between 10 and 500 characters')
+      .optional(),
+    rejectionNote: z
+      .string()
+      .min(10, 'Rejection note must be between 10 and 500 characters')
+      .max(500, 'Rejection note must be between 10 and 500 characters')
+      .optional(),
+  })
+  .refine((data) => Boolean(data.reason || data.rejectionNote), {
+    message: 'reason is required',
+    path: ['reason'],
+  });
 
 export const listAdminUploadsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
