@@ -394,12 +394,63 @@ registry.registerPath({
       description: 'Not authenticated',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
+    403: {
+      description: 'Forbidden: Admins or seller cannot purchase this product',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
     404: {
-      description: 'Product not found',
+      description: 'Product not found or not approved',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    409: {
+      description:
+        'Conflict: User already owns an active license for this product',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
     429: {
       description: 'Rate limit exceeded',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/products/{id}/download',
+  tags: ['Products'],
+  summary: 'Stream private product file for buyers with active license',
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description:
+        'Binary solution file stream with Content-Disposition attachment',
+      content: {
+        'application/octet-stream': {
+          schema: z.string().openapi({
+            type: 'string',
+            format: 'binary',
+            description: 'Direct binary stream of purchased file',
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Not authenticated',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: 'Forbidden: No active license or license revoked',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: 'Product or file not found',
+      content: { 'application/json': { schema: ApiErrorSchema } },
+    },
+    500: {
+      description: 'Internal server error: File missing on disk',
       content: { 'application/json': { schema: ApiErrorSchema } },
     },
   },

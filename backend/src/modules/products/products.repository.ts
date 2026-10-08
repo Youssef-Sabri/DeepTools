@@ -122,6 +122,15 @@ export class ProductsRepository {
     });
   }
 
+  async findLicense(userId: string, productId: string) {
+    return prisma.license.findFirst({
+      where: {
+        userId,
+        productId,
+      },
+    });
+  }
+
   async createLicense(data: {
     userId: string;
     productId: string;
@@ -161,7 +170,7 @@ export class ProductsRepository {
           commissionAmount: data.commissionAmount,
           sellerAmount: data.sellerAmount,
           status: 'completed',
-          paymentGateway: 'stripe',
+          paymentGateway: 'simulated',
         },
       });
 

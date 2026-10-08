@@ -64,4 +64,11 @@ router.post(
   asyncHandler(productsController.purchase),
 );
 
+// Authenticated route to stream purchased file
+router.get(
+  '/:id/download',
+  authenticate,
+  asyncHandler(productsController.download),
+);
+
 export default router;

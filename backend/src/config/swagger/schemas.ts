@@ -287,7 +287,7 @@ export const OrderSchema = registry.register(
     commissionAmount: z.number().int().openapi({ example: 490 }),
     sellerAmount: z.number().int().openapi({ example: 4410 }),
     status: z.string().openapi({ example: 'completed' }),
-    paymentGateway: z.string().openapi({ example: 'stripe' }),
+    paymentGateway: z.string().openapi({ example: 'simulated' }),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   }),

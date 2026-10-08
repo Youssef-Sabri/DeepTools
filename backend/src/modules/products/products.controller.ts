@@ -49,8 +49,15 @@ export class ProductsController {
   purchase = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const userId = req.user!.id;
-    const result = await this.service.purchase(userId, id);
-    res.status(201).json({ success: true, data: result });
+    const userRole = req.user!.role;
+    const result = await this.service.purchase(userId, userRole, id);
+    res.status(200).json({ success: true, data: result });
+  };
+
+  download = async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+    await this.service.downloadProduct(userId, id, res);
   };
 
   getMyLicenses = async (req: Request, res: Response): Promise<void> => {

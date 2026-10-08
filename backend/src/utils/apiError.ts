@@ -52,3 +52,9 @@ export class TooManyRequestsError extends ApiError {
     super(429, message);
   }
 }
+
+export class InternalServerError extends ApiError {
+  constructor(message = 'Internal Server Error', errors?: unknown) {
+    super(500, message, errors);
+  }
+}
