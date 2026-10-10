@@ -10,38 +10,52 @@ services:
       - "5439:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: "no"
+
+  adminer:
+    image: adminer:latest
+    container_name: deeptools-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    restart: "no"
 
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: deeptools-api
+    env_file:
+      - ./backend/.env
     environment:
-      - PORT=${PORT:-4000}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/dataforge_db}
-      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-change-this-in-production}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-another-super-secret-refresh-key}
-      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800s}
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dataforge_db
+      - UPLOAD_DIR=/app/uploads
     ports:
       - "4000:4000"
+    volumes:
+      - ./backend/uploads:/app/uploads
     depends_on:
       - postgres
-    restart: unless-stopped
+    restart: "no"
 
   web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
     container_name: deeptools-web
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+    env_file:
+      - ./frontend/.env
     ports:
       - "3000:3000"
     depends_on:
       - api
-    restart: unless-stopped
+    restart: "no"
 
 volumes:
   pgdata:
