@@ -1,122 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+enum Role {
+  USER
+  ADMIN
 }
 
-// 1. Users Model
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user") @db.VarChar(20)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  name          String
+  passwordHash  String   @map("password_hash")
+  role          Role     @default(USER)
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  subscriptions Subscription[]
-  licenses      License[]
-  orders        Order[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
 
-// 2. Products Model
-model Product {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  nameAr        String?  @map("name_ar")
-  description   String
-  descriptionAr String?  @map("description_ar")
-  category      String   @db.VarChar(50)
-  price         Int
-  version       String   @default("1.0.0") @db.VarChar(20)
-  downloadUrl   String?  @map("download_url")
-  badge         String?  @db.VarChar(20)
-  badgeAr       String?  @map("badge_ar") @db.VarChar(30)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  licenses License[]
+  // بناء العلاقة مع التفعيل التلقائي للحذف
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([category])
-  @@map("products")
-}
-
-// 3. Templates Model
-model Template {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  nameAr        String?  @map("name_ar")
-  description   String
-  descriptionAr String?  @map("description_ar")
-  category      String   @db.VarChar(50)
-  compatibility String[]
-  price         Int
-  version       String   @default("1.0.0") @db.VarChar(20)
-  downloads     Int      @default(0)
-  downloadUrl   String?  @map("download_url")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-  @@map("templates")
-}
-
-// 4. Subscriptions Model
-model Subscription {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  planName  String    @map("plan_name") @db.VarChar(50)
-  status    String    @default("active") @db.VarChar(20)
-  startDate DateTime  @default(now()) @map("start_date")
-  endDate   DateTime? @map("end_date")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  // الفهرسة برقم المستخدم لتسريع البحث
   @@index([userId])
-  @@map("subscriptions")
-}
-
-// 5. Licenses Model
-model License {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  productId  String    @map("product_id") @db.Uuid
-  licenseKey String    @unique @map("license_key")
-  isActive   Boolean   @default(true) @map("is_active")
-  expiresAt  DateTime? @map("expires_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([productId])
-  @@map("licenses")
-}
-
-// 6. Orders Model
-model Order {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  amount            Int
-  commissionPercent Int      @default(10) @map("commission_percent")
-  commissionAmount  Int      @default(0) @map("commission_amount")
-  sellerAmount      Int      @default(0) @map("seller_amount")
-  status            String   @default("completed") @db.VarChar(20)
-  paymentGateway    String   @default("stripe") @map("payment_gateway") @db.VarChar(50)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("orders")
+  @@map("password_reset_tokens")
 }

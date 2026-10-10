@@ -1,32 +1,48 @@
 import { Request, Response } from 'express';
 import { adminService, AdminService } from './admin.service';
+import { GetUsersQuery } from './admin.validator';
 
 export class AdminController {
-  constructor(private readonly service: AdminService = adminService) {}
+    private service: AdminService;
 
-  getAllUsers = async (req: Request, res: Response): Promise<void> => {
-    const users = await this.service.findAllUsers();
-    res.status(200).json({ success: true, data: users });
-  };
+    constructor(service?: AdminService) {
+        this.service = service ?? adminService;
+    }
 
-  deleteUser = async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string;
-    const result = await this.service.deleteUser(id);
-    res.status(200).json({ success: true, data: result });
-  };
+    // جلب قائمة المستخدمين
+    getUsers = async (req: Request, res: Response): Promise<void> => {
+        const query = req.query as unknown as GetUsersQuery;
+        const result = await this.service.getUsers(query);
 
-  getAllLicenses = async (req: Request, res: Response): Promise<void> => {
-    const licenses = await this.service.findAllLicenses();
-    res.status(200).json({ success: true, data: licenses });
-  };
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            data: result,
+        });
+    };
 
-  toggleLicense = async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string;
-    const body = req.body as { isActive?: boolean };
-    const isActive = Boolean(body.isActive);
-    const result = await this.service.toggleLicenseStatus(id, isActive);
-    res.status(200).json({ success: true, data: result });
-  };
+    // جلب إحصائيات المستخدمين
+    getUsersInsights = async (req: Request, res: Response): Promise<void> => {
+        const insights = await this.service.getUsersInsights();
+
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            data: insights,
+        });
+    };
+
+    // جلب بيانات مستخدم واحد
+    getUserById = async (req: Request, res: Response): Promise<void> => {
+        const id = req.params.id as string;
+        const user = await this.service.getUserById(id);
+
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            data: user,
+        });
+    };
 }
 
 export const adminController = new AdminController();
