@@ -6,15 +6,15 @@ import { prisma } from "./config/database";
 import { requestIdMiddleware } from "./middleware/requestId.middleware";
 import { errorHandler } from "./middleware/errorHandler.middleware";
 import { notFoundHandler } from "./middleware/notFound.middleware";
-import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./config/swagger";
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocument } from './config/swagger/index';
 
-import authRoutes from "./modules/auth/auth.routes";
-import userRoutes from "./modules/users/users.routes";
-import productsRoutes from "./modules/products/products.routes";
-import adminRoutes from "./modules/admin/admin.routes";
-import uploadsRoutes from "./modules/uploads/uploads.routes";
-import ordersRoutes from "./modules/orders/orders.routes";
+import authRoutes from './modules/auth/auth.routes';
+import userRoutes from './modules/users/users.routes';
+import productsRoutes from './modules/products/products.routes';
+import adminRoutes from './modules/admin/admin.routes';
+import uploadsRoutes from './modules/uploads/uploads.routes';
+import ordersRoutes from './modules/orders/orders.routes';
 
 const app: Application = express();
 
@@ -28,12 +28,12 @@ const corsOptions: CorsOptions = {
     if (!origin || env.CORS_ORIGIN.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Blocked by CORS policy"));
+      callback(new Error('Blocked by CORS policy'));
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
 };
 app.use(cors(corsOptions));
 
@@ -41,29 +41,30 @@ app.use(cors(corsOptions));
 app.use(requestIdMiddleware);
 
 // Limit JSON payload size to prevent memory overload / Denial of Service
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // 3. Swagger OpenAPI Documentation
-app.get("/api/docs.json", (_req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.send(swaggerSpec);
+app.get('/api/docs.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerDocument);
 });
 app.use(
-  "/api/docs",
+  '/api/docs',
   swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
+  swaggerUi.setup(swaggerDocument, {
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,
       filter: true,
-      docExpansion: "list",
+      docExpansion: 'list',
       tryItOutEnabled: true,
     },
-    customSiteTitle: "DeepTools API Documentation",
+    customSiteTitle: 'DeepTools API Documentation',
   }),
 );
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.get("/docs", (_req, res) => {
   res.redirect("/api/docs");
 });
