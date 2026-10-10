@@ -1,75 +1,88 @@
-import { adminRepository, AdminRepository } from './admin.repository';
-import { NotFoundError, ConflictError } from '../../utils/apiError';
-import { ListAdminUploadsQuery } from './admin.validator';
-import { prisma } from '../../config/database';
-import { GetUsersQuery } from './admin.validator';
-import { ApiError } from '../../utils/apiError';
-import { ApiFeatures } from '../../utils/apiFeatures';
+import { adminRepository, AdminRepository } from "./admin.repository";
+import { NotFoundError, ConflictError } from "../../utils/apiError";
+import { ListAdminUploadsQuery } from "./admin.validator";
+import { prisma } from "../../config/database";
+import { GetUsersQuery } from "./admin.validator";
+import { ApiError } from "../../utils/apiError";
+import { ApiFeatures } from "../../utils/apiFeatures";
 
 export class AdminService {
-    private repo: AdminRepository;
+  private repo: AdminRepository;
 
-    constructor(repo?: AdminRepository) {
-        this.repo = repo ?? adminRepository;
-    }
+  constructor(repo?: AdminRepository) {
+    this.repo = repo ?? adminRepository;
+  }
 
-    // 1. جلب قائمة المستخدمين مع البحث والفلترة
-    async getUsers(query: GetUsersQuery) {
-        // بناء الاستعلام باستخدام ApiFeatures
-        const features = new ApiFeatures(query || {})
-            .filter(['role'])
-            .search(['name', 'email'])
-            .paginate(10)
-            .sort();
+  // 1. جلب قائمة المستخدمين مع البحث والفلترة
+  async getUsers(query: GetUsersQuery) {
+    // بناء الاستعلام باستخدام ApiFeatures
+    const features = new ApiFeatures(query || {})
+      .filter(["role"])
+      .search(["name", "email"])
+      .paginate(10)
+      .sort();
 
-        const prismaArgs = features.get();
+    const prismaArgs = features.get();
 
-        // تنفيذ الاستعلام
-        const [users, total] = await Promise.all([
-            prisma.user.findMany({
-                ...prismaArgs,
-                select: { id: true, email: true, name: true, role: true, createdAt: true }
-            }),
-            prisma.user.count({ where: prismaArgs.where })
-        ]);
+    // تنفيذ الاستعلام
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        ...prismaArgs,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+        },
+      }),
+      prisma.user.count({ where: prismaArgs.where }),
+    ]);
 
-        // حساب بيانات الصفحات
-        const page = Number(query?.page) || 1;
-        const limit = Number(query?.limit) || 10;
+    // حساب بيانات الصفحات
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
 
-        return {
-            users,
-            meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
-        };
-    }
+    return {
+      users,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
 
-    // 2. جلب بيانات مستخدم واحد
-    async getUserById(id: string) {
-        const user = await prisma.user.findUnique({
-            where: { id },
-            select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true }
-        });
+  // 2. جلب بيانات مستخدم واحد
+  async getUserById(id: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-        if (!user) throw ApiError.notFound('User not found');
-        return user;
-    }
+    if (!user) throw ApiError.notFound("User not found");
+    return user;
+  }
 
-    // 3. إحصائيات المستخدمين (الإجمالي والجدد في آخر 30 يوم)
-    async getUsersInsights() {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // 3. إحصائيات المستخدمين (الإجمالي والجدد في آخر 30 يوم)
+  async getUsersInsights() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const [totalUsers, newUsers] = await Promise.all([
-            prisma.user.count(),
-            prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } })
-        ]);
+    const [totalUsers, newUsers] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    ]);
 
-        return {
-            totalUsers,
-            newUsers,
-            period: 'last_30_days'
-        };
-    }
+    return {
+      totalUsers,
+      newUsers,
+      period: "last_30_days",
+    };
+  }
 
   async toggleLicenseStatus(id: string, isActive: boolean) {
     return this.repo.updateLicenseStatus(id, isActive);
@@ -97,7 +110,7 @@ export class AdminService {
   async findUploadById(id: string) {
     const upload = await this.repo.findUploadById(id);
     if (!upload) {
-      throw new NotFoundError('Upload not found');
+      throw new NotFoundError("Upload not found");
     }
     return upload;
   }
@@ -106,12 +119,12 @@ export class AdminService {
     const upload = await this.findUploadById(id);
 
     // Rule 4: Approving an already approved product returns 409
-    if (upload.status === 'approved') {
-      throw new ConflictError('Product is already approved');
+    if (upload.status === "approved") {
+      throw new ConflictError("Product is already approved");
     }
 
     const updated = await this.repo.updateUploadReview(id, {
-      status: 'approved',
+      status: "approved",
       rejectionNote: null,
       reviewedAt: new Date(),
     });
@@ -119,8 +132,8 @@ export class AdminService {
     // Rule 8: Structured audit log
     console.log(
       JSON.stringify({
-        level: 'info',
-        action: 'ADMIN_APPROVE_UPLOAD',
+        level: "info",
+        action: "ADMIN_APPROVE_UPLOAD",
         adminId,
         productId: id,
         timestamp: new Date().toISOString(),
@@ -134,12 +147,12 @@ export class AdminService {
     const upload = await this.findUploadById(id);
 
     // Rule 5: Rejecting an already rejected product returns 409
-    if (upload.status === 'rejected') {
-      throw new ConflictError('Product is already rejected');
+    if (upload.status === "rejected") {
+      throw new ConflictError("Product is already rejected");
     }
 
     const updated = await this.repo.updateUploadReview(id, {
-      status: 'rejected',
+      status: "rejected",
       rejectionNote,
       reviewedAt: new Date(),
     });
@@ -147,8 +160,8 @@ export class AdminService {
     // Rule 8: Structured audit log
     console.log(
       JSON.stringify({
-        level: 'info',
-        action: 'ADMIN_REJECT_UPLOAD',
+        level: "info",
+        action: "ADMIN_REJECT_UPLOAD",
         adminId,
         productId: id,
         rejectionNote,

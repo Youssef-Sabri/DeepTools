@@ -1,4 +1,4 @@
-import { prisma } from '../../config/database';
+import { prisma } from "../../config/database";
 
 export class AdminRepository {
   async findAllUsers() {
@@ -82,7 +82,7 @@ export class AdminRepository {
         where,
         skip,
         take: params.limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           seller: {
             select: {
@@ -156,9 +156,9 @@ export class AdminRepository {
       topProductOrders,
     ] = await Promise.all([
       prisma.product.count(),
-      prisma.product.count({ where: { status: 'pending' } }),
-      prisma.product.count({ where: { status: 'approved' } }),
-      prisma.product.count({ where: { status: 'rejected' } }),
+      prisma.product.count({ where: { status: "pending" } }),
+      prisma.product.count({ where: { status: "approved" } }),
+      prisma.product.count({ where: { status: "rejected" } }),
       prisma.order.aggregate({
         _sum: {
           amount: true,
@@ -168,10 +168,10 @@ export class AdminRepository {
       }),
       prisma.order.count(),
       prisma.product.groupBy({
-        by: ['sellerId'],
+        by: ["sellerId"],
       }),
       prisma.order.groupBy({
-        by: ['productId'],
+        by: ["productId"],
         where: {
           productId: { not: null },
         },
@@ -180,7 +180,7 @@ export class AdminRepository {
         },
         orderBy: {
           _count: {
-            id: 'desc',
+            id: "desc",
           },
         },
         take: 10,
@@ -202,8 +202,8 @@ export class AdminRepository {
     const productMap = new Map(products.map((p) => [p.id, p.name]));
 
     const topProducts = topProductOrders.map((t) => ({
-      productId: t.productId ?? '',
-      productName: productMap.get(t.productId ?? '') ?? 'Unknown Product',
+      productId: t.productId ?? "",
+      productName: productMap.get(t.productId ?? "") ?? "Unknown Product",
       salesCount: t._count.id,
     }));
 
