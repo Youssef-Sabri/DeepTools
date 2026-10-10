@@ -1,18 +1,17 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { adminController } from "./admin.controller";
 import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import {
+  validate,
   validateBody,
   validateQuery,
 } from "../../middleware/validation.middleware";
-import { validate } from "../../middleware/validation.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import {
-  toggleLicenseSchema,
   rejectUploadSchema,
   listAdminUploadsQuerySchema,
+  getUsersQuerySchema,
 } from "./admin.validator";
-import { getUsersQuerySchema } from "./admin.validator";
 import settingsRoutes from "../settings/settings.routes";
 
 const router = Router();

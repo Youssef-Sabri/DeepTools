@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
-import { productsService, ProductsService } from './products.service';
+import { Request, Response } from "express";
+import { productsService, ProductsService } from "./products.service";
 import {
   CreateProductInput,
   UpdateProductInput,
   listPublicProductsQuerySchema,
-} from './products.validator';
+} from "./products.validator";
 
 export class ProductsController {
   constructor(private readonly service: ProductsService = productsService) {}
@@ -18,8 +18,8 @@ export class ProductsController {
   getOne = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const lang =
-      (req.query.lang as string) || (req.headers['accept-language'] as string);
-    const product = await this.service.findOne(id, lang, 'approved');
+      (req.query.lang as string) || (req.headers["accept-language"] as string);
+    const product = await this.service.findOne(id, lang, "approved");
     res.status(200).json({ success: true, data: product });
   };
 

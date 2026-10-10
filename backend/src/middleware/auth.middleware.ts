@@ -46,13 +46,13 @@ export const authenticate = (
     };
 
     next();
-  } catch (error) {
+  } catch {
     next(ApiError.unauthorized("Invalid or expired token"));
   }
 };
 
 // Check if authenticated user has one of the allowed roles
-export const authorize = (allowedRoles: (Role | string)[] | Role | string) => {
+export const authorize = (allowedRoles: string[] | string) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(ApiError.unauthorized("User is not authenticated"));

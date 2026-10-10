@@ -1,14 +1,14 @@
-import request from 'supertest';
-import { createApp } from '../../../app';
-import { prisma } from '../../../config/database';
+import request from "supertest";
+import { createApp } from "../../../app";
+import { prisma } from "../../../config/database";
 import {
   mockUser,
   mockBuyer,
   mockAdmin,
   createToken,
-} from '../../../test/test-helpers';
+} from "../../../test/test-helpers";
 
-jest.mock('../../../config/database', () => ({
+jest.mock("../../../config/database", () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock('../../../config/database', () => ({
   },
 }));
 
-describe('Orders & Sales & Insights Endpoints (Task B-7)', () => {
+describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
   const app = createApp();
   const buyerToken = createToken(mockBuyer);
   const sellerToken = createToken(mockUser);
@@ -44,70 +44,70 @@ describe('Orders & Sales & Insights Endpoints (Task B-7)', () => {
     });
   });
 
-  describe('GET /api/v1/orders/mine', () => {
-    it('returns own purchases for buyer', async () => {
+  describe("GET /api/v1/orders/mine", () => {
+    it("returns own purchases for buyer", async () => {
       (prisma.order.findMany as jest.Mock).mockResolvedValue([
         {
-          id: 'ord-1',
+          id: "ord-1",
           userId: mockBuyer.id,
           amount: 4900,
-          status: 'completed',
-          paymentGateway: 'simulated',
+          status: "completed",
+          paymentGateway: "simulated",
           createdAt: new Date(),
           product: {
-            id: 'prod-1',
-            name: 'Automation Bot',
-            category: 'script',
+            id: "prod-1",
+            name: "Automation Bot",
+            category: "script",
             price: 4900,
           },
         },
       ]);
 
       const res = await request(app)
-        .get('/api/v1/orders/mine')
-        .set('Authorization', `Bearer ${buyerToken}`);
+        .get("/api/v1/orders/mine")
+        .set("Authorization", `Bearer ${buyerToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.orders).toHaveLength(1);
-      expect(res.body.data.orders[0].product.name).toBe('Automation Bot');
+      expect(res.body.data.orders[0].product.name).toBe("Automation Bot");
     });
   });
 
-  describe('GET /api/v1/orders/sales', () => {
-    it('returns seller sales and accurately computes totalSellerEarnings', async () => {
+  describe("GET /api/v1/orders/sales", () => {
+    it("returns seller sales and accurately computes totalSellerEarnings", async () => {
       (prisma.order.findMany as jest.Mock).mockResolvedValue([
         {
-          id: 'ord-1',
-          productId: 'prod-1',
+          id: "ord-1",
+          productId: "prod-1",
           amount: 4900,
           commissionPercent: 10,
           commissionAmount: 490,
           sellerAmount: 4410,
           createdAt: new Date(),
           product: {
-            id: 'prod-1',
-            name: 'Automation Bot',
+            id: "prod-1",
+            name: "Automation Bot",
           },
         },
         {
-          id: 'ord-2',
-          productId: 'prod-1',
+          id: "ord-2",
+          productId: "prod-1",
           amount: 1000,
           commissionPercent: 10,
           commissionAmount: 100,
           sellerAmount: 900,
           createdAt: new Date(),
           product: {
-            id: 'prod-1',
-            name: 'Automation Bot',
+            id: "prod-1",
+            name: "Automation Bot",
           },
         },
       ]);
 
       const res = await request(app)
-        .get('/api/v1/orders/sales')
-        .set('Authorization', `Bearer ${sellerToken}`);
+        .get("/api/v1/orders/sales")
+        .set("Authorization", `Bearer ${sellerToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -117,8 +117,8 @@ describe('Orders & Sales & Insights Endpoints (Task B-7)', () => {
     });
   });
 
-  describe('GET /api/v1/admin/insights/marketplace', () => {
-    it('returns full marketplace dashboard metrics with all 5 groups', async () => {
+  describe("GET /api/v1/admin/insights/marketplace", () => {
+    it("returns full marketplace dashboard metrics with all 5 groups", async () => {
       (prisma.product.count as jest.Mock)
         .mockResolvedValueOnce(100) // total
         .mockResolvedValueOnce(12) // pending
@@ -140,18 +140,18 @@ describe('Orders & Sales & Insights Endpoints (Task B-7)', () => {
       );
 
       (prisma.order.groupBy as jest.Mock).mockResolvedValue([
-        { productId: 'prod-top-1', _count: { id: 45 } },
-        { productId: 'prod-top-2', _count: { id: 30 } },
+        { productId: "prod-top-1", _count: { id: 45 } },
+        { productId: "prod-top-2", _count: { id: 30 } },
       ]);
 
       (prisma.product.findMany as jest.Mock).mockResolvedValue([
-        { id: 'prod-top-1', name: 'Top Seller Bot' },
-        { id: 'prod-top-2', name: 'Second Bot' },
+        { id: "prod-top-1", name: "Top Seller Bot" },
+        { id: "prod-top-2", name: "Second Bot" },
       ]);
 
       const res = await request(app)
-        .get('/api/v1/admin/insights/marketplace')
-        .set('Authorization', `Bearer ${adminToken}`);
+        .get("/api/v1/admin/insights/marketplace")
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -172,10 +172,10 @@ describe('Orders & Sales & Insights Endpoints (Task B-7)', () => {
       expect(res.body.data.topProducts[0].salesCount).toBe(45);
     });
 
-    it('returns 403 when non-admin accesses marketplace insights', async () => {
+    it("returns 403 when non-admin accesses marketplace insights", async () => {
       const res = await request(app)
-        .get('/api/v1/admin/insights/marketplace')
-        .set('Authorization', `Bearer ${buyerToken}`);
+        .get("/api/v1/admin/insights/marketplace")
+        .set("Authorization", `Bearer ${buyerToken}`);
 
       expect(res.status).toBe(403);
     });

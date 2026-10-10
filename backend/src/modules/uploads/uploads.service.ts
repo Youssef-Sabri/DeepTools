@@ -1,17 +1,17 @@
-import crypto from 'crypto';
-import { uploadsRepository, UploadsRepository } from './uploads.repository';
-import { storageService, StorageService } from '../../storage/storage.service';
+import crypto from "crypto";
+import { uploadsRepository, UploadsRepository } from "./uploads.repository";
+import { storageService, StorageService } from "../../storage/storage.service";
 import {
   CreateUploadInput,
   UpdateUploadInput,
   ListMyUploadsQuery,
-} from './uploads.validator';
+} from "./uploads.validator";
 import {
   ValidationError,
   NotFoundError,
   ForbiddenError,
-} from '../../utils/apiError';
-import { Product } from '@prisma/client';
+} from "../../utils/apiError";
+import { Product } from "@prisma/client";
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -36,14 +36,14 @@ export class UploadsService {
     file?: Express.Multer.File,
   ): Promise<Product> {
     if (!file || !file.buffer) {
-      throw new ValidationError('A solution file is required for upload');
+      throw new ValidationError("A solution file is required for upload");
     }
 
     // 1. Calculate SHA-256 checksum of the file
     const fileChecksum = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(file.buffer)
-      .digest('hex');
+      .digest("hex");
 
     // 2. Save file via private storage service (enforces size limit & magic byte validation)
     const fileKey = await this.storage.save(
@@ -61,8 +61,8 @@ export class UploadsService {
       descriptionAr: input.descriptionAr ?? null,
       category: input.category,
       price: input.price,
-      version: input.version || '1.0.0',
-      status: 'pending',
+      version: input.version || "1.0.0",
+      status: "pending",
       fileKey,
       fileSize: file.buffer.length,
       fileMime: file.mimetype,
@@ -105,7 +105,7 @@ export class UploadsService {
   async findMyUploadById(sellerId: string, id: string): Promise<Product> {
     const product = await this.repo.findById(id);
     if (!product || product.sellerId !== sellerId) {
-      throw new NotFoundError('Upload not found');
+      throw new NotFoundError("Upload not found");
     }
     return product;
   }
@@ -130,9 +130,9 @@ export class UploadsService {
     // If replacement file is provided, process and save new file
     if (file && file.buffer) {
       newFileChecksum = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(file.buffer)
-        .digest('hex');
+        .digest("hex");
 
       newFileKey = await this.storage.save(
         file.buffer,
@@ -152,11 +152,11 @@ export class UploadsService {
     // - Editing a rejected product resets status to pending and clears rejectionNote.
     // - Editing an approved product moves it back to pending.
     const shouldResetToPending =
-      existing.status === 'rejected' ||
-      existing.status === 'approved' ||
+      existing.status === "rejected" ||
+      existing.status === "approved" ||
       file !== undefined;
 
-    const status = shouldResetToPending ? 'pending' : existing.status;
+    const status = shouldResetToPending ? "pending" : existing.status;
     const rejectionNote = shouldResetToPending ? null : existing.rejectionNote;
     const reviewedAt = shouldResetToPending ? null : existing.reviewedAt;
 
@@ -196,9 +196,9 @@ export class UploadsService {
     const product = await this.findMyUploadById(sellerId, id);
 
     // Rule 6: Deleting an approved product returns 403
-    if (product.status === 'approved') {
+    if (product.status === "approved") {
       throw new ForbiddenError(
-        'Cannot delete an approved product. Please contact support.',
+        "Cannot delete an approved product. Please contact support.",
       );
     }
 
@@ -208,7 +208,7 @@ export class UploadsService {
     }
 
     await this.repo.delete(id);
-    return { message: 'Upload deleted successfully' };
+    return { message: "Upload deleted successfully" };
   }
 }
 

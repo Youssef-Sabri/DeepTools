@@ -1,14 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
-import { Response } from 'express';
-import { env } from '../config/env';
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
+import { Response } from "express";
+import { env } from "../config/env";
 import {
   ALLOWED_MIME_TYPES,
   BLOCKED_EXTENSIONS,
   MAX_FILE_SIZE_BYTES,
-} from './storage.config';
-import { NotFoundError, ValidationError } from '../utils/apiError';
+} from "./storage.config";
+import { NotFoundError, ValidationError } from "../utils/apiError";
 
 export interface StorageService {
   save(buffer: Buffer, originalName: string, mimeType: string): Promise<string>;
@@ -35,7 +35,7 @@ export class LocalStorageService implements StorageService {
 
     const extFromOriginal = originalName
       ? path.extname(originalName).toLowerCase()
-      : '';
+      : "";
 
     // 1. Explicitly reject dangerous executable extensions
     if (
@@ -83,9 +83,9 @@ export class LocalStorageService implements StorageService {
     // 3. Document formats: PDF magic bytes: %PDF- (0x25, 0x50, 0x44, 0x46, 0x2D)
     if (
       buffer.length >= 5 &&
-      buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))
+      buffer.subarray(0, 5).equals(Buffer.from("%PDF-"))
     ) {
-      return 'application/pdf';
+      return "application/pdf";
     }
 
     // 4. Archive formats:
@@ -98,20 +98,20 @@ export class LocalStorageService implements StorageService {
         (buffer[2] === 0x05 && buffer[3] === 0x06) ||
         (buffer[2] === 0x07 && buffer[3] === 0x08))
     ) {
-      return 'application/zip';
+      return "application/zip";
     }
 
     // GZIP magic bytes: 0x1F, 0x8B
     if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
-      return 'application/gzip';
+      return "application/gzip";
     }
 
     // TAR magic bytes (check 'ustar' signature at byte 257)
     if (
       buffer.length >= 262 &&
-      buffer.subarray(257, 262).equals(Buffer.from('ustar'))
+      buffer.subarray(257, 262).equals(Buffer.from("ustar"))
     ) {
-      return 'application/x-tar';
+      return "application/x-tar";
     }
 
     // 5. Text & Source Code & Workflow formats (GitHub solution files)
@@ -127,17 +127,17 @@ export class LocalStorageService implements StorageService {
 
     if (!isBinary) {
       try {
-        const textContent = buffer.toString('utf-8');
+        const textContent = buffer.toString("utf-8");
         const trimmed = textContent.trim();
 
         // Check if JSON / Jupyter notebook
         if (
-          (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-          (trimmed.startsWith('[') && trimmed.endsWith(']'))
+          (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+          (trimmed.startsWith("[") && trimmed.endsWith("]"))
         ) {
           try {
             JSON.parse(trimmed);
-            return 'application/json';
+            return "application/json";
           } catch {
             // Not valid JSON, continue to other text/code checks
           }
@@ -145,64 +145,64 @@ export class LocalStorageService implements StorageService {
 
         // Map source code and script extensions
         switch (extFromOriginal) {
-          case '.py':
-            return 'text/x-python';
-          case '.ts':
-          case '.tsx':
-            return 'application/typescript';
-          case '.js':
-          case '.jsx':
-          case '.mjs':
-          case '.cjs':
-            return 'text/javascript';
-          case '.sh':
-          case '.bash':
-          case '.zsh':
-            return 'text/x-shellscript';
-          case '.yaml':
-          case '.yml':
-            return 'text/yaml';
-          case '.toml':
-            return 'text/x-toml';
-          case '.xml':
-            return 'text/xml';
-          case '.sql':
-            return 'text/x-sql';
-          case '.c':
-          case '.h':
-            return 'text/x-c';
-          case '.cpp':
-          case '.hpp':
-          case '.cc':
-          case '.cxx':
-            return 'text/x-c++';
-          case '.cs':
-            return 'text/x-csharp';
-          case '.java':
-            return 'text/x-java-source';
-          case '.go':
-            return 'text/x-go';
-          case '.rs':
-            return 'text/x-rust';
-          case '.rb':
-            return 'text/x-ruby';
-          case '.php':
-            return 'text/x-php';
-          case '.html':
-          case '.htm':
-            return 'text/html';
-          case '.css':
-          case '.scss':
-          case '.sass':
-          case '.less':
-            return 'text/css';
-          case '.md':
-          case '.markdown':
-            return 'text/markdown';
-          case '.csv':
-            return 'text/csv';
+          case ".py":
+            return "text/x-python";
+          case ".ts":
+          case ".tsx":
+            return "application/typescript";
+          case ".js":
+          case ".jsx":
+          case ".mjs":
+          case ".cjs":
+            return "text/javascript";
+          case ".sh":
+          case ".bash":
+          case ".zsh":
+            return "text/x-shellscript";
+          case ".yaml":
+          case ".yml":
+            return "text/yaml";
+          case ".toml":
+            return "text/x-toml";
+          case ".xml":
+            return "text/xml";
+          case ".sql":
+            return "text/x-sql";
+          case ".c":
+          case ".h":
+            return "text/x-c";
+          case ".cpp":
+          case ".hpp":
+          case ".cc":
+          case ".cxx":
+            return "text/x-c++";
+          case ".cs":
+            return "text/x-csharp";
+          case ".java":
+            return "text/x-java-source";
+          case ".go":
+            return "text/x-go";
+          case ".rs":
+            return "text/x-rust";
+          case ".rb":
+            return "text/x-ruby";
+          case ".php":
+            return "text/x-php";
+          case ".html":
+          case ".htm":
+            return "text/html";
+          case ".css":
+          case ".scss":
+          case ".sass":
+          case ".less":
+            return "text/css";
+          case ".md":
+          case ".markdown":
+            return "text/markdown";
+          case ".csv":
+            return "text/csv";
           default:
-            return 'text/plain';
+            return "text/plain";
         }
       } catch {
         return null;
@@ -218,7 +218,7 @@ export class LocalStorageService implements StorageService {
   private getSafeExtension(mimeType: string, originalName?: string): string {
     const extFromOriginal = originalName
       ? path.extname(originalName).toLowerCase()
-      : '';
+      : "";
 
     // If original extension is safe (not blocked), preserve it
     if (
@@ -229,70 +229,70 @@ export class LocalStorageService implements StorageService {
     }
 
     switch (mimeType) {
-      case 'application/pdf':
-        return '.pdf';
-      case 'application/zip':
-      case 'application/x-zip-compressed':
-        return '.zip';
-      case 'application/x-tar':
-        return '.tar';
-      case 'application/gzip':
-      case 'application/x-gzip':
-        return '.gz';
-      case 'application/json':
-        return '.json';
-      case 'application/typescript':
-        return '.ts';
-      case 'text/javascript':
-      case 'application/javascript':
-        return '.js';
-      case 'text/x-python':
-      case 'application/x-python-code':
-        return '.py';
-      case 'text/x-shellscript':
-      case 'application/x-sh':
-        return '.sh';
-      case 'text/yaml':
-      case 'application/yaml':
-      case 'application/x-yaml':
-      case 'text/x-yaml':
-        return '.yml';
-      case 'text/x-toml':
-      case 'application/toml':
-        return '.toml';
-      case 'text/xml':
-      case 'application/xml':
-        return '.xml';
-      case 'text/x-sql':
-      case 'application/sql':
-        return '.sql';
-      case 'text/markdown':
-      case 'text/x-markdown':
-        return '.md';
-      case 'text/html':
-        return '.html';
-      case 'text/css':
-        return '.css';
-      case 'text/csv':
-        return '.csv';
-      case 'text/x-go':
-        return '.go';
-      case 'text/x-rust':
-        return '.rs';
-      case 'text/x-java-source':
-        return '.java';
-      case 'text/x-c':
-        return '.c';
-      case 'text/x-c++':
-        return '.cpp';
-      case 'text/x-csharp':
-        return '.cs';
-      case 'text/x-ruby':
-        return '.rb';
-      case 'text/x-php':
-        return '.php';
+      case "application/pdf":
+        return ".pdf";
+      case "application/zip":
+      case "application/x-zip-compressed":
+        return ".zip";
+      case "application/x-tar":
+        return ".tar";
+      case "application/gzip":
+      case "application/x-gzip":
+        return ".gz";
+      case "application/json":
+        return ".json";
+      case "application/typescript":
+        return ".ts";
+      case "text/javascript":
+      case "application/javascript":
+        return ".js";
+      case "text/x-python":
+      case "application/x-python-code":
+        return ".py";
+      case "text/x-shellscript":
+      case "application/x-sh":
+        return ".sh";
+      case "text/yaml":
+      case "application/yaml":
+      case "application/x-yaml":
+      case "text/x-yaml":
+        return ".yml";
+      case "text/x-toml":
+      case "application/toml":
+        return ".toml";
+      case "text/xml":
+      case "application/xml":
+        return ".xml";
+      case "text/x-sql":
+      case "application/sql":
+        return ".sql";
+      case "text/markdown":
+      case "text/x-markdown":
+        return ".md";
+      case "text/html":
+        return ".html";
+      case "text/css":
+        return ".css";
+      case "text/csv":
+        return ".csv";
+      case "text/x-go":
+        return ".go";
+      case "text/x-rust":
+        return ".rs";
+      case "text/x-java-source":
+        return ".java";
+      case "text/x-c":
+        return ".c";
+      case "text/x-c++":
+        return ".cpp";
+      case "text/x-csharp":
+        return ".cs";
+      case "text/x-ruby":
+        return ".rb";
+      case "text/x-php":
+        return ".php";
       default:
-        return '.txt';
+        return ".txt";
     }
   }
 
@@ -308,7 +308,7 @@ export class LocalStorageService implements StorageService {
       !resolvedPath.startsWith(this.uploadDir + path.sep) &&
       resolvedPath !== this.uploadDir
     ) {
-      throw new ValidationError('Invalid file key path');
+      throw new ValidationError("Invalid file key path");
     }
 
     return resolvedPath;
@@ -324,7 +324,7 @@ export class LocalStorageService implements StorageService {
     claimedMimeType?: string,
   ): Promise<string> {
     if (!buffer || buffer.length === 0) {
-      throw new ValidationError('Uploaded file is empty');
+      throw new ValidationError("Uploaded file is empty");
     }
 
     // 1. File size validation
@@ -338,7 +338,7 @@ export class LocalStorageService implements StorageService {
     const detectedMime = this.detectMimeType(buffer, originalName);
     if (!detectedMime) {
       throw new ValidationError(
-        'Invalid file type: file content magic bytes could not be validated or file type is prohibited',
+        "Invalid file type: file content magic bytes could not be validated or file type is prohibited",
       );
     }
 
@@ -347,41 +347,41 @@ export class LocalStorageService implements StorageService {
     );
     if (!isAllowed) {
       throw new ValidationError(
-        `File type '${detectedMime}' is not permitted. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+        `File type '${detectedMime}' is not permitted. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
       );
     }
 
     // If client claimed a MIME type, ensure it doesn't conflict with detected type
     if (claimedMimeType) {
       const isZipMatch =
-        (detectedMime === 'application/zip' ||
-          detectedMime === 'application/x-zip-compressed') &&
-        (claimedMimeType === 'application/zip' ||
-          claimedMimeType === 'application/x-zip-compressed');
+        (detectedMime === "application/zip" ||
+          detectedMime === "application/x-zip-compressed") &&
+        (claimedMimeType === "application/zip" ||
+          claimedMimeType === "application/x-zip-compressed");
 
       const isTarMatch =
-        (detectedMime === 'application/x-tar' ||
-          detectedMime === 'application/gzip' ||
-          detectedMime === 'application/x-gzip') &&
-        (claimedMimeType === 'application/x-tar' ||
-          claimedMimeType === 'application/gzip' ||
-          claimedMimeType === 'application/x-gzip');
+        (detectedMime === "application/x-tar" ||
+          detectedMime === "application/gzip" ||
+          detectedMime === "application/x-gzip") &&
+        (claimedMimeType === "application/x-tar" ||
+          claimedMimeType === "application/gzip" ||
+          claimedMimeType === "application/x-gzip");
 
       const isTextMatch =
-        detectedMime.startsWith('text/') ||
-        detectedMime.includes('script') ||
-        detectedMime === 'application/json' ||
-        detectedMime.includes('yaml') ||
-        detectedMime.includes('toml') ||
-        detectedMime.includes('xml') ||
-        detectedMime.includes('sql');
+        detectedMime.startsWith("text/") ||
+        detectedMime.includes("script") ||
+        detectedMime === "application/json" ||
+        detectedMime.includes("yaml") ||
+        detectedMime.includes("toml") ||
+        detectedMime.includes("xml") ||
+        detectedMime.includes("sql");
 
       if (!isZipMatch && !isTarMatch && detectedMime !== claimedMimeType) {
         // Disallow spoofing attempts where declared binary type contradicts inspected buffer
         if (
-          claimedMimeType === 'application/pdf' ||
-          claimedMimeType === 'application/zip' ||
-          claimedMimeType === 'application/gzip'
+          claimedMimeType === "application/pdf" ||
+          claimedMimeType === "application/zip" ||
+          claimedMimeType === "application/gzip"
         ) {
           throw new ValidationError(
             `Declared MIME type '${claimedMimeType}' does not match detected content type '${detectedMime}'`,
@@ -429,9 +429,9 @@ export class LocalStorageService implements StorageService {
     } catch (error: unknown) {
       if (
         error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        (error as { code: string }).code === 'ENOENT'
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "ENOENT"
       ) {
         return; // Idempotent deletion
       }
@@ -448,13 +448,13 @@ export class LocalStorageService implements StorageService {
     try {
       await fs.promises.access(filePath, fs.constants.R_OK);
     } catch {
-      throw new NotFoundError('File not found');
+      throw new NotFoundError("File not found");
     }
 
     return new Promise((resolve, reject) => {
       const readStream = fs.createReadStream(filePath);
 
-      readStream.on('error', (err) => {
+      readStream.on("error", (err) => {
         if (!res.headersSent) {
           reject(err);
         } else {
@@ -463,8 +463,8 @@ export class LocalStorageService implements StorageService {
         }
       });
 
-      res.on('finish', () => resolve());
-      res.on('close', () => resolve());
+      res.on("finish", () => resolve());
+      res.on("close", () => resolve());
 
       readStream.pipe(res);
     });
@@ -480,11 +480,11 @@ export class LocalStorageService implements StorageService {
     try {
       fileStats = await fs.promises.stat(filePath);
     } catch {
-      throw new NotFoundError('File not found');
+      throw new NotFoundError("File not found");
     }
 
     // Inspect first chunk to verify MIME
-    const fd = await fs.promises.open(filePath, 'r');
+    const fd = await fs.promises.open(filePath, "r");
     const buffer = Buffer.alloc(Math.min(8192, fileStats.size));
     try {
       await fd.read(buffer, 0, buffer.length, 0);
@@ -493,7 +493,7 @@ export class LocalStorageService implements StorageService {
     }
 
     const detectedMime =
-      this.detectMimeType(buffer, key) || 'application/octet-stream';
+      this.detectMimeType(buffer, key) || "application/octet-stream";
 
     return {
       size: fileStats.size,

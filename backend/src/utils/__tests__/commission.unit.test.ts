@@ -1,7 +1,7 @@
-import { splitCommission } from '../commission';
+import { splitCommission } from "../commission";
 
-describe('Commission Unit Tests (Task B-5)', () => {
-  it('splitCommission(4900, 10) -> { commissionAmount: 490, sellerAmount: 4410 }', () => {
+describe("Commission Unit Tests (Task B-5)", () => {
+  it("splitCommission(4900, 10) -> { commissionAmount: 490, sellerAmount: 4410 }", () => {
     const result = splitCommission(4900, 10);
     expect(result).toEqual({
       commissionAmount: 490,
@@ -9,7 +9,7 @@ describe('Commission Unit Tests (Task B-5)', () => {
     });
   });
 
-  it('splitCommission(1, 10) -> { commissionAmount: 0, sellerAmount: 1 } (floor remainder to seller)', () => {
+  it("splitCommission(1, 10) -> { commissionAmount: 0, sellerAmount: 1 } (floor remainder to seller)", () => {
     const result = splitCommission(1, 10);
     expect(result).toEqual({
       commissionAmount: 0,
@@ -17,7 +17,7 @@ describe('Commission Unit Tests (Task B-5)', () => {
     });
   });
 
-  it('splitCommission(100, 100) -> { commissionAmount: 100, sellerAmount: 0 }', () => {
+  it("splitCommission(100, 100) -> { commissionAmount: 100, sellerAmount: 0 }", () => {
     const result = splitCommission(100, 100);
     expect(result).toEqual({
       commissionAmount: 100,
@@ -25,7 +25,7 @@ describe('Commission Unit Tests (Task B-5)', () => {
     });
   });
 
-  it('for all inputs: commissionAmount + sellerAmount === price', () => {
+  it("for all inputs: commissionAmount + sellerAmount === price", () => {
     const testCases = [
       { price: 4900, percent: 10 },
       { price: 1, percent: 10 },

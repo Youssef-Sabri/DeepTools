@@ -1,5 +1,5 @@
-import { prisma } from '../../config/database';
-import { Product } from '@prisma/client';
+import { prisma } from "../../config/database";
+import { Product } from "@prisma/client";
 
 export class UploadsRepository {
   async create(data: {
@@ -43,7 +43,7 @@ export class UploadsRepository {
       },
       skip: params.skip,
       take: params.take,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 

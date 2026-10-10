@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
-import { uploadsService, UploadsService } from './uploads.service';
+import { Request, Response } from "express";
+import { uploadsService, UploadsService } from "./uploads.service";
 import {
   CreateUploadInput,
   UpdateUploadInput,
   listMyUploadsQuerySchema,
-} from './uploads.validator';
+} from "./uploads.validator";
 
 export class UploadsController {
   constructor(private readonly service: UploadsService = uploadsService) {}

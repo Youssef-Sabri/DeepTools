@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { OrdersService, ordersService } from './orders.service';
+import { Request, Response } from "express";
+import { OrdersService, ordersService } from "./orders.service";
 
 export class OrdersController {
   constructor(private readonly service: OrdersService = ordersService) {}

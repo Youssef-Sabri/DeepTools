@@ -1,4 +1,4 @@
-import { OrdersRepository, ordersRepository } from './orders.repository';
+import { OrdersRepository, ordersRepository } from "./orders.repository";
 
 export interface SellerSaleItem {
   orderId: string;
@@ -50,8 +50,8 @@ export class OrdersService {
 
     const sales: SellerSaleItem[] = orders.map((o) => ({
       orderId: o.id,
-      productId: o.productId ?? '',
-      productName: o.product?.name ?? 'Unknown Product',
+      productId: o.productId ?? "",
+      productName: o.product?.name ?? "Unknown Product",
       productNameAr: o.product?.nameAr ?? null,
       amount: o.amount,
       commissionPercent: o.commissionPercent,

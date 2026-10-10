@@ -1,9 +1,9 @@
-import { Router } from 'express';
-import { usersController } from './users.controller';
-import { authenticate } from '../../middleware/auth.middleware';
-import { asyncHandler } from '../../utils/asyncHandler';
-import { validate } from '../../middleware/validation.middleware';
-import { updateProfileSchema, changePasswordSchema } from './users.validator';
+import { Router } from "express";
+import { usersController } from "./users.controller";
+import { authenticate } from "../../middleware/auth.middleware";
+import { asyncHandler } from "../../utils/asyncHandler";
+import { validate } from "../../middleware/validation.middleware";
+import { updateProfileSchema, changePasswordSchema } from "./users.validator";
 
 const router = Router();
 
@@ -25,20 +25,20 @@ router.use(authenticate);
  *       401:
  *         description: Unauthorized
  */
-router.get('/me', asyncHandler(usersController.getMe));
+router.get("/me", asyncHandler(usersController.getMe));
 
 // تحديث الاسم
 router.patch(
-    '/me',
-    validate(updateProfileSchema),
-    asyncHandler(usersController.updateProfile)
+  "/me",
+  validate(updateProfileSchema),
+  asyncHandler(usersController.updateProfile),
 );
 
 // تغيير كلمة المرور
 router.put(
-    '/me/password',
-    validate(changePasswordSchema),
-    asyncHandler(usersController.changePassword)
+  "/me/password",
+  validate(changePasswordSchema),
+  asyncHandler(usersController.changePassword),
 );
 
 export default router;

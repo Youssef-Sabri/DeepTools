@@ -1,8 +1,8 @@
-import { env } from '../../config/env';
-import { SettingsRepository, settingsRepository } from './settings.repository';
+import { env } from "../../config/env";
+import { SettingsRepository, settingsRepository } from "./settings.repository";
 
 export const SETTING_KEYS = {
-  COMMISSION_PERCENT: 'commission_percent',
+  COMMISSION_PERCENT: "commission_percent",
 } as const;
 
 export interface CommissionSettingResponse {
@@ -69,8 +69,8 @@ export class SettingsService {
 
     console.info(
       JSON.stringify({
-        level: 'info',
-        event: 'MARKETPLACE_COMMISSION_UPDATED',
+        level: "info",
+        event: "MARKETPLACE_COMMISSION_UPDATED",
         commissionPercent,
         updatedAt: setting.updatedAt.toISOString(),
       }),

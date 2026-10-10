@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Validation schema for updating commission percentage.
@@ -6,10 +6,10 @@ import { z } from 'zod';
  */
 export const updateCommissionSchema = z.object({
   commissionPercent: z
-    .number({ message: 'commissionPercent is required' })
-    .int('commissionPercent must be an integer')
-    .min(0, 'commissionPercent must be at least 0')
-    .max(100, 'commissionPercent cannot exceed 100'),
+    .number({ message: "commissionPercent is required" })
+    .int("commissionPercent must be an integer")
+    .min(0, "commissionPercent must be at least 0")
+    .max(100, "commissionPercent cannot exceed 100"),
 });
 
 export type UpdateCommissionInput = z.infer<typeof updateCommissionSchema>;

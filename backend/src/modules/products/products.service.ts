@@ -1,26 +1,26 @@
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { Response } from 'express';
-import { productsRepository, ProductsRepository } from './products.repository';
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { Response } from "express";
+import { productsRepository, ProductsRepository } from "./products.repository";
 import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
   InternalServerError,
-} from '../../utils/apiError';
-import { splitCommission } from '../../utils/commission';
-import { settingsService, SettingsService } from '../settings/settings.service';
+} from "../../utils/apiError";
+import { splitCommission } from "../../utils/commission";
+import { settingsService, SettingsService } from "../settings/settings.service";
 import {
   storageService,
   LocalStorageService,
-} from '../../storage/storage.service';
+} from "../../storage/storage.service";
 import {
   CreateProductInput,
   UpdateProductInput,
   ListPublicProductsQuery,
-} from './products.validator';
-import { Product } from '@prisma/client';
+} from "./products.validator";
+import { Product } from "@prisma/client";
 
 export type ProductWithSeller = Product & {
   seller?: { id: string; name: string } | null;
@@ -72,7 +72,7 @@ export class ProductsService {
     p: ProductWithSeller,
     lang?: string,
   ): PublicProduct {
-    const isAr = lang?.toLowerCase().startsWith('ar');
+    const isAr = lang?.toLowerCase().startsWith("ar");
     return {
       id: p.id,
       name: p.name,
@@ -90,7 +90,7 @@ export class ProductsService {
         isAr && p.descriptionAr ? p.descriptionAr : p.description,
       displayBadge: isAr && p.badgeAr ? p.badgeAr : p.badge,
       sellerId: p.sellerId,
-      sellerName: p.seller?.name || 'Verified Seller',
+      sellerName: p.seller?.name || "Verified Seller",
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
     };
@@ -110,7 +110,7 @@ export class ProductsService {
       limit,
       category: query.category,
       search: query.search,
-      status: 'approved',
+      status: "approved",
     });
 
     return {
@@ -129,11 +129,11 @@ export class ProductsService {
   async findOne(
     id: string,
     lang?: string,
-    status: string = 'approved',
+    status: string = "approved",
   ): Promise<PublicProduct> {
     const product = await this.repo.findById(id, status);
     if (!product) {
-      throw new NotFoundError('Product not found');
+      throw new NotFoundError("Product not found");
     }
     return this.formatPublicProduct(product, lang);
   }
@@ -146,25 +146,25 @@ export class ProductsService {
       descriptionAr: data.descriptionAr ?? null,
       badge: data.badge ?? null,
       badgeAr: data.badgeAr ?? null,
-      status: 'approved',
+      status: "approved",
     });
   }
 
   async update(id: string, data: UpdateProductInput) {
-    const existing = await this.repo.findById(id, '');
+    const existing = await this.repo.findById(id, "");
     if (!existing) {
-      throw new NotFoundError('Product not found');
+      throw new NotFoundError("Product not found");
     }
     return this.repo.update(id, data);
   }
 
   async remove(id: string) {
-    const existing = await this.repo.findById(id, '');
+    const existing = await this.repo.findById(id, "");
     if (!existing) {
-      throw new NotFoundError('Product not found');
+      throw new NotFoundError("Product not found");
     }
     await this.repo.delete(id);
-    return { message: 'Product deleted successfully' };
+    return { message: "Product deleted successfully" };
   }
 
   /**
@@ -178,23 +178,23 @@ export class ProductsService {
    * Rule 7: Single prisma.$transaction: create License + create Order
    */
   async purchase(userId: string, userRole: string, productId: string) {
-    if (userRole === 'admin') {
-      throw new ForbiddenError('Admins cannot purchase marketplace products');
+    if (userRole === "admin") {
+      throw new ForbiddenError("Admins cannot purchase marketplace products");
     }
 
-    const product = await this.repo.findById(productId, 'approved');
+    const product = await this.repo.findById(productId, "approved");
     if (!product) {
-      throw new NotFoundError('Product not found');
+      throw new NotFoundError("Product not found");
     }
 
     if (product.sellerId === userId) {
-      throw new ForbiddenError('You cannot purchase your own product');
+      throw new ForbiddenError("You cannot purchase your own product");
     }
 
     const existingLicense = await this.repo.findLicense(userId, productId);
     if (existingLicense) {
       throw new ConflictError(
-        'You already own an active license for this product',
+        "You already own an active license for this product",
       );
     }
 
@@ -204,7 +204,7 @@ export class ProductsService {
       commissionPercent,
     );
 
-    const licenseKey = `DF-${crypto.randomBytes(4).toString('hex').toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const licenseKey = `DF-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
     const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
     const { license, order } = await this.repo.createPurchaseTransaction({
@@ -219,7 +219,7 @@ export class ProductsService {
     });
 
     return {
-      message: 'Purchase completed successfully',
+      message: "Purchase completed successfully",
       product: this.formatPublicProduct(product),
       license,
       order,
@@ -242,20 +242,20 @@ export class ProductsService {
     const license = await this.repo.findLicense(userId, productId);
     if (!license) {
       throw new ForbiddenError(
-        'You do not have a license to download this product',
+        "You do not have a license to download this product",
       );
     }
 
     if (!license.isActive) {
-      throw new ForbiddenError('License is inactive or revoked');
+      throw new ForbiddenError("License is inactive or revoked");
     }
 
-    const product = await this.repo.findById(productId, '');
+    const product = await this.repo.findById(productId, "");
     if (!product || !product.fileKey) {
       console.error(
         `[DownloadError] Product ${productId} has no associated fileKey`,
       );
-      throw new InternalServerError('File storage error: file missing on disk');
+      throw new InternalServerError("File storage error: file missing on disk");
     }
 
     try {
@@ -266,17 +266,17 @@ export class ProductsService {
         `[DownloadError] Product ${productId} references missing file ${product.fileKey} on disk:`,
         err,
       );
-      throw new InternalServerError('File storage error: file missing on disk');
+      throw new InternalServerError("File storage error: file missing on disk");
     }
 
-    const ext = path.extname(product.fileKey) || '';
-    const safeName = product.name.replace(/[^a-zA-Z0-9_\-.]/g, '_');
+    const ext = path.extname(product.fileKey) || "";
+    const safeName = product.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
     const filename = `${safeName}${ext}`;
 
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader(
-      'Content-Type',
-      product.fileMime || 'application/octet-stream',
+      "Content-Type",
+      product.fileMime || "application/octet-stream",
     );
 
     await this.storage.stream(product.fileKey, res);

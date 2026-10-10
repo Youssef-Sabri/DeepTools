@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { SettingsService, settingsService } from './settings.service';
-import { UpdateCommissionInput } from './settings.validator';
+import { Request, Response } from "express";
+import { SettingsService, settingsService } from "./settings.service";
+import { UpdateCommissionInput } from "./settings.validator";
 
 export class SettingsController {
   constructor(private readonly service: SettingsService = settingsService) {}
@@ -18,7 +18,7 @@ export class SettingsController {
     const data = await this.service.updateCommission(commissionPercent);
     res.status(200).json({
       success: true,
-      message: 'Commission percentage updated successfully',
+      message: "Commission percentage updated successfully",
       data,
     });
   };

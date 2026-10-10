@@ -1,4 +1,4 @@
-import { prisma } from '../../config/database';
+import { prisma } from "../../config/database";
 
 export class OrdersRepository {
   /**
@@ -7,7 +7,7 @@ export class OrdersRepository {
   async findBuyerOrders(userId: string) {
     return prisma.order.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         product: {
           select: {
@@ -32,7 +32,7 @@ export class OrdersRepository {
           sellerId,
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         product: {
           select: {

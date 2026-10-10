@@ -1,5 +1,5 @@
-import { Setting } from '@prisma/client';
-import { prisma } from '../../config/database';
+import { Setting } from "@prisma/client";
+import { prisma } from "../../config/database";
 
 export class SettingsRepository {
   /**

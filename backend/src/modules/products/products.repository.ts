@@ -1,5 +1,5 @@
-import { prisma } from '../../config/database';
-import { Prisma } from '@prisma/client';
+import { prisma } from "../../config/database";
+import { Prisma } from "@prisma/client";
 
 export class ProductsRepository {
   async findAll(params?: {
@@ -12,21 +12,21 @@ export class ProductsRepository {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
     const skip = (page - 1) * limit;
-    const status = params?.status || 'approved';
+    const status = params?.status || "approved";
 
     const where: Prisma.ProductWhereInput = {
-      ...(status !== 'all' ? { status } : {}),
+      ...(status !== "all" ? { status } : {}),
       ...(params?.category ? { category: params.category } : {}),
       ...(params?.search
         ? {
             OR: [
-              { name: { contains: params.search, mode: 'insensitive' } },
-              { nameAr: { contains: params.search, mode: 'insensitive' } },
-              { description: { contains: params.search, mode: 'insensitive' } },
+              { name: { contains: params.search, mode: "insensitive" } },
+              { nameAr: { contains: params.search, mode: "insensitive" } },
+              { description: { contains: params.search, mode: "insensitive" } },
               {
                 descriptionAr: {
                   contains: params.search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
             ],
@@ -39,7 +39,7 @@ export class ProductsRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           seller: {
             select: {
@@ -55,7 +55,7 @@ export class ProductsRepository {
     return { items, total };
   }
 
-  async findById(id: string, status: string = 'approved') {
+  async findById(id: string, status: string = "approved") {
     return prisma.product.findFirst({
       where: {
         id,
@@ -170,8 +170,8 @@ export class ProductsRepository {
           commissionPercent: data.commissionPercent,
           commissionAmount: data.commissionAmount,
           sellerAmount: data.sellerAmount,
-          status: 'completed',
-          paymentGateway: 'simulated',
+          status: "completed",
+          paymentGateway: "simulated",
         },
       });
 
