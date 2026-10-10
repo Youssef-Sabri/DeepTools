@@ -1,79 +1,61 @@
-/* eslint-disable @typescript-eslint/no-namespace */
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { ApiError } from '../utils/apiError';
 import { env } from '../config/env';
-import { prisma } from '../config/database';
-import { UnauthorizedError, ForbiddenError } from '../utils/apiError';
+import { Role } from '@prisma/client';
 
+// Extend Express Request interface globally to include 'user'
 declare global {
-  namespace Express {
-    interface User {
-      id: string;
-      name: string;
-      email: string;
-      role: string;
+    namespace Express {
+        interface Request {
+            user?: {
+                id: string;
+                role: Role;
+            };
+        }
     }
-    interface Request {
-      user?: User;
-    }
-  }
 }
 
-export const authenticate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(
-      new UnauthorizedError('Missing or invalid authorization header'),
-    );
-  }
+interface JwtPayload {
+    sub: string;
+    role: Role;
+}
 
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    return next(new UnauthorizedError('Token not provided'));
-  }
+// Verify JWT and attach user payload to request
+export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+    const authHeader = req.headers.authorization;
 
-  try {
-    const payload = jwt.verify(token, env.JWT_SECRET) as {
-      sub: string;
-      email: string;
-      role?: string;
-    };
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    if (!user) {
-      return next(new UnauthorizedError('User not found or token invalid'));
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return next(ApiError.unauthorized('Authentication token is missing or invalid'));
     }
 
-    req.user = user;
-    next();
-  } catch {
-    return next(new UnauthorizedError('Invalid or expired token'));
-  }
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+
+        req.user = {
+            id: decoded.sub,
+            role: decoded.role,
+        };
+
+        next();
+    } catch (error) {
+        next(ApiError.unauthorized('Invalid or expired token'));
+    }
 };
 
-export const requireRole = (...allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      return next(new UnauthorizedError('Authentication required'));
-    }
+// Check if authenticated user has one of the allowed roles
+export const authorize = (allowedRoles: Role[]) => {
+    return (req: Request, res: Response, next: NextFunction): void => {
+        if (!req.user) {
+            return next(ApiError.unauthorized('User is not authenticated'));
+        }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return next(new ForbiddenError('Forbidden: Insufficient permissions'));
-    }
+        if (!allowedRoles.includes(req.user.role)) {
+            return next(ApiError.forbidden('You do not have permission to access this resource'));
+        }
 
-    next();
-  };
+        next();
+    };
 };

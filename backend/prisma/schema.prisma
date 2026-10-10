@@ -1,28 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+enum Role {
+  USER
+  ADMIN
 }
 
-// 1. Users Model
 model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  name          String
+  passwordHash  String   @map("password_hash")
+  role          Role     @default(USER)
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  subscriptions       Subscription[]
+  licenses            License[]
+  orders              Order[]
+  sellerProducts      Product[] @relation("SellerProducts")
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
   id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user") @db.VarChar(20)
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  subscriptions Subscription[]
-  licenses      License[]
-  orders        Order[]
-  sellerProducts Product[] @relation("SellerProducts")
+  // بناء العلاقة مع التفعيل التلقائي للحذف
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("users")
+  // الفهرسة برقم المستخدم لتسريع البحث
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 // 2. Products Model
@@ -92,7 +116,6 @@ model Subscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@map("subscriptions")
 }
 

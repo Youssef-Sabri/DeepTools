@@ -1,34 +1,32 @@
 import app from './app';
 import { env } from './config/env';
-import { closeDatabase } from './config/database';
+import { prisma } from './config/database';
 
-const PORT = env.PORT;
-
-const server = app.listen(PORT, () => {
-  console.log(`[DeepTools API] is running on: http://localhost:${PORT}/api/v1`);
+const server = app.listen(env.PORT, () => {
+  console.log(`[Server] Running in ${env.NODE_ENV} mode on port ${env.PORT}`);
 });
 
-// Graceful shutdown handling
-const shutdown = (signal: string): void => {
-  console.log(`\nReceived ${signal}. Gracefully shutting down...`);
-  server.close(() => {
-    closeDatabase()
-      .then(() => {
-        console.log('Database connections closed. Server terminated.');
-        process.exit(0);
-      })
-      .catch((err: unknown) => {
-        console.error('Error during shutdown:', err);
-        process.exit(1);
-      });
+// Handle graceful termination to prevent database connection leaks
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
+
+  server.close(async () => {
+    try {
+      await prisma.$disconnect();
+      console.log('[Database] Disconnected cleanly.');
+      process.exit(0);
+    } catch (error) {
+      console.error('[Shutdown Error] Failed to disconnect cleanly:', error);
+      process.exit(1);
+    }
   });
+
+  // Force close if cleanup takes too long
+  setTimeout(() => {
+    console.error('[Server] Forced shutdown due to timeout.');
+    process.exit(1);
+  }, 10000);
 };
 
-process.on('SIGINT', () => {
-  shutdown('SIGINT');
-});
-process.on('SIGTERM', () => {
-  shutdown('SIGTERM');
-});
-
-export default server;
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));

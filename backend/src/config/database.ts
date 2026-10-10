@@ -1,13 +1,20 @@
 import { PrismaClient } from '@prisma/client';
+import { env } from './env';
 
-export const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-});
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+};
 
-export const db = prisma;
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
-export async function closeDatabase(): Promise<void> {
-  await prisma.$disconnect();
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+if (env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
 }
-
-export default prisma;

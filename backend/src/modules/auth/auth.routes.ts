@@ -1,46 +1,37 @@
 import { Router } from 'express';
 import { authController } from './auth.controller';
-import { validateBody } from '../../middleware/validation.middleware';
-import { authenticate } from '../../middleware/auth.middleware';
-import { authRateLimiter } from '../../middleware/rateLimit.middleware';
+import { validate } from '../../middleware/validation.middleware';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.validator';
 import { asyncHandler } from '../../utils/asyncHandler';
-import {
-  registerSchema,
-  loginSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
-} from './auth.validator';
 
 const router = Router();
 
+// Register new public user
 router.post(
-  '/register',
-  authRateLimiter,
-  validateBody(registerSchema),
-  asyncHandler(authController.register),
+    '/register',
+    validate(registerSchema),
+    asyncHandler(authController.register),
 );
 
+// Authenticate existing user
 router.post(
-  '/login',
-  authRateLimiter,
-  validateBody(loginSchema),
-  asyncHandler(authController.login),
+    '/login',
+    validate(loginSchema),
+    asyncHandler(authController.login),
 );
 
+// Forgot password
 router.post(
-  '/forgot-password',
-  authRateLimiter,
-  validateBody(forgotPasswordSchema),
-  asyncHandler(authController.forgotPassword),
+    '/forgot-password',
+    validate(forgotPasswordSchema),
+    asyncHandler(authController.forgotPassword)
 );
 
+// Reset password
 router.post(
-  '/reset-password',
-  authRateLimiter,
-  validateBody(resetPasswordSchema),
-  asyncHandler(authController.resetPassword),
+    '/reset-password',
+    validate(resetPasswordSchema),
+    asyncHandler(authController.resetPassword)
 );
-
-router.get('/me', authenticate, asyncHandler(authController.getProfile));
 
 export default router;

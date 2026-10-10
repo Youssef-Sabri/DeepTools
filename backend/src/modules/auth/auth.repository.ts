@@ -1,45 +1,70 @@
 import { prisma } from '../../config/database';
+import { User, Role } from '@prisma/client';
+
+export interface CreateUserData {
+    email: string;
+    name: string;
+    passwordHash: string;
+    role?: Role;
+}
 
 export class AuthRepository {
-  async findByEmail(email: string) {
-    return prisma.user.findUnique({
-      where: { email },
-    });
-  }
+    async findByEmail(email: string): Promise<User | null> {
+        return prisma.user.findUnique({
+            where: { email },
+        });
+    }
 
-  async findById(id: string) {
-    return prisma.user.findUnique({
-      where: { id },
-    });
-  }
+    async findById(id: string): Promise<User | null> {
+        return prisma.user.findUnique({
+            where: { id },
+        });
+    }
 
-  async countUsers() {
-    return prisma.user.count();
-  }
+    async createUser(data: CreateUserData): Promise<User> {
+        return prisma.user.create({
+            data: {
+                email: data.email,
+                name: data.name,
+                passwordHash: data.passwordHash,
+                role: data.role ?? Role.USER,
+            },
+        });
+    }
 
-  async createUser(data: {
-    name: string;
-    email: string;
-    password: string;
-    role: string;
-  }) {
-    return prisma.user.create({
-      data,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-    });
-  }
+    // الإنشاء باستخدام userId
+    async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
+        return prisma.passwordResetToken.create({
+            data: {
+                userId,
+                tokenHash,
+                expiresAt,
+            },
+        });
+    }
 
-  async updatePassword(userId: string, hashedPassword: string) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-  }
+    // البحث الدقيق باستخدام tokenHash
+    async findResetToken(tokenHash: string) {
+        return prisma.passwordResetToken.findUnique({
+            where: { tokenHash },
+        });
+    }
+
+    // التحديث لحالة "مُستخدم"
+    async markTokenAsUsed(tokenId: string) {
+        return prisma.passwordResetToken.update({
+            where: { id: tokenId },
+            data: { isUsed: true },
+        });
+    }
+
+    // تحديث كلمة المرور
+    async updateUserPassword(userId: string, passwordHash: string) {
+        return prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash },
+        });
+    }
 }
 
 export const authRepository = new AuthRepository();

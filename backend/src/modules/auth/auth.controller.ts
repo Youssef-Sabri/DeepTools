@@ -1,42 +1,59 @@
 import { Request, Response } from 'express';
 import { authService, AuthService } from './auth.service';
-import {
-  RegisterInput,
-  LoginInput,
-  ForgotPasswordInput,
-  ResetPasswordInput,
-} from './auth.validator';
+import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from './auth.validator';
 
 export class AuthController {
-  constructor(private readonly service: AuthService = authService) {}
+    constructor(private readonly service: AuthService = authService) { }
 
-  register = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.service.register(req.body as RegisterInput);
-    res.status(201).json({ success: true, data: result });
-  };
+    // Handle user registration
+    register = async (req: Request, res: Response): Promise<void> => {
+        const input = req.body as RegisterInput;
+        const result = await this.service.register(input);
 
-  login = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.service.login(req.body as LoginInput);
-    res.status(200).json({ success: true, data: result });
-  };
+        res.status(201).json({
+            success: true,
+            statusCode: 201,
+            message: 'User registered successfully',
+            data: result,
+        });
+    };
 
-  forgotPassword = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.service.forgotPassword(
-      req.body as ForgotPasswordInput,
-    );
-    res.status(200).json({ success: true, data: result });
-  };
+    // Handle user login
+    login = async (req: Request, res: Response): Promise<void> => {
+        const input = req.body as LoginInput;
+        const result = await this.service.login(input);
 
-  resetPassword = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.service.resetPassword(
-      req.body as ResetPasswordInput,
-    );
-    res.status(200).json({ success: true, data: result });
-  };
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            message: 'Login successful',
+            data: result,
+        });
+    };
 
-  getProfile = (req: Request, res: Response): void => {
-    res.status(200).json({ success: true, data: req.user });
-  };
+    // Handle forgot password
+    forgotPassword = async (req: Request, res: Response): Promise<void> => {
+        const input = req.body as ForgotPasswordInput;
+        await this.service.forgotPassword(input);
+
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            message: 'If the email exists, a password reset token has been generated',
+        });
+    };
+
+    // Handle reset password
+    resetPassword = async (req: Request, res: Response): Promise<void> => {
+        const input = req.body as ResetPasswordInput;
+        await this.service.resetPassword(input);
+
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            message: 'Password has been reset successfully',
+        });
+    };
 }
 
 export const authController = new AuthController();
