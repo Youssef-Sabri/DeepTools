@@ -3,7 +3,7 @@ export class ApiFeatures {
 
   constructor(private queryParams: any) {}
 
-  // 1. الفلترة المباشرة (مثل: role=ADMIN)
+  // 1. Exact field filtering (e.g. role=ADMIN)
   filter(exactFields: string[]) {
     exactFields.forEach((field) => {
       if (this.queryParams[field] !== undefined) {
@@ -13,7 +13,7 @@ export class ApiFeatures {
     return this;
   }
 
-  // 2. البحث النصي
+  // 2. Case-insensitive search across specified fields
   search(searchFields: string[]) {
     if (this.queryParams.search) {
       this.prismaQuery.where.OR = searchFields.map((field) => ({
@@ -23,7 +23,7 @@ export class ApiFeatures {
     return this;
   }
 
-  // 3. تقسيم الصفحات (مع قيم افتراضية تحمي السيرفر)
+  // 3. Offset-based pagination with server-safe defaults
   paginate(defaultLimit = 10) {
     const page = Number(this.queryParams.page) || 1;
     const limit = Number(this.queryParams.limit) || defaultLimit;
@@ -33,13 +33,13 @@ export class ApiFeatures {
     return this;
   }
 
-  // 4. الترتيب
+  // 4. Order by sorting
   sort(defaultSort = { createdAt: "desc" }) {
     this.prismaQuery.orderBy = defaultSort;
     return this;
   }
 
-  // 5. استخراج كائن الاستعلام النهائي لبريسما
+  // 5. Export compiled Prisma arguments
   get() {
     return this.prismaQuery;
   }

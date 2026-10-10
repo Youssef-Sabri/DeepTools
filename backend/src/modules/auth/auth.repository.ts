@@ -32,7 +32,7 @@ export class AuthRepository {
     });
   }
 
-  // الإنشاء باستخدام userId
+  // Create single-use password reset token
   async createPasswordResetToken(
     userId: string,
     tokenHash: string,
@@ -47,14 +47,14 @@ export class AuthRepository {
     });
   }
 
-  // البحث الدقيق باستخدام tokenHash
+  // Find reset token record by unique hash
   async findResetToken(tokenHash: string) {
     return prisma.passwordResetToken.findUnique({
       where: { tokenHash },
     });
   }
 
-  // التحديث لحالة "مُستخدم"
+  // Invalidate token by marking as used
   async markTokenAsUsed(tokenId: string) {
     return prisma.passwordResetToken.update({
       where: { id: tokenId },
@@ -62,7 +62,7 @@ export class AuthRepository {
     });
   }
 
-  // تحديث كلمة المرور
+  // Update user hashed password
   async updateUserPassword(userId: string, passwordHash: string) {
     return prisma.user.update({
       where: { id: userId },

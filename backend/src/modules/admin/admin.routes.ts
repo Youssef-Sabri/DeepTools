@@ -16,21 +16,21 @@ import settingsRoutes from "../settings/settings.routes";
 
 const router = Router();
 
-// تطبيق حماية الـ Auth والـ Admin على كل مسارات هذا الموديول
+// Enforce authentication and ADMIN role across all admin routes
 router.use(authenticate);
 router.use(requireRole(["ADMIN"]));
 
-// 1. مسار جلب كل المستخدمين (مع الفلترة والبحث)
+// 1. User management routes (search, filter, pagination)
 router.get(
   "/users",
   validate(getUsersQuerySchema),
   asyncHandler(adminController.getUsers),
 );
 
-// 2. مسار الإحصائيات (لازم يكون قبل الـ /:id)
+// 2. User registration insights (defined before :id to prevent collision)
 router.get("/insights/users", asyncHandler(adminController.getUsersInsights));
 
-// 3. مسار مستخدم واحد بالـ ID
+// 3. User details by ID
 router.get("/users/:id", asyncHandler(adminController.getUserById));
 
 // Uploads review queue & decisions

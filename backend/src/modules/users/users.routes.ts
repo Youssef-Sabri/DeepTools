@@ -27,14 +27,14 @@ router.use(authenticate);
  */
 router.get("/me", asyncHandler(usersController.getMe));
 
-// تحديث الاسم
+// Update own profile name
 router.patch(
   "/me",
   validate(updateProfileSchema),
   asyncHandler(usersController.updateProfile),
 );
 
-// تغيير كلمة المرور
+// Change own password
 router.put(
   "/me/password",
   validate(changePasswordSchema),

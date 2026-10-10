@@ -10,7 +10,7 @@ export class AdminController {
     this.service = service ?? adminService;
   }
 
-  // جلب قائمة المستخدمين
+  // Retrieve paginated list of users with search and filter
   getUsers = async (req: Request, res: Response): Promise<void> => {
     const query = req.query as unknown as GetUsersQuery;
     const result = await this.service.getUsers(query);
@@ -22,7 +22,7 @@ export class AdminController {
     });
   };
 
-  // جلب إحصائيات المستخدمين
+  // Retrieve platform user registration insights
   getUsersInsights = async (req: Request, res: Response): Promise<void> => {
     const insights = await this.service.getUsersInsights();
 
@@ -33,7 +33,7 @@ export class AdminController {
     });
   };
 
-  // جلب بيانات مستخدم واحد
+  // Retrieve single user profile by ID
   getUserById = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const user = await this.service.getUserById(id);

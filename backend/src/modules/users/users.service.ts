@@ -41,12 +41,12 @@ export class UsersService {
     });
   }
 
-  // تغيير كلمة المرور
+  // Change own password with verification of current password
   async changePassword(userId: string, input: ChangePasswordInput) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw ApiError.notFound("User not found");
 
-    // 1. التأكد من صحة الباسورد الحالي
+    // 1. Verify current password against stored hash
     const isMatch = await bcrypt.compare(
       input.currentPassword,
       user.passwordHash,
@@ -55,7 +55,7 @@ export class UsersService {
       throw ApiError.badRequest("Incorrect current password");
     }
 
-    // 2. التأكد إن الباسورد الجديد مختلف عن القديم
+    // 2. Ensure new password is not identical to current password
     const isSame = await bcrypt.compare(input.newPassword, user.passwordHash);
     if (isSame) {
       throw ApiError.badRequest(
@@ -63,7 +63,7 @@ export class UsersService {
       );
     }
 
-    // 3. تشفير وحفظ الباسورد الجديد
+    // 3. Hash and persist updated password
     const newPasswordHash = await bcrypt.hash(
       input.newPassword,
       Number(env.BCRYPT_SALT_ROUNDS),

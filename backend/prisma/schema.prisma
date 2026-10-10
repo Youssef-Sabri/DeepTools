@@ -41,10 +41,10 @@ model PasswordResetToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // بناء العلاقة مع التفعيل التلقائي للحذف
+  // Cascade delete tokens when parent user is deleted
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // الفهرسة برقم المستخدم لتسريع البحث
+  // Index by userId for fast lookup
   @@index([userId])
   @@map("password_reset_tokens")
 }

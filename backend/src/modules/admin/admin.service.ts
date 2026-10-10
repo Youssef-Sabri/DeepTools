@@ -13,9 +13,9 @@ export class AdminService {
     this.repo = repo ?? adminRepository;
   }
 
-  // 1. جلب قائمة المستخدمين مع البحث والفلترة
+  // 1. Retrieve paginated list of users with search and filtering
   async getUsers(query: GetUsersQuery) {
-    // بناء الاستعلام باستخدام ApiFeatures
+    // Build query via ApiFeatures utility
     const features = new ApiFeatures(query || {})
       .filter(["role"])
       .search(["name", "email"])
@@ -24,7 +24,7 @@ export class AdminService {
 
     const prismaArgs = features.get();
 
-    // تنفيذ الاستعلام
+    // Execute data fetch and count queries concurrently
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         ...prismaArgs,
@@ -39,7 +39,7 @@ export class AdminService {
       prisma.user.count({ where: prismaArgs.where }),
     ]);
 
-    // حساب بيانات الصفحات
+    // Calculate pagination metadata
     const page = Number(query?.page) || 1;
     const limit = Number(query?.limit) || 10;
 
@@ -49,7 +49,7 @@ export class AdminService {
     };
   }
 
-  // 2. جلب بيانات مستخدم واحد
+  // 2. Retrieve single user profile by ID
   async getUserById(id: string) {
     const user = await prisma.user.findUnique({
       where: { id },
@@ -67,7 +67,7 @@ export class AdminService {
     return user;
   }
 
-  // 3. إحصائيات المستخدمين (الإجمالي والجدد في آخر 30 يوم)
+  // 3. User registration insights (total users and new signups in last 30 days)
   async getUsersInsights() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

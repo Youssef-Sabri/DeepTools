@@ -13,27 +13,27 @@ async function bootstrap() {
   console.log("========================================\n");
 
   try {
-    // 1. طلب البيانات من المستخدم في التيرمينال
+    // 1. Prompt administrator credentials via CLI
     const name = await rl.question("Enter admin name: ");
     const email = await rl.question("Enter admin email: ");
     const password = await rl.question("Enter admin password: ");
 
-    // 2. التحقق من أن الحقول غير فارغة
+    // 2. Validate required inputs
     if (!name || !email || !password) {
       throw new Error("All fields are required. Creation aborted.");
     }
 
-    // 3. التحقق من عدم وجود الإيميل مسبقاً
+    // 3. Ensure email uniqueness
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       throw new Error(`The email ${email} is already registered.`);
     }
 
-    // 4. تشفير كلمة المرور حسب إعدادات البيئة (بتكلفة 12 أو أعلى)
+    // 4. Hash password with bcrypt cost factor >= 12
     const saltRounds = Number(env.BCRYPT_SALT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // 5. إنشاء حساب الأدمن في قاعدة البيانات
+    // 5. Persist administrator record in database
     const admin = await prisma.user.create({
       data: {
         name,
@@ -57,7 +57,7 @@ async function bootstrap() {
       error instanceof Error ? error.message : "An unexpected error occurred",
     );
   } finally {
-    // 6. إغلاق الـ Terminal واشتراك الداتا بيز
+    // 6. Close readline interface and disconnect database client
     rl.close();
     await prisma.$disconnect();
   }
