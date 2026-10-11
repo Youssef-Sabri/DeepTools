@@ -3,28 +3,32 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Sun, Moon, Globe } from 'lucide-react'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import {
+  Search,
+  Upload,
+  Shield,
+  LogOut,
+  Globe,
+  Menu,
+  X,
+  ChevronDown,
+} from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { motion, AnimatePresence } from 'framer-motion'
+import { OmnisearchModal } from '@/components/marketplace/OmnisearchModal'
 import type { Locale } from '@/dictionaries'
+import type { Product } from '@/lib/types'
+import { fetchApi } from '@/lib/api'
 
 interface NavbarProps {
   locale: Locale
   dict: {
     nav: {
       home: string
-      about: string
-      templates: string
       products: string
-      pricing: string
-      journal: string
-      contact: string
+      dashboard?: string
       login: string
       register: string
-      getStarted: string
       switchLanguage: string
-      dashboard?: string
     }
   }
 }
@@ -32,183 +36,243 @@ interface NavbarProps {
 export default function Navbar({ locale, dict }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const pathname = usePathname()
-  const { theme, toggleTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [searchProducts, setSearchProducts] = useState<Product[]>([])
 
+  const pathname = usePathname()
+  const { user, logout } = useAuth()
+  const isAr = locale === 'ar'
   const alternateLocale = locale === 'en' ? 'ar' : 'en'
-  const currentPath = pathname.replace(`/${locale}`, '') || '/'
+
+  const currentPathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
+  const alternateUrl = `/${alternateLocale}${currentPathWithoutLocale}`
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
+    const handleScroll = () => setScrolled(window.scrollY > 15)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
-    setIsOpen(false)
-  }, [pathname])
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
-  const navLinks = [
-    { href: `/${locale}`, label: dict.nav.home },
-    { href: `/${locale}/about`, label: dict.nav.about },
-    { href: `/${locale}/products`, label: dict.nav.products },
-    { href: `/${locale}/templates`, label: dict.nav.templates },
-    { href: `/${locale}/pricing`, label: dict.nav.pricing },
-    { href: `/${locale}/journal`, label: dict.nav.journal },
-    { href: `/${locale}/contact`, label: dict.nav.contact },
-  ]
+  useEffect(() => {
+    fetchApi<{ items?: Product[] } | Product[]>(`/products?lang=${locale}&limit=50`)
+      .then((data) => {
+        if (Array.isArray(data)) setSearchProducts(data)
+        else if (data && Array.isArray(data.items)) setSearchProducts(data.items)
+      })
+      .catch(() => {})
+  }, [locale])
 
-  const isActive = (href: string) => {
-    if (href === `/${locale}`) return pathname === `/${locale}`
-    return pathname.startsWith(href)
-  }
+  const isAdmin = user?.role === 'ADMIN'
 
   return (
     <>
-      <a href="#main-content" className="skip-to-content">
-        Skip to content
-      </a>
       <nav
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrolled ? 'glass-strong shadow-lg' : 'bg-transparent'
+        className={`fixed top-0 inset-x-0 z-40 transition-all duration-250 ${
+          scrolled
+            ? 'bg-[#080b10]/90 backdrop-blur-md border-b border-[var(--line)] shadow-xl'
+            : 'bg-transparent border-b border-transparent'
         }`}
-        role="navigation"
-        aria-label="Main navigation"
       >
         <div className="container-custom">
-          <div className="flex items-center justify-between h-18 md:h-20">
+          <div className="flex items-center justify-between h-16 md:h-18">
             {/* Logo */}
-            <Link href={`/${locale}`} className="flex items-center gap-2 group" aria-label="DeepTools Home">
-              <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-accent-cyan to-accent-violet flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                <span className="text-white font-bold text-lg">D</span>
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-accent-cyan to-accent-violet opacity-0 group-hover:opacity-50 blur-lg transition-opacity duration-300" />
-              </div>
-              <span className="text-xl font-bold text-foreground">
-                Deep<span className="gradient-text">Tools</span>
-              </span>
-            </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                    isActive(link.href)
-                      ? 'text-accent-cyan'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  {link.label}
-                  {isActive(link.href) && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute bottom-0 inset-x-3 h-0.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-full"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </Link>
-              ))}
-              {user && (
-                <Link
-                  href={`/${locale}/dashboard`}
-                  className={`relative px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                    isActive(`/${locale}/dashboard`)
-                      ? 'text-accent-cyan'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  {dict.nav.dashboard || 'Dashboard'}
-                  {isActive(`/${locale}/dashboard`) && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute bottom-0 inset-x-3 h-0.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-full"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </Link>
-              )}
-              {user && user.role === 'admin' && (
-                <Link
-                  href={`/${locale}/admin`}
-                  className={`relative px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                    isActive(`/${locale}/admin`)
-                      ? 'text-accent-cyan'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  Admin Panel
-                  {isActive(`/${locale}/admin`) && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute bottom-0 inset-x-3 h-0.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-full"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </Link>
-              )}
-            </div>
-
-            {/* Right Controls */}
-            <div className="flex items-center gap-2">
-              {/* Language Switcher */}
+            <div className="flex items-center gap-8">
               <Link
-                href={`/${alternateLocale}${currentPath}`}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors duration-200"
-                aria-label={`Switch to ${alternateLocale === 'ar' ? 'Arabic' : 'English'}`}
+                href={`/${locale}`}
+                className="flex items-center gap-2.5 group"
+                onClick={() => setIsOpen(false)}
               >
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">{dict.nav.switchLanguage}</span>
+                <div className="w-8 h-8 rounded-lg bg-[var(--surface-2)] border border-[var(--line-bright)] flex items-center justify-center group-hover:border-[var(--blue-bright)] transition-colors">
+                  <span className="font-mono font-bold text-sm text-[var(--blue-bright)]">DT</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold tracking-tight text-[var(--text)]">
+                    Deep<span className="text-[var(--blue-bright)]">Tools</span>
+                  </span>
+                  <span className="text-[9px] font-mono tracking-widest text-[var(--muted-2)] uppercase">
+                    ENGINEERING
+                  </span>
+                </div>
               </Link>
 
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors duration-200"
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={theme}
-                    initial={{ y: -10, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 10, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
+              {/* Main Desktop Links */}
+              <div className="hidden md:flex items-center gap-1">
+                <Link
+                  href={`/${locale}/products`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    pathname.startsWith(`/${locale}/products`)
+                      ? 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]'
+                      : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
+                  }`}
+                >
+                  {isAr ? 'كتالوج الأدوات' : 'Marketplace'}
+                </Link>
+
+                <Link
+                  href={`/${locale}/dashboard`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    pathname.startsWith(`/${locale}/dashboard`)
+                      ? 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]'
+                      : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
+                  }`}
+                >
+                  {isAr ? 'لوحة التحكم' : 'Console'}
+                </Link>
+
+                {isAdmin && (
+                  <Link
+                    href={`/${locale}/admin`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 text-[var(--orange)] ${
+                      pathname.startsWith(`/${locale}/admin`)
+                        ? 'bg-[var(--orange)]/10 border border-[var(--orange)]/30'
+                        : 'hover:bg-[var(--surface-2)]/60'
+                    }`}
                   >
-                    {theme === 'dark' ? (
-                      <Sun className="w-[18px] h-[18px]" />
-                    ) : (
-                      <Moon className="w-[18px] h-[18px]" />
-                    )}
-                  </motion.div>
-                </AnimatePresence>
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>{isAr ? 'الإدارة' : 'Admin'}</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Omnisearch Trigger & Right Actions */}
+            <div className="flex items-center gap-2.5">
+              {/* Omnisearch Button */}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>{isAr ? 'بحث سريع...' : 'Omnisearch...'}</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[10px] font-mono border border-[var(--line)] text-[var(--muted-2)]">
+                  ⌘K
+                </kbd>
               </button>
 
-              {/* Conditional CTA Button (Desktop) */}
+              {/* Language Switcher */}
+              <Link
+                href={alternateUrl}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+                title={isAr ? 'تبديل إلى الإنجليزية' : 'Switch to Arabic'}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>{dict.nav.switchLanguage}</span>
+              </Link>
+
+
+              {/* Auth Session / Action */}
               {user ? (
-                <button
-                  onClick={logout}
-                  className="hidden md:inline-flex items-center px-4 py-2 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-rose to-red-500 hover:shadow-lg transition-all duration-300 hover:scale-105"
-                >
-                  Logout
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-[var(--blue)]/20 text-[var(--blue-bright)] font-mono text-[10px] flex items-center justify-center font-bold">
+                      {user.name ? user.name.slice(0, 2).toUpperCase() : 'U'}
+                    </div>
+                    <span className="font-medium max-w-[100px] truncate">{user.name}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-2)]" />
+                  </button>
+
+                  {userMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setUserMenuOpen(false)}
+                      />
+                      <div
+                        className="absolute end-0 mt-2 w-52 rounded-xl bg-[var(--surface)] border border-[var(--line-bright)] shadow-xl py-1 z-50 text-xs"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <div className="px-3 py-2 border-b border-[var(--line)]">
+                          <div className="font-semibold text-[var(--text)]">{user.name}</div>
+                          <div className="text-[10px] font-mono text-[var(--muted-2)] truncate">{user.email}</div>
+                          <span className="mt-1 inline-block text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[var(--blue-bright)] border border-[var(--line)]">
+                            {user.role}
+                          </span>
+                        </div>
+
+                        <Link
+                          href={`/${locale}/dashboard?tab=upload`}
+                          className="flex items-center gap-2 px-3 py-2 text-[var(--blue-bright)] hover:bg-[var(--surface-2)] transition-colors font-semibold"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{isAr ? 'نشر أداة جديدة' : 'Upload New Tool'}</span>
+                        </Link>
+
+                        <Link
+                          href={`/${locale}/dashboard?tab=purchases`}
+                          className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                        >
+                          {isAr ? 'مشترياتي وترخيصاتي' : 'My Purchases'}
+                        </Link>
+
+                        <Link
+                          href={`/${locale}/dashboard?tab=uploads`}
+                          className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                        >
+                          {isAr ? 'أدواتي المعروضة' : 'My Uploads'}
+                        </Link>
+
+                        <Link
+                          href={`/${locale}/dashboard?tab=sales`}
+                          className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                        >
+                          {isAr ? 'الأرباح والمبيعات' : 'Sales & Payouts'}
+                        </Link>
+
+                        <Link
+                          href={`/${locale}/dashboard?tab=profile`}
+                          className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                        >
+                          {isAr ? 'الملف الشخصي والأمان' : 'Profile & Security'}
+                        </Link>
+
+                        <button
+                          onClick={logout}
+                          className="w-full text-left rtl:text-right px-3 py-2 text-[var(--rose)] hover:bg-[var(--surface-2)] flex items-center gap-2 border-t border-[var(--line)] mt-1 transition-colors"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
-                <Link
-                  href={`/${locale}/auth/login`}
-                  className="hidden md:inline-flex items-center px-4 py-2 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-cyan to-accent-violet hover:shadow-glow-cyan transition-all duration-300 hover:scale-105"
-                >
-                  {dict.nav.login}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/${locale}/auth/login`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                  >
+                    {dict.nav.login}
+                  </Link>
+                  <Link
+                    href={`/${locale}/auth/register`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors shadow-sm"
+                  >
+                    {dict.nav.register}
+                  </Link>
+                </div>
               )}
 
-              {/* Mobile Menu Toggle */}
+              {/* Mobile Hamburger */}
               <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors duration-200"
-                aria-label={isOpen ? 'Close menu' : 'Open menu'}
-                aria-expanded={isOpen}
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="md:hidden p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                aria-label="Toggle Navigation Menu"
               >
                 {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -217,93 +281,130 @@ export default function Navbar({ locale, dict }: NavbarProps) {
         </div>
 
         {/* Mobile Menu */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="lg:hidden overflow-hidden glass-strong border-t border-border"
+        {isOpen && (
+          <div className="md:hidden border-b border-[var(--line)] bg-[var(--bg)] px-4 py-4 space-y-2">
+            <button
+              onClick={() => {
+                setIsOpen(false)
+                setSearchOpen(true)
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--muted)] mb-3"
             >
-              <div className="container-custom py-4 space-y-1">
-                {navLinks.map((link, index) => (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: locale === 'ar' ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Link
-                      href={link.href}
-                      className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                        isActive(link.href)
-                          ? 'text-accent-cyan bg-accent-cyan/10'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                      }`}
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
-                {user && (
-                  <motion.div
-                    initial={{ opacity: 0, x: locale === 'ar' ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: navLinks.length * 0.05 }}
-                  >
-                    <Link
-                      href={`/${locale}/dashboard`}
-                      className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                        isActive(`/${locale}/dashboard`)
-                          ? 'text-accent-cyan bg-accent-cyan/10'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                      }`}
-                    >
-                      {dict.nav.dashboard || 'Dashboard'}
-                    </Link>
-                  </motion.div>
-                )}
-                {user && user.role === 'admin' && (
-                  <motion.div
-                    initial={{ opacity: 0, x: locale === 'ar' ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
-                  >
-                    <Link
-                      href={`/${locale}/admin`}
-                      className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                        isActive(`/${locale}/admin`)
-                          ? 'text-accent-cyan bg-accent-cyan/10'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                      }`}
-                    >
-                      Admin Panel
-                    </Link>
-                  </motion.div>
-                )}
-                <div className="pt-3 border-t border-border">
-                  {user ? (
-                    <button
-                      onClick={logout}
-                      className="block w-full text-center px-4 py-3 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-rose to-red-500"
-                    >
-                      Logout
-                    </button>
-                  ) : (
-                    <Link
-                      href={`/${locale}/auth/login`}
-                      className="block w-full text-center px-4 py-3 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-cyan to-accent-violet"
-                    >
-                      {dict.nav.login}
-                    </Link>
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                <span>{isAr ? 'بحث سريع في الكتالوج...' : 'Search Assets (Omnisearch)...'}</span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[10px] font-mono border border-[var(--line)] text-[var(--muted-2)]">
+                ⌘K
+              </kbd>
+            </button>
+
+            <Link
+              href={`/${locale}/products`}
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+            >
+              {isAr ? 'كتالوج الأدوات' : 'Marketplace'}
+            </Link>
+            <Link
+              href={`/${locale}/dashboard`}
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+            >
+              {isAr ? 'لوحة التحكم' : 'Console'}
+            </Link>
+
+            {isAdmin && (
+              <Link
+                href={`/${locale}/admin`}
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--orange)] hover:bg-[var(--surface-2)]"
+              >
+                {isAr ? 'الإدارة' : 'Admin'}
+              </Link>
+            )}
+
+            {user ? (
+              <div className="pt-3 border-t border-[var(--line)] space-y-1">
+                <div className="px-3 py-1 text-xs text-[var(--muted-2)] font-mono">
+                  {user.name} ({user.email})
+                </div>
+                <Link
+                  href={`/${locale}/dashboard?tab=upload`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--blue-bright)] hover:bg-[var(--surface-2)]"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'نشر أداة جديدة' : 'Submit New Tool'}</span>
+                </Link>
+                <Link
+                  href={`/${locale}/dashboard?tab=purchases`}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                >
+                  {isAr ? 'مشترياتي وترخيصاتي' : 'My Purchases'}
+                </Link>
+                <Link
+                  href={`/${locale}/dashboard?tab=uploads`}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                >
+                  {isAr ? 'أدواتي المعروضة' : 'My Uploads'}
+                </Link>
+                <Link
+                  href={`/${locale}/dashboard?tab=sales`}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                >
+                  {isAr ? 'الأرباح والمبيعات' : 'Sales & Payouts'}
+                </Link>
+                <Link
+                  href={`/${locale}/dashboard?tab=profile`}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                >
+                  {isAr ? 'الملف الشخصي والأمان' : 'Profile & Security'}
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    logout()
+                  }}
+                  className="w-full text-left rtl:text-right px-3 py-2 rounded-lg text-xs text-[var(--rose)] hover:bg-[var(--surface-2)] flex items-center gap-2"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="pt-3 border-t border-[var(--line)] flex items-center gap-2">
+                <Link
+                  href={`/${locale}/auth/login`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]"
+                >
+                  {dict.nav.login}
+                </Link>
+                <Link
+                  href={`/${locale}/auth/register`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] text-white"
+                >
+                  {dict.nav.register}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </nav>
+
+      {/* Omnisearch Modal */}
+      <OmnisearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        locale={locale}
+        products={searchProducts}
+      />
     </>
   )
 }

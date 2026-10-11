@@ -22,7 +22,6 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  subscriptions       Subscription[]
   licenses            License[]
   orders              Order[]
   sellerProducts      Product[] @relation("SellerProducts")
@@ -81,42 +80,6 @@ model Product {
   @@index([status])
   @@index([category])
   @@map("products")
-}
-
-// 3. Templates Model
-model Template {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  nameAr        String?  @map("name_ar")
-  description   String
-  descriptionAr String?  @map("description_ar")
-  category      String   @db.VarChar(50)
-  compatibility String[]
-  price         Int
-  version       String   @default("1.0.0") @db.VarChar(20)
-  downloads     Int      @default(0)
-  downloadUrl   String?  @map("download_url")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-  @@map("templates")
-}
-
-// 4. Subscriptions Model
-model Subscription {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  planName  String    @map("plan_name") @db.VarChar(50)
-  status    String    @default("active") @db.VarChar(20)
-  startDate DateTime  @default(now()) @map("start_date")
-  endDate   DateTime? @map("end_date")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("subscriptions")
 }
 
 // 5. Licenses Model

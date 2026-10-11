@@ -12,10 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function ResetPasswordPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ token?: string }>
 }) {
   const { locale } = await params
   if (!hasLocale(locale)) notFound()

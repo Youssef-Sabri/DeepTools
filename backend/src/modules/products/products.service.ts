@@ -37,7 +37,6 @@ export interface PublicProduct {
   version: string;
   badge: string | null;
   badgeAr: string | null;
-  downloadUrl?: string | null;
   displayName: string;
   displayDescription: string;
   displayBadge: string | null;
@@ -84,7 +83,6 @@ export class ProductsService {
       version: p.version,
       badge: p.badge,
       badgeAr: p.badgeAr,
-      downloadUrl: p.downloadUrl,
       displayName: isAr && p.nameAr ? p.nameAr : p.name,
       displayDescription:
         isAr && p.descriptionAr ? p.descriptionAr : p.description,

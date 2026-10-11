@@ -10,18 +10,28 @@ services:
       - "5439:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dataforge_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
-  adminer:
-    image: adminer:latest
-    container_name: deeptools-adminer
-    ports:
-      - "8080:8080"
+
+  studio:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: deeptools-studio
     environment:
-      ADMINER_DEFAULT_SERVER: postgres
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dataforge_db
+    ports:
+      - "5555:5555"
+    command: ["npx", "prisma", "studio", "--port", "5555", "--browser", "none", "--hostname", "0.0.0.0"]
     depends_on:
-      - postgres
-    restart: "no"
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
   api:
     build:
@@ -39,15 +49,14 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
-      - postgres
-    restart: "no"
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
   web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
     container_name: deeptools-web
     env_file:
       - ./frontend/.env
@@ -55,7 +64,7 @@ services:
       - "3000:3000"
     depends_on:
       - api
-    restart: "no"
+    restart: unless-stopped
 
 volumes:
   pgdata:

@@ -1,199 +1,333 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Database, Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import {
+  Search,
+  Sparkles,
+  Terminal,
+  Cpu,
+  ShieldCheck,
+  X,
+  Layers,
+  ArrowUpDown,
+} from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import type { Product, Order } from '@/lib/types'
+import { normalizeCategory } from '@/lib/utils'
+import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { fetchApi } from '@/lib/api'
+import { ProductCard } from '@/components/marketplace/ProductCard'
+import { TerminalModal } from '@/components/marketplace/TerminalModal'
+import { CartDrawer } from '@/components/marketplace/CartDrawer'
+import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import type { Dictionary } from '@/dictionaries'
 
 interface ProductsContentProps {
-  dict: Dictionary
+  dict?: Dictionary
   locale: string
 }
 
-interface Product {
-  id: string
-  name: string
-  nameAr?: string | null
-  displayName?: string
-  description: string
-  descriptionAr?: string | null
-  displayDescription?: string
-  category: string
-  price: number
-  badge: string | null
-  badgeAr?: string | null
-  displayBadge?: string | null
-  version: string
-}
-
-export default function ProductsContent({ dict, locale }: ProductsContentProps) {
-  const [productsList, setProductsList] = useState<Product[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(true)
-  const [activeCategory, setActiveCategory] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
-
+export default function ProductsContent({ locale }: ProductsContentProps) {
   const { user } = useAuth()
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialCategory = searchParams.get('category') || 'all'
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'priceAsc' | 'priceDesc'>('newest')
+
+  // Modals & Drawers state
+  const [selectedProductForTerminal, setSelectedProductForTerminal] = useState<Product | null>(null)
+  const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null)
+  const [downloadState, setDownloadState] = useState<{
+    isVisible: boolean
+    fileName: string
+    progress: number
+    isComplete: boolean
+  }>({
+    isVisible: false,
+    fileName: '',
+    progress: 0,
+    isComplete: false,
+  })
+
+  const isAr = locale === 'ar'
 
   useEffect(() => {
+    let isMounted = true
     async function loadProducts() {
       try {
-        const data = await fetchApi(`/products?lang=${locale}`)
-        setProductsList(data)
+        setLoading(true)
+        const data = await fetchApi<{ items?: Product[]; products?: Product[] } | Product[]>(`/products?lang=${locale}&limit=50`)
+        if (!isMounted) return
+        if (Array.isArray(data)) {
+          setProducts(data)
+        } else if (data && Array.isArray(data.items)) {
+          setProducts(data.items)
+        } else if (data && Array.isArray(data.products)) {
+          setProducts(data.products)
+        }
       } catch (err) {
-        console.error('Failed to load products:', err)
+        console.error('Failed to load marketplace products:', err)
       } finally {
-        setLoadingProducts(false)
+        if (isMounted) setLoading(false)
       }
     }
     loadProducts()
+    return () => {
+      isMounted = false
+    }
   }, [locale])
 
-  const handlePurchase = async (productId: string) => {
-    if (!user) {
-      router.push(`/${locale}/auth/login`)
-      return
-    }
-    setPurchaseLoading(productId)
-    try {
-      await fetchApi(`/products/${productId}/purchase`, {
-        method: 'POST',
+  useEffect(() => {
+    if (!user) return
+    let ignore = false
+    fetchApi<{ orders?: Order[] } | Order[]>('/orders/mine')
+      .then((data) => {
+        if (ignore) return
+        const orders = Array.isArray(data) ? data : data?.orders || []
+        setOwnedProductIds(
+          orders
+            .map((o) => o.productId || o.product?.id)
+            .filter((id): id is string => Boolean(id))
+        )
       })
-      alert('Purchase successful! Your license key is now available in your Dashboard.')
-      router.push(`/${locale}/dashboard`)
-    } catch (err: any) {
-      alert(err.message || 'Purchase failed. Please try again.')
-    } finally {
-      setPurchaseLoading(null)
+      .catch(() => {})
+
+    return () => {
+      ignore = true
     }
-  }
+  }, [user])
 
-  const categoryMap: Record<string, string> = {
-    all: 'all',
-    aiAgents: 'aiAgents',
-    utilities: 'utilities',
-    scripts: 'scripts',
-    templates: 'templates',
-  }
+  const categories = [
+    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers },
+    { id: 'workflow', label: 'Workflows (n8n/Make)', icon: Sparkles },
+    { id: 'agentic', label: 'AI Agents', icon: Cpu },
+    { id: 'script', label: 'Scripts (Python/Bash)', icon: Terminal },
+    { id: 'code', label: 'Code Base', icon: ShieldCheck },
+  ]
 
-  const filteredProducts = productsList.filter((product) => {
-    const categoryKey = categoryMap[activeCategory]
-    const matchesCategory = activeCategory === 'all' || product.category === categoryKey
+  const filteredProducts = products.filter((prod) => {
+    const norm = normalizeCategory(prod.category)
+    const matchesCategory = activeCategory === 'all' || norm === activeCategory || prod.category === activeCategory
+    const q = searchQuery.toLowerCase().trim()
     const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      !q ||
+      prod.name.toLowerCase().includes(q) ||
+      (prod.nameAr && prod.nameAr.toLowerCase().includes(q)) ||
+      prod.description.toLowerCase().includes(q)
     return matchesCategory && matchesSearch
   })
 
-  return (
-    <>
-      {/* Hero */}
-      <section className="relative overflow-hidden section-padding">
-        <div className="absolute inset-0 dot-pattern opacity-20" />
-        <div className="container-custom relative z-10">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold">{dict.products.title}</h1>
-            <p className="mt-4 text-lg text-muted-foreground">{dict.products.subtitle}</p>
-          </motion.div>
-        </div>
-      </section>
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === 'priceAsc') return a.price - b.price
+    if (sortBy === 'priceDesc') return b.price - a.price
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
 
-      {/* Filters & Grid */}
-      <section className="section-padding pt-0">
-        <div className="container-custom">
-          {/* Search */}
-          <div className="max-w-md mx-auto mb-10">
-            <div className="relative">
-              <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={dict.templates.search}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full ps-12 pe-4 py-3 text-sm bg-card border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan transition-all"
-              />
-            </div>
+  const handleDownload = async (productId: string) => {
+    const target = products.find((p) => p.id === productId)
+    const name = `${target?.name || 'asset'}.zip`
+
+    setDownloadState({
+      isVisible: true,
+      fileName: name,
+      progress: 25,
+      isComplete: false,
+    })
+
+    try {
+      setTimeout(() => {
+        setDownloadState((prev) => ({ ...prev, progress: 80 }))
+      }, 300)
+
+      await downloadProductFile(productId, name)
+
+      setDownloadState({
+        isVisible: true,
+        fileName: name,
+        progress: 100,
+        isComplete: true,
+      })
+
+      setTimeout(() => {
+        setDownloadState((prev) => ({ ...prev, isVisible: false }))
+      }, 4000)
+    } catch (err) {
+      console.error(err)
+      setDownloadState((prev) => ({ ...prev, isVisible: false }))
+      alert(isAr ? 'فشل التنزيل. يرجى التأكد من شراء الأداة.' : 'Download failed. Ensure you own this tool.')
+    }
+  }
+
+  return (
+    <div className="relative overflow-hidden blueprint-grid min-h-screen py-10 md:py-16">
+      {/* Ambient Lighting Orbs */}
+      <div className="ambient-glow-blue top-[10%] start-[5%]" />
+      <div className="ambient-glow-purple top-[40%] end-[10%]" />
+
+      <div className="container-custom relative z-10">
+        {/* Page Header */}
+        <div className="max-w-3xl mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
+            <span>{isAr ? 'كتالوج الحلول المعتمدة' : 'VERIFIED DIGITAL MARKETPLACE'}</span>
           </div>
 
-          {/* Categories */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
-            {Object.entries(dict.products.categories).map(([key, label]) => (
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--text)]">
+            {isAr ? 'أدوات وسيناريوهات الأتمتة' : 'Developer Asset Catalog'}
+          </h1>
+          <p className="mt-3 text-sm sm:text-base text-[var(--muted)] leading-relaxed">
+            {isAr
+              ? 'تصفح سيناريوهات العمل، نصوص Python، مهارات وكلاء الذكاء الاصطناعي، والقوالب البرمجية الجاهزة للاستخدام الفوري.'
+              : 'Browse production-ready workflows, scripts, and autonomous agent skills with dry-run verification.'}
+          </p>
+        </div>
+
+        {/* 62px Omnisearch Bar */}
+        <div className="mb-8 p-1.5 rounded-2xl bg-[var(--surface)] border border-[var(--line-bright)] shadow-xl flex flex-col md:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full flex items-center h-[52px]">
+            <Search className="w-5 h-5 text-[var(--muted)] ms-4 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={
+                isAr
+                  ? 'ابحث بالاسم، الوصف، أو الكلمات المفتاحية...'
+                  : 'Search by title, description, or keyword...'
+              }
+              className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] focus:outline-none"
+            />
+            {searchQuery && (
               <button
-                key={key}
-                onClick={() => setActiveCategory(key)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  activeCategory === key
-                    ? 'bg-accent-cyan text-white shadow-md shadow-accent-cyan/25'
-                    : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-accent-cyan/30'
+                onClick={() => setSearchQuery('')}
+                className="p-1.5 rounded text-[var(--muted)] hover:text-[var(--text)] me-3"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort selector */}
+          <div className="w-full md:w-auto flex items-center justify-end px-3 pb-2 md:pb-0 gap-2">
+            <ArrowUpDown className="w-4 h-4 text-[var(--muted-2)]" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'priceAsc' | 'priceDesc')}
+              className="bg-[var(--surface-2)] text-xs text-[var(--text)] border border-[var(--line)] rounded-lg px-3 py-2 focus:outline-none font-mono"
+            >
+              <option value="newest">{isAr ? 'الأحدث أولاً' : 'Newest'}</option>
+              <option value="priceAsc">{isAr ? 'الأقل سعراً' : 'Price: Low to High'}</option>
+              <option value="priceDesc">{isAr ? 'الأعلى سعراً' : 'Price: High to Low'}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Category Chips Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
+          {categories.map((cat) => {
+            const Icon = cat.icon
+            const isActive = activeCategory === cat.id
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-medium shrink-0 transition-all ${
+                  isActive
+                    ? 'bg-[var(--blue)] text-white shadow-md shadow-[var(--blue)]/20 border border-[var(--blue-bright)]'
+                    : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] border border-[var(--line)]'
                 }`}
               >
-                {label}
+                <Icon className="w-3.5 h-3.5" />
+                <span>{cat.label}</span>
               </button>
+            )
+          })}
+        </div>
+
+        {/* Products Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div
+                key={n}
+                className="h-80 rounded-xl bg-[var(--surface)] border border-[var(--line)] animate-pulse"
+              />
             ))}
           </div>
+        ) : sortedProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedProducts.map((product) => {
+              const isOwned =
+                ownedProductIds.includes(product.id) ||
+                (Boolean(user) && user?.id === product.sellerId)
 
-          {/* Product Grid */}
-          {loadingProducts ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence mode="popLayout">
-                {filteredProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="group relative flex flex-col p-6 rounded-2xl bg-card border border-border hover-glow"
-                  >
-                    {(product.displayBadge || (locale === 'ar' && product.badgeAr ? product.badgeAr : product.badge)) && (
-                      <span className="absolute top-4 end-4 px-3 py-1 text-xs font-semibold rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
-                        {product.displayBadge || (locale === 'ar' && product.badgeAr ? product.badgeAr : product.badge)}
-                      </span>
-                    )}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-cyan/20 to-accent-violet/20 flex items-center justify-center mb-4">
-                      <Database className="w-6 h-6 text-accent-cyan" />
-                    </div>
-                    <span className="text-xs font-medium text-accent-violet mb-2">
-                      {dict.products.categories[product.category as keyof typeof dict.products.categories] || product.category}
-                    </span>
-                    <h3 className="text-lg font-semibold mb-2">
-                      {product.displayName || (locale === 'ar' && product.nameAr ? product.nameAr : product.name)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-                      {product.displayDescription || (locale === 'ar' && product.descriptionAr ? product.descriptionAr : product.description)}
-                    </p>
-                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                      <span className="text-xl font-bold gradient-text">
-                        ${(product.price / 100).toFixed(2)}/mo
-                      </span>
-                      <button
-                        onClick={() => handlePurchase(product.id)}
-                        disabled={purchaseLoading === product.id}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-cyan to-accent-violet hover:shadow-glow-cyan transition-all duration-300 hover:scale-105 disabled:opacity-50"
-                      >
-                        {purchaseLoading === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : dict.products.buyNow}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  locale={locale}
+                  isOwned={isOwned}
+                  onDryRun={(p) => setSelectedProductForTerminal(p)}
+                  onBuy={(p) => setSelectedProductForCart(p)}
+                  onDownload={(id) => handleDownload(id)}
+                />
+              )
+            })}
+          </div>
+        ) : (
+          <div className="py-20 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)] p-8">
+            <Terminal className="w-12 h-12 text-[var(--muted)] mx-auto mb-4" />
+            <h3 className="text-base font-bold text-[var(--text)]">
+              {isAr ? 'لم يتم العثور على نتائج' : 'No Tools Found'}
+            </h3>
+            <p className="text-xs text-[var(--muted)] mt-1 max-w-sm mx-auto">
+              {isAr
+                ? 'جرب البحث بكلمات أخرى أو اختر قسماً مختلفاً من الأعلى.'
+                : 'Try adjusting your search criteria or switch to another canonical category.'}
+            </p>
+          </div>
+        )}
+      </div>
 
-          {!loadingProducts && filteredProducts.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">No products found matching your criteria.</div>
-          )}
-        </div>
-      </section>
-    </>
+      {/* Terminal Sandbox Modal */}
+      <TerminalModal
+        isOpen={Boolean(selectedProductForTerminal)}
+        product={selectedProductForTerminal}
+        onClose={() => setSelectedProductForTerminal(null)}
+        locale={locale}
+      />
+
+      {/* Slide-out Cart Drawer */}
+      <CartDrawer
+        isOpen={Boolean(selectedProductForCart)}
+        product={selectedProductForCart}
+        onClose={() => setSelectedProductForCart(null)}
+        locale={locale}
+        isOwned={
+          selectedProductForCart
+            ? ownedProductIds.includes(selectedProductForCart.id) ||
+              (Boolean(user) && user?.id === selectedProductForCart.sellerId)
+            : false
+        }
+        onOrderCompleted={(newProductId) => {
+          setOwnedProductIds((prev) => [...prev, newProductId])
+        }}
+      />
+
+      {/* Floating Download Overlay */}
+      <DownloadOverlay
+        isVisible={downloadState.isVisible}
+        fileName={downloadState.fileName}
+        progress={downloadState.progress}
+        isComplete={downloadState.isComplete}
+        onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
+        locale={locale}
+      />
+    </div>
   )
 }

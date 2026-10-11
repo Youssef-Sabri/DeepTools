@@ -1,180 +1,135 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  MessageCircle,
-  Mail,
-  ArrowRight,
-  Heart,
-} from 'lucide-react'
-import { GithubIcon, FacebookIcon, LinkedinIcon } from '@/components/icons/SocialIcons'
+import { Terminal, Shield, Cpu, Sparkles } from 'lucide-react'
 import type { Locale } from '@/dictionaries'
 
 interface FooterProps {
   locale: Locale
   dict: {
-    footer: {
-      description: string
-      products: { title: string; items: string[] }
-      company: { title: string; items: string[] }
-      resources: { title: string; items: string[] }
-      legal: { title: string; items: string[] }
-      newsletter: { title: string; placeholder: string; subscribe: string }
-      copyright: string
-    }
     nav: {
-      about: string
-      journal: string
-      contact: string
+      home: string
       products: string
-      templates: string
+      dashboard?: string
     }
   }
 }
 
 export default function Footer({ locale, dict }: FooterProps) {
-  const productLinks = [
-    { href: `/${locale}/products`, label: dict.footer.products.items[0] },
-    { href: `/${locale}/products`, label: dict.footer.products.items[1] },
-    { href: `/${locale}/products`, label: dict.footer.products.items[2] },
-    { href: `/${locale}/templates`, label: dict.footer.products.items[3] },
-    { href: `/${locale}/products`, label: dict.footer.products.items[4] },
-  ]
-
-  const companyLinks = [
-    { href: `/${locale}/about`, label: dict.footer.company.items[0] },
-    { href: `/${locale}/journal`, label: dict.footer.company.items[1] },
-    { href: `/${locale}/contact`, label: dict.footer.company.items[3] },
-  ]
-
-  const resourceLinks = [
-    { href: '#', label: dict.footer.resources.items[0] },
-    { href: '#', label: dict.footer.resources.items[1] },
-    { href: '#', label: dict.footer.resources.items[2] },
-    { href: 'https://github.com', label: dict.footer.resources.items[3] },
-  ]
+  const isAr = locale === 'ar'
 
   return (
-    <footer className="relative border-t border-border bg-card" role="contentinfo">
-      {/* Gradient top border */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-cyan to-transparent" />
-
-      <div className="container-custom section-padding">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
-          {/* Brand Column */}
-          <div className="lg:col-span-2 space-y-5">
-            <Link href={`/${locale}`} className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-cyan to-accent-violet flex items-center justify-center">
-                <span className="text-white font-bold text-lg">D</span>
+    <footer className="border-t border-[var(--line)] bg-[#05070a] text-[var(--muted)] text-xs mt-20">
+      <div className="container-custom py-12 md:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand Info */}
+          <div className="md:col-span-2 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-[var(--surface-2)] border border-[var(--line-bright)] flex items-center justify-center text-[var(--blue-bright)] font-mono font-bold text-xs">
+                DT
               </div>
-              <span className="text-xl font-bold text-foreground">
-                Deep<span className="gradient-text">Tools</span>
+              <span className="text-sm font-bold text-[var(--text)]">
+                Deep<span className="text-[var(--blue-bright)]">Tools</span>
               </span>
-            </Link>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
-              {dict.footer.description}
+            </div>
+            <p className="max-w-md text-[var(--muted-2)] leading-relaxed">
+              {isAr
+                ? 'منصة هندسية مخصصة لمهندسي الأتمتة والمطورين. سيناريوهات n8n وMake، نصوص Python، مهارات وكلاء الذكاء الاصطناعي، وقوالب برمجية موثوقة.'
+                : 'The developer marketplace for automation engineers. Production-ready workflows, scripts, agentic skills, and robust digital tools.'}
             </p>
-            {/* Social Links */}
-            <div className="flex items-center gap-3">
-              {[
-                { icon: GithubIcon, href: 'https://github.com', label: 'GitHub' },
-                { icon: FacebookIcon, href: 'https://facebook.com', label: 'Facebook' },
-                { icon: LinkedinIcon, href: 'https://linkedin.com', label: 'LinkedIn' },
-                { icon: MessageCircle, href: 'https://wa.me/15551234567', label: 'WhatsApp' },
-                { icon: Mail, href: 'mailto:support@deeptools.ai', label: 'Email' },
-              ].map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-accent-cyan hover:bg-accent-cyan/10 transition-all duration-200"
-                  aria-label={label}
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
+
+            <div className="flex items-center gap-2 pt-2">
+              <div className="w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
+              <span className="text-[11px] font-mono text-[var(--green)]">
+                {isAr ? 'النظام التشغيلي يعمل بكفاءة: 14ms' : 'SYSTEM OPERATIONAL // LATENCY 14MS'}
+              </span>
             </div>
           </div>
 
-          {/* Products */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              {dict.footer.products.title}
-            </h3>
-            <ul className="space-y-3">
-              {productLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent-cyan transition-colors duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+          {/* Quick Categories */}
+          <div>
+            <h4 className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] font-semibold mb-3">
+              {isAr ? 'الأقسام المعتمدة' : 'CANONICAL CATEGORIES'}
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href={`/${locale}/products?category=workflow`}
+                  className="hover:text-[var(--text)] transition-colors flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3 h-3 text-[var(--blue-bright)]" />
+                  <span>Workflows (n8n, Make)</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={`/${locale}/products?category=agentic`}
+                  className="hover:text-[var(--text)] transition-colors flex items-center gap-1.5"
+                >
+                  <Cpu className="w-3 h-3 text-[var(--purple)]" />
+                  <span>Autonomous AI Agents</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={`/${locale}/products?category=script`}
+                  className="hover:text-[var(--text)] transition-colors flex items-center gap-1.5"
+                >
+                  <Terminal className="w-3 h-3 text-[var(--green)]" />
+                  <span>Automation Scripts</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={`/${locale}/products?category=code`}
+                  className="hover:text-[var(--text)] transition-colors flex items-center gap-1.5"
+                >
+                  <Shield className="w-3 h-3 text-[var(--orange)]" />
+                  <span>Code Templates</span>
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Company */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              {dict.footer.company.title}
-            </h3>
-            <ul className="space-y-3">
-              {companyLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-accent-cyan transition-colors duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+          {/* Platform Console */}
+          <div>
+            <h4 className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] font-semibold mb-3">
+              {isAr ? 'لوحة المطورين' : 'DEVELOPER CONSOLE'}
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link href={`/${locale}/products`} className="hover:text-[var(--text)] transition-colors">
+                  {dict.nav.products}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/dashboard?tab=upload`} className="hover:text-[var(--text)] transition-colors">
+                  {isAr ? 'نشر أداة برمجية' : 'Submit Tool'}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/dashboard?tab=purchases`} className="hover:text-[var(--text)] transition-colors">
+                  {isAr ? 'مكتبة مشترياتي' : 'Purchased Tools'}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/dashboard?tab=sales`} className="hover:text-[var(--text)] transition-colors">
+                  {isAr ? 'أرباح ومبيعات البائع' : 'Seller Payouts'}
+                </Link>
+              </li>
             </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              {dict.footer.newsletter.title}
-            </h3>
-            <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder={dict.footer.newsletter.placeholder}
-                  className="w-full px-4 py-2.5 text-sm bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan transition-all duration-200"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-accent-cyan to-accent-violet hover:shadow-glow-cyan transition-all duration-300"
-              >
-                {dict.footer.newsletter.subscribe}
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {dict.footer.copyright}
-          </p>
-          <div className="flex items-center gap-6">
-            {dict.footer.legal.items.map((item) => (
-              <Link
-                key={item}
-                href="#"
-                className="text-xs text-muted-foreground hover:text-accent-cyan transition-colors duration-200"
-              >
-                {item}
-              </Link>
-            ))}
+        {/* Bottom bar */}
+        <div className="border-t border-[var(--line)] mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-[var(--muted-2)]">
+          <div>
+            © {new Date().getFullYear()} DeepTools. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+          </div>
+          <div className="flex items-center gap-4">
+            <span>Integer Cents Pricing Standard ($49.00 = 4900)</span>
+            <span>•</span>
+            <span>REST API v1</span>
           </div>
         </div>
       </div>

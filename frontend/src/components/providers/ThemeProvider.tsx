@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -11,22 +11,26 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
+function subscribe(callback: () => void) {
+  window.addEventListener('storage', callback)
+  return () => window.removeEventListener('storage', callback)
+}
+
+function getSnapshot(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  const stored = localStorage.getItem('theme') as Theme | null
+  return stored || 'dark'
+}
+
+function getServerSnapshot(): Theme {
+  return 'dark'
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
-  const [mounted, setMounted] = useState(false)
+  const currentTheme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const [theme, setTheme] = useState<Theme>(currentTheme)
 
   useEffect(() => {
-    setMounted(true)
-    const stored = localStorage.getItem('theme') as Theme | null
-    if (stored) {
-      setTheme(stored)
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
     const root = document.documentElement
     if (theme === 'dark') {
       root.classList.add('dark')
@@ -34,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.remove('dark')
     }
     localStorage.setItem('theme', theme)
-  }, [theme, mounted])
+  }, [theme])
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
@@ -42,9 +46,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
-        {children}
-      </div>
+      {children}
     </ThemeContext.Provider>
   )
 }
