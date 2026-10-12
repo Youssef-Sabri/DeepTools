@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/errorHandler.middleware";
 import { notFoundHandler } from "./middleware/notFound.middleware";
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./config/swagger/index";
+import { generalRateLimiter } from "./middleware/rateLimit.middleware";
 
 import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/users.routes";
@@ -15,6 +16,7 @@ import productsRoutes from "./modules/products/products.routes";
 import adminRoutes from "./modules/admin/admin.routes";
 import uploadsRoutes from "./modules/uploads/uploads.routes";
 import ordersRoutes from "./modules/orders/orders.routes";
+import paymentsRoutes from "./modules/payments/payments.routes";
 
 export const createApp = (): Application => {
   const app: Application = express();
@@ -41,11 +43,15 @@ export const createApp = (): Application => {
   // Attach unique trace ID to every incoming request
   app.use(requestIdMiddleware);
 
+  app.set("trust proxy", env.TRUST_PROXY_HOPS);
+  app.use("/api/v1", (req, res, next) => req.path.startsWith("/payments/webhooks/") ? next() : generalRateLimiter(req, res, next));
+  // Webhook signatures must be checked against the unparsed request bytes.
+  app.use("/api/v1/payments", paymentsRoutes);
+
   // Limit JSON payload size to prevent memory overload / Denial of Service
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-  app.set("trust proxy", 1);
 
   // 3. Swagger OpenAPI Documentation
   app.get("/api/docs.json", (_req: Request, res: Response) => {

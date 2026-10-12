@@ -4,6 +4,8 @@ import { ListAdminUploadsQuery, GetUsersQuery } from "./admin.validator";
 import { prisma } from "../../config/database";
 import { ApiFeatures } from "../../utils/apiFeatures";
 import { ProductStatus } from "@prisma/client";
+import { storageService } from "../../storage/storage.service";
+import { uploadsRepository } from "../uploads/uploads.repository";
 
 export class AdminService {
   private repo: AdminRepository;
@@ -111,15 +113,33 @@ export class AdminService {
   async approveUpload(adminId: string, id: string) {
     const upload = await this.findUploadById(id);
 
-    if (upload.status === ProductStatus.APPROVED) {
-      throw new ConflictError("Product is already approved");
+    if (upload.status !== ProductStatus.PENDING) throw new ConflictError("Only pending products can be approved");
+    if (!upload.fileKey || !upload.fileSize || !upload.fileMime || !upload.fileChecksum) throw new ConflictError("Product has no valid uploaded file");
+    try {
+      const file = await storageService.stat(upload.fileKey);
+      if (file.size !== upload.fileSize || file.mimeType !== upload.fileMime) throw new Error("File metadata mismatch");
+      if (await storageService.checksum(upload.fileKey) !== upload.fileChecksum) throw new Error("File checksum mismatch");
+    } catch {
+      throw new ConflictError("Uploaded file is unavailable or invalid");
     }
 
-    const updated = await this.repo.updateUploadReview(id, {
+    const updated = await this.repo.updateUploadReview(id, upload.updatedAt, {
       status: ProductStatus.APPROVED,
       rejectionNote: null,
       reviewedAt: new Date(),
+      approvedFileKey: upload.fileKey,
+      approvedFileMime: upload.fileMime,
     });
+    if (!updated) throw new ConflictError("Product changed during review");
+    if (upload.approvedFileKey && upload.approvedFileKey !== upload.fileKey) {
+      try {
+        if (!(await uploadsRepository.isFileReferenced(upload.approvedFileKey))) {
+          await storageService.delete(upload.approvedFileKey);
+        }
+      } catch (error) {
+        console.error("Unreferenced approved file cleanup failed", error);
+      }
+    }
 
     console.log(
       JSON.stringify({
@@ -137,15 +157,14 @@ export class AdminService {
   async rejectUpload(adminId: string, id: string, rejectionNote: string) {
     const upload = await this.findUploadById(id);
 
-    if (upload.status === ProductStatus.REJECTED) {
-      throw new ConflictError("Product is already rejected");
-    }
+    if (upload.status !== ProductStatus.PENDING) throw new ConflictError("Only pending products can be rejected");
 
-    const updated = await this.repo.updateUploadReview(id, {
+    const updated = await this.repo.updateUploadReview(id, upload.updatedAt, {
       status: ProductStatus.REJECTED,
       rejectionNote,
       reviewedAt: new Date(),
     });
+    if (!updated) throw new ConflictError("Product changed during review");
 
     console.log(
       JSON.stringify({

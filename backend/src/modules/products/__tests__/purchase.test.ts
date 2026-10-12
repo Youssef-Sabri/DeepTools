@@ -1,6 +1,7 @@
 import request from "supertest";
 import { createApp } from "../../../app";
 import { prisma } from "../../../config/database";
+import { storageService } from "../../../storage/storage.service";
 import {
   mockUser,
   mockBuyer,
@@ -19,11 +20,16 @@ jest.mock("../../../config/database", () => ({
     license: {
       findFirst: jest.fn(),
     },
+    order: { findUnique: jest.fn() },
     setting: {
       findUnique: jest.fn(),
     },
     $transaction: jest.fn(),
   },
+}));
+
+jest.mock("../../../storage/storage.service", () => ({
+  storageService: { stat: jest.fn() },
 }));
 
 describe("Product Purchase Endpoints (Task B-6)", () => {
@@ -40,8 +46,9 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     category: "workflow",
     price: 4900,
     version: "1.0.0",
-    status: "approved",
+    status: "APPROVED",
     fileKey: "uploads/file-100.zip",
+    approvedFileKey: "uploads/file-100.zip",
     fileSize: 2048,
     fileMime: "application/zip",
     seller: {
@@ -52,6 +59,7 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/zip" });
 
     (prisma.user.findUnique as jest.Mock).mockImplementation(({ where }) => {
       if (where.id === mockBuyer.id) return Promise.resolve(mockBuyer);
@@ -68,17 +76,10 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     });
   });
 
-  it("successful purchase -> order snapshot is correct", async () => {
+  it("creates only a pending order and no license", async () => {
     (prisma.product.findFirst as jest.Mock).mockResolvedValue(approvedProduct);
     (prisma.license.findFirst as jest.Mock).mockResolvedValue(null);
 
-    const createdLicense = {
-      id: "lic-1",
-      userId: mockBuyer.id,
-      productId: approvedProduct.id,
-      licenseKey: "DF-TEST-1234-5678",
-      expiresAt: new Date(),
-    };
     const createdOrder = {
       id: "ord-1",
       userId: mockBuyer.id,
@@ -87,14 +88,14 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
       commissionPercent: 10,
       commissionAmount: 490,
       sellerAmount: 4410,
-      status: "completed",
-      paymentGateway: "simulated",
+      status: "PENDING",
+      paymentGateway: "unconfigured",
     };
 
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
       const tx = {
-        license: { create: jest.fn().mockResolvedValue(createdLicense) },
-        order: { create: jest.fn().mockResolvedValue(createdOrder) },
+        product: { findFirst: jest.fn().mockResolvedValue(approvedProduct) },
+        order: { findUnique: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue(createdOrder) },
       };
       return callback(tx);
     });
@@ -103,7 +104,7 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
       .post(`/api/v1/products/${approvedProduct.id}/purchase`)
       .set("Authorization", `Bearer ${buyerToken}`);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(202);
     expect(res.body.success).toBe(true);
     expect(res.body.data.order.amount).toBe(4900);
     expect(res.body.data.order.commissionAmount).toBe(490);
@@ -111,7 +112,9 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     expect(
       res.body.data.order.commissionAmount + res.body.data.order.sellerAmount,
     ).toBe(res.body.data.order.amount);
-    expect(res.body.data.order.paymentGateway).toBe("simulated");
+    expect(res.body.data.order.paymentGateway).toBe("unconfigured");
+    expect(res.body.data.order.status).toBe("PENDING");
+    expect(res.body.data).not.toHaveProperty("license");
     expect(res.body.data.product).not.toHaveProperty("fileKey");
   });
 
@@ -139,7 +142,7 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
       .set("Authorization", `Bearer ${buyerToken}`);
 
     expect(res.status).toBe(409);
-    expect(res.body.message).toMatch(/already own an active license/i);
+    expect(res.body.message).toMatch(/already own a license/i);
   });
 
   it("returns 404 when attempting to buy unapproved or non-existent product", async () => {

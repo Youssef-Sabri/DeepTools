@@ -62,7 +62,7 @@ export class AdminRepository {
 
   async findAllUploads(params: { page: number; limit: number; status?: ProductStatus }) {
     const skip = (params.page - 1) * params.limit;
-    const where = params.status ? { status: params.status } : {};
+    const where = { deletedAt: null, ...(params.status ? { status: params.status } : {}) };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
@@ -81,30 +81,32 @@ export class AdminRepository {
   }
 
   async findUploadById(id: string) {
-    return prisma.product.findUnique({
-      where: { id },
+    return prisma.product.findFirst({
+      where: { id, deletedAt: null },
       include: {
         seller: { select: { id: true, name: true, email: true } },
       },
     });
   }
 
-  async updateUploadReview(id: string, data: {
+  async updateUploadReview(id: string, expectedUpdatedAt: Date, data: {
     status: ProductStatus;
     rejectionNote: string | null;
     reviewedAt: Date;
+    approvedFileKey?: string;
+    approvedFileMime?: string | null;
   }) {
-    return prisma.product.update({
-      where: { id },
+    const claimed = await prisma.product.updateMany({
+      where: { id, status: ProductStatus.PENDING, deletedAt: null, updatedAt: expectedUpdatedAt },
       data: {
         status: data.status,
         rejectionNote: data.rejectionNote,
         reviewedAt: data.reviewedAt,
-      },
-      include: {
-        seller: { select: { id: true, name: true, email: true } },
+        ...(data.approvedFileKey ? { approvedFileKey: data.approvedFileKey, approvedFileMime: data.approvedFileMime } : {}),
       },
     });
+    if (claimed.count !== 1) return null;
+    return prisma.product.findUnique({ where: { id }, include: { seller: { select: { id: true, name: true, email: true } } } });
   }
 
   async getMarketplaceInsights() {

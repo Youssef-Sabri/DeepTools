@@ -63,6 +63,8 @@ export class UploadsRepository {
 
   async update(
     id: string,
+    sellerId: string,
+    expectedUpdatedAt: Date,
     data: Partial<{
       name: string;
       nameAr?: string | null;
@@ -79,18 +81,28 @@ export class UploadsRepository {
       rejectionNote?: string | null;
       reviewedAt?: Date | null;
     }>,
-  ): Promise<Product> {
-    return prisma.product.update({
-      where: { id },
-      data,
+  ): Promise<Product | null> {
+    const result = await prisma.product.updateMany({
+      where: { id, sellerId, deletedAt: null, updatedAt: expectedUpdatedAt }, data,
     });
+    return result.count === 1 ? prisma.product.findUnique({ where: { id } }) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await prisma.product.update({
-      where: { id },
-      data: { deletedAt: new Date() }
+  async delete(id: string, sellerId: string, expectedUpdatedAt: Date): Promise<boolean> {
+    const result = await prisma.product.updateMany({
+      where: { id, sellerId, deletedAt: null, updatedAt: expectedUpdatedAt, status: { not: ProductStatus.APPROVED } },
+      data: { deletedAt: new Date(), fileKey: null, fileSize: null, fileMime: null, fileChecksum: null },
     });
+    return result.count === 1;
+  }
+
+  async isFileReferenced(key: string): Promise<boolean> {
+    const [products, licenses, orders] = await Promise.all([
+      prisma.product.count({ where: { OR: [{ fileKey: key }, { approvedFileKey: key }] } }),
+      prisma.license.count({ where: { fileKey: key } }),
+      prisma.order.count({ where: { fileKey: key } }),
+    ]);
+    return products + licenses + orders > 0;
   }
 }
 

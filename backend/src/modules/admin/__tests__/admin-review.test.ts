@@ -1,6 +1,7 @@
 import request from "supertest";
 import { createApp } from "../../../app";
 import { prisma } from "../../../config/database";
+import { storageService } from "../../../storage/storage.service";
 import { mockAdmin, mockUser, createToken } from "../../../test/test-helpers";
 
 jest.mock("../../../config/database", () => ({
@@ -9,10 +10,16 @@ jest.mock("../../../config/database", () => ({
       findUnique: jest.fn(),
     },
     product: {
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
+}));
+
+jest.mock("../../../storage/storage.service", () => ({
+  storageService: { stat: jest.fn(), checksum: jest.fn() },
 }));
 
 describe("Admin Upload Review Endpoints (Task B-4)", () => {
@@ -28,21 +35,29 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       if (where.id === mockUser.id) return Promise.resolve(mockUser);
       return Promise.resolve(null);
     });
+    (prisma.product.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+    (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/zip" });
+    (storageService.checksum as jest.Mock).mockResolvedValue("abc123hash");
   });
 
   describe("PATCH /api/v1/admin/uploads/:id/approve", () => {
     it("approves a pending product successfully", async () => {
-      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
         id: "upload-1",
         name: "Pending Upload",
-        status: "pending",
+        status: "PENDING",
+        fileKey: "uploads/file-1.zip",
+        fileSize: 2048,
+        fileMime: "application/zip",
+        fileChecksum: "abc123hash",
+        updatedAt: new Date(),
       });
 
       const now = new Date();
-      (prisma.product.update as jest.Mock).mockResolvedValue({
+      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
         id: "upload-1",
         name: "Pending Upload",
-        status: "approved",
+        status: "APPROVED",
         reviewedAt: now,
         seller: { id: "seller-1", name: "Seller", email: "seller@test.com" },
       });
@@ -53,19 +68,19 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.status).toBe("approved");
-      expect(prisma.product.update).toHaveBeenCalledWith(
+      expect(res.body.data.status).toBe("APPROVED");
+      expect(prisma.product.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "upload-1" },
-          data: expect.objectContaining({ status: "approved" }),
+          where: expect.objectContaining({ id: "upload-1", status: "PENDING", deletedAt: null }),
+          data: expect.objectContaining({ status: "APPROVED" }),
         }),
       );
     });
 
     it("returns 409 when approving already-approved product", async () => {
-      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
         id: "upload-already",
-        status: "approved",
+        status: "APPROVED",
       });
 
       const res = await request(app)
@@ -73,7 +88,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(409);
-      expect(res.body.message).toMatch(/already approved/i);
+      expect(res.body.message).toMatch(/only pending/i);
     });
 
     it("returns 403 when regular user token is used on admin route", async () => {
@@ -87,15 +102,16 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
   describe("PATCH /api/v1/admin/uploads/:id/reject", () => {
     it("rejects a product with reason successfully", async () => {
-      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
         id: "upload-2",
-        status: "pending",
+        status: "PENDING",
+        updatedAt: new Date(),
       });
 
       const now = new Date();
-      (prisma.product.update as jest.Mock).mockResolvedValue({
+      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
         id: "upload-2",
-        status: "rejected",
+        status: "REJECTED",
         rejectionNote: "File contains prohibited libraries.",
         reviewedAt: now,
       });
@@ -107,7 +123,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.status).toBe("rejected");
+      expect(res.body.data.status).toBe("REJECTED");
     });
 
     it("returns 422 when rejecting without reason or reason is empty", async () => {
@@ -120,9 +136,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
     });
 
     it("returns 409 when rejecting already-rejected product", async () => {
-      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
         id: "upload-already-rej",
-        status: "rejected",
+        status: "REJECTED",
       });
 
       const res = await request(app)
@@ -131,7 +147,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
         .send({ reason: "Duplicate rejection attempt." });
 
       expect(res.status).toBe(409);
-      expect(res.body.message).toMatch(/already rejected/i);
+      expect(res.body.message).toMatch(/only pending/i);
     });
   });
 });

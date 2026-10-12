@@ -57,7 +57,7 @@ export class OrdersService {
     const sales: SellerSaleItem[] = salesData.items.map((o) => ({
       orderId: o.id,
       productId: o.productId ?? "",
-      productName: o.product?.name ?? "Unknown Product",
+      productName: o.productName ?? o.product?.name ?? "Unknown Product",
       productNameAr: o.product?.nameAr ?? null,
       amount: o.amount,
       commissionPercent: o.commissionPercent,

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { Response } from "express";
 import { env } from "../config/env";
 import {
@@ -15,6 +15,7 @@ export interface StorageService {
   delete(key: string): Promise<void>;
   stream(key: string, res: Response): Promise<void>;
   stat(key: string): Promise<{ size: number; mimeType: string }>;
+  checksum(key: string): Promise<string>;
 }
 
 export class LocalStorageService implements StorageService {
@@ -418,6 +419,14 @@ export class LocalStorageService implements StorageService {
       size: fileStats.size,
       mimeType: detectedMime,
     };
+  }
+
+  async checksum(key: string): Promise<string> {
+    const hash = createHash("sha256");
+    for await (const chunk of fs.createReadStream(this.resolveKeyPath(key))) {
+      hash.update(chunk);
+    }
+    return hash.digest("hex");
   }
 }
 

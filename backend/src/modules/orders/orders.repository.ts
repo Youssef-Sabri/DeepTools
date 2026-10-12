@@ -28,7 +28,7 @@ export class OrdersRepository {
 
     const whereCondition = {
       status: OrderStatus.COMPLETED,
-      product: { sellerId },
+      sellerId,
     };
 
     const [items, total] = await Promise.all([
@@ -54,7 +54,7 @@ export class OrdersRepository {
       _sum: { sellerAmount: true },
       where: {
         status: OrderStatus.COMPLETED,
-        product: { sellerId },
+        sellerId,
       },
     });
 

@@ -33,8 +33,10 @@ describe("Product Download Endpoints (Task B-6)", () => {
   const testProduct = {
     id: "prod-200",
     name: "Automation Pro",
-    status: "approved",
-    fileKey: "uploads/file-200.zip",
+    status: "PENDING",
+    deletedAt: new Date(),
+    fileKey: "uploads/unreviewed-replacement.zip",
+    approvedFileKey: "uploads/file-200.zip",
     fileMime: "application/zip",
   };
 
@@ -80,6 +82,9 @@ describe("Product Download Endpoints (Task B-6)", () => {
       userId: mockBuyer.id,
       productId: testProduct.id,
       isActive: true,
+      fileKey: testProduct.approvedFileKey,
+      fileMime: testProduct.fileMime,
+      product: testProduct,
     });
 
     (prisma.product.findFirst as jest.Mock).mockResolvedValue(testProduct);
@@ -105,7 +110,7 @@ describe("Product Download Endpoints (Task B-6)", () => {
     expect(res.headers["content-disposition"]).toMatch(/attachment; filename=/);
     expect(res.headers["content-type"]).toMatch(/application\/zip/);
     expect(storageService.stream).toHaveBeenCalledWith(
-      testProduct.fileKey,
+      testProduct.approvedFileKey,
       expect.anything(),
     );
   });
