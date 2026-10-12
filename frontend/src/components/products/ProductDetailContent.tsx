@@ -15,7 +15,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import Link from 'next/link'
-import type { Product, Order } from '@/lib/types'
+import type { Product, License } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 import { downloadProductFile, fetchApi } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
@@ -45,16 +45,13 @@ export default function ProductDetailContent({
   const isOwned = isCreator || hasPurchased
 
   useEffect(() => {
-    if (!user || user.id === product.sellerId) return
+    if (!user || user.id === product.sellerId) { setHasPurchased(false); return }
 
     let ignore = false
-    fetchApi<{ orders?: Order[] } | Order[]>('/orders/mine')
+    fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
         if (ignore) return
-        const orders = Array.isArray(data) ? data : data?.orders || []
-        if (orders.some((o) => o.productId === product.id)) {
-          setHasPurchased(true)
-        }
+        setHasPurchased(data.some((license) => license.productId === product.id && license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date())))
       })
       .catch(() => {})
 
@@ -83,7 +80,7 @@ export default function ProductDetailContent({
   const codeSnippets = {
     json: `{\n  "$schema": "https://deeptools.dev/schemas/asset.v1.json",\n  "name": "${product.name}",\n  "category": "${product.category}",\n  "version": "${product.version || '1.0.0'}",\n  "nodes": [\n    {\n      "id": "trigger_event",\n      "type": "webhook",\n      "config": { "method": "POST", "auth": "bearer" }\n    },\n    {\n      "id": "transformer",\n      "type": "deeptools_cents_parser",\n      "config": { "input": "payload.cents" }\n    }\n  ]\n}`,
     python: `from deeptools_sdk import AssetClient\n\nclient = AssetClient(product_id="${product.id}")\nprint(f"Loaded {client.name} v{client.version}")\n\n# Run local test with isolated sandbox\nresponse = client.execute_dry_run({"test": True})\nprint(response.output)`,
-    schema: `{\n  "type": "object",\n  "properties": {\n    "id": { "type": "string", "const": "${product.id}" },\n    "name": { "type": "string" },\n    "centsPrice": { "type": "integer", "const": ${product.price} },\n    "status": { "type": "string", "enum": ["approved"] }\n  }\n}`,
+    schema: `{\n  "type": "object",\n  "properties": {\n    "id": { "type": "string", "const": "${product.id}" },\n    "name": { "type": "string" },\n    "centsPrice": { "type": "integer", "const": ${product.price} },\n    "status": { "type": "string", "enum": ["APPROVED"] }\n  }\n}`,
   }
 
   const handleCopyCode = () => {

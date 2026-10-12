@@ -10,7 +10,7 @@ import {
   Code2,
 } from 'lucide-react'
 import Link from 'next/link'
-import type { Product, Order } from '@/lib/types'
+import type { Product, License } from '@/lib/types'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
@@ -80,16 +80,14 @@ export default function HomeContent({ locale }: HomeContentProps) {
   }, [locale])
 
   useEffect(() => {
-    if (!user) return
+    if (!user) { setOwnedProductIds([]); return }
     let ignore = false
-    fetchApi<{ orders?: Order[] } | Order[]>('/orders/mine')
+    fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
         if (ignore) return
-        const orders = Array.isArray(data) ? data : data?.orders || []
         setOwnedProductIds(
-          orders
-            .map((o) => o.productId || o.product?.id)
-            .filter((id): id is string => Boolean(id))
+          data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
+            .map((license) => license.productId)
         )
       })
       .catch(() => {})

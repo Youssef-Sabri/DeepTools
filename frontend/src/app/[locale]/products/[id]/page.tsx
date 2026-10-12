@@ -3,7 +3,7 @@ import { getDictionary, hasLocale, type Locale } from '@/dictionaries'
 import type { Product } from '@/lib/types'
 import ProductDetailContent from '@/components/products/ProductDetailContent'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = process.env.API_INTERNAL_URL || 'http://localhost:4000/api/v1'
 
 async function getProduct(id: string, locale: string): Promise<Product | null> {
   try {

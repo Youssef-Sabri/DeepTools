@@ -6,6 +6,7 @@ import { Lock, Loader2, Eye, EyeOff, CheckCircle2, AlertTriangle, ArrowRight } f
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { fetchApi } from '@/lib/api'
+import { getPasswordValidationError } from '@/lib/passwordValidation'
 import type { Dictionary } from '@/dictionaries'
 
 interface ResetPasswordContentProps {
@@ -42,8 +43,9 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
       return
     }
 
-    if (newPassword.length < 8) {
-      setError(t.shortPassword)
+    const passwordError = getPasswordValidationError(newPassword, locale === 'ar')
+    if (passwordError) {
+      setError(passwordError)
       return
     }
 
@@ -133,7 +135,6 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={8}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••••••"
@@ -158,7 +159,6 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••••••"

@@ -12,7 +12,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
-import type { Product, Order } from '@/lib/types'
+import type { Product, License } from '@/lib/types'
 import { normalizeCategory } from '@/lib/utils'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
@@ -35,6 +35,10 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'priceAsc' | 'priceDesc'>('newest')
@@ -58,41 +62,60 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
 
   useEffect(() => {
     let isMounted = true
+    const timer = setTimeout(() => {
     async function loadProducts() {
       try {
         setLoading(true)
-        const data = await fetchApi<{ items?: Product[]; products?: Product[] } | Product[]>(`/products?lang=${locale}&limit=50`)
+        setCatalogError(null)
+        const query = new URLSearchParams({ lang: locale, limit: '50', page: '1', sort: sortBy })
+        if (activeCategory !== 'all') query.set('category', activeCategory)
+        if (searchQuery.trim()) query.set('search', searchQuery.trim())
+        const data = await fetchApi<{ items: Product[]; totalPages: number }>(`/products?${query}`)
         if (!isMounted) return
-        if (Array.isArray(data)) {
-          setProducts(data)
-        } else if (data && Array.isArray(data.items)) {
-          setProducts(data.items)
-        } else if (data && Array.isArray(data.products)) {
-          setProducts(data.products)
-        }
+        setProducts(data.items)
+        setPage(1)
+        setTotalPages(data.totalPages)
       } catch (err) {
         console.error('Failed to load marketplace products:', err)
+        if (isMounted) setCatalogError(isAr ? 'تعذر تحميل الأدوات.' : 'Could not load products.')
       } finally {
         if (isMounted) setLoading(false)
       }
     }
     loadProducts()
+    }, 250)
     return () => {
       isMounted = false
+      clearTimeout(timer)
     }
-  }, [locale])
+  }, [locale, activeCategory, searchQuery, sortBy, isAr])
+
+  const loadMore = async () => {
+    if (loadingMore || page >= totalPages) return
+    setLoadingMore(true)
+    setCatalogError(null)
+    try {
+      const query = new URLSearchParams({ lang: locale, limit: '50', page: String(page + 1), sort: sortBy })
+      if (activeCategory !== 'all') query.set('category', activeCategory)
+      if (searchQuery.trim()) query.set('search', searchQuery.trim())
+      const data = await fetchApi<{ items: Product[]; totalPages: number }>(`/products?${query}`)
+      setProducts((previous) => [...previous, ...data.items])
+      setPage((previous) => previous + 1)
+      setTotalPages(data.totalPages)
+    } catch {
+      setCatalogError(isAr ? 'تعذر تحميل المزيد.' : 'Could not load more products.')
+    } finally { setLoadingMore(false) }
+  }
 
   useEffect(() => {
-    if (!user) return
+    if (!user) { setOwnedProductIds([]); return }
     let ignore = false
-    fetchApi<{ orders?: Order[] } | Order[]>('/orders/mine')
+    fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
         if (ignore) return
-        const orders = Array.isArray(data) ? data : data?.orders || []
         setOwnedProductIds(
-          orders
-            .map((o) => o.productId || o.product?.id)
-            .filter((id): id is string => Boolean(id))
+          data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
+            .map((license) => license.productId)
         )
       })
       .catch(() => {})
@@ -291,6 +314,12 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
                 : 'Try adjusting your search criteria or switch to another canonical category.'}
             </p>
           </div>
+        )}
+        {catalogError && <p role="alert" className="mt-4 text-center text-sm text-[var(--rose)]">{catalogError}</p>}
+        {!loading && page < totalPages && (
+          <button onClick={loadMore} disabled={loadingMore} className="mt-8 mx-auto block rounded-lg border border-[var(--line)] px-5 py-2 text-sm text-[var(--text)] disabled:opacity-50">
+            {loadingMore ? (isAr ? 'جارٍ التحميل...' : 'Loading...') : (isAr ? 'عرض المزيد' : 'Load more')}
+          </button>
         )}
       </div>
 

@@ -1,5 +1,3 @@
-'use client'
-
 import Link from 'next/link'
 import { Terminal, Shield, Cpu, Sparkles } from 'lucide-react'
 import type { Locale } from '@/dictionaries'

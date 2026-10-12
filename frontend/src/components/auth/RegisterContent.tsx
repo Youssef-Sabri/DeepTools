@@ -6,6 +6,7 @@ import { Mail, Lock, User, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { getPasswordValidationError } from '@/lib/passwordValidation'
 import type { Dictionary } from '@/dictionaries'
 
 interface RegisterContentProps {
@@ -20,6 +21,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const { register } = useAuth()
@@ -29,6 +31,13 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setPasswordError(null)
+
+    const validationError = getPasswordValidationError(password, isAr)
+    if (validationError) {
+      setPasswordError(validationError)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError(isAr ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match')
@@ -122,9 +131,13 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={8}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setPasswordError(null)
+                }}
+                aria-invalid={Boolean(passwordError)}
+                aria-describedby={passwordError ? 'signup-password-requirements signup-password-error' : 'signup-password-requirements'}
                 placeholder="••••••••••••"
                 className="w-full ps-10 pe-10 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue-bright)] font-mono"
               />
@@ -136,6 +149,16 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <p id="signup-password-requirements" className="mt-1.5 text-[11px] text-[var(--muted-2)]">
+              {isAr
+                ? '8 أحرف على الأقل، وحرف إنجليزي كبير وصغير، ورقم، ورمز من @$!%*?&'
+                : 'At least 8 characters, with uppercase and lowercase letters, a number, and a symbol from @$!%*?&'}
+            </p>
+            {passwordError && (
+              <p id="signup-password-error" role="alert" className="mt-1.5 text-xs text-[var(--rose)]">
+                {passwordError}
+              </p>
+            )}
           </div>
 
           <div>
@@ -147,7 +170,6 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••••••"

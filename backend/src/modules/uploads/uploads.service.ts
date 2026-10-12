@@ -158,7 +158,7 @@ export class UploadsService {
       ...(input.descriptionAr !== undefined
         ? { descriptionAr: input.descriptionAr }
         : {}),
-      ...(input.category ? { category: input.category } : {}),
+      ...(input.category !== undefined ? { category: input.category } : {}),
       ...(input.price !== undefined ? { price: input.price } : {}),
       ...(input.version ? { version: input.version } : {}),
       status,

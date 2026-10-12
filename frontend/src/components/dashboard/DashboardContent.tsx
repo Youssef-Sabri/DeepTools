@@ -15,7 +15,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Order, Product, ProductCategory } from '@/lib/types'
+import type { Order, Product, ProductCategory, SellerSale } from '@/lib/types'
 import { formatCents, dollarsToCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
@@ -28,6 +28,13 @@ interface DashboardContentProps {
 }
 
 type TabType = 'purchases' | 'upload' | 'uploads' | 'sales' | 'profile'
+
+const categoryOptions: { value: ProductCategory; label: string }[] = [
+  { value: 'workflow', label: 'workflow (n8n, Make)' },
+  { value: 'agentic', label: 'agentic (Autonomous AI Agents)' },
+  { value: 'script', label: 'script (Python, Bash)' },
+  { value: 'code', label: 'code (Templates, Schemas)' },
+]
 
 export default function DashboardContent({ locale }: DashboardContentProps) {
   const searchParams = useSearchParams()
@@ -48,6 +55,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   // Tab 1: Purchases data
   const [purchases, setPurchases] = useState<Order[]>([])
   const [loadingPurchases, setLoadingPurchases] = useState(true)
+  const [purchasePage, setPurchasePage] = useState(1)
+  const [purchaseTotalPages, setPurchaseTotalPages] = useState(1)
+  const [purchaseTotal, setPurchaseTotal] = useState(0)
+  const [loadingMorePurchases, setLoadingMorePurchases] = useState(false)
+  const [purchasePageError, setPurchasePageError] = useState(false)
 
   // Tab 2: Upload Studio state
   const [uploadFile, setUploadFile] = useState<File | null>(null)
@@ -68,12 +80,20 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [editFile, setEditFile] = useState<File | null>(null)
   const [editName, setEditName] = useState('')
   const [editDesc, setEditDesc] = useState('')
+  const [editCategory, setEditCategory] = useState<ProductCategory>('workflow')
   const [editPriceDollars, setEditPriceDollars] = useState('')
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
   // Tab 4: Sales data
-  const [sales, setSales] = useState<Order[]>([])
+  const [sales, setSales] = useState<SellerSale[]>([])
   const [loadingSales, setLoadingSales] = useState(true)
+  const [salesPage, setSalesPage] = useState(1)
+  const [salesTotalPages, setSalesTotalPages] = useState(1)
+  const [salesTotal, setSalesTotal] = useState(0)
+  const [salesGross, setSalesGross] = useState(0)
+  const [sellerEarnings, setSellerEarnings] = useState(0)
+  const [loadingMoreSales, setLoadingMoreSales] = useState(false)
+  const [salesPageError, setSalesPageError] = useState(false)
 
   // Tab 5: Profile & Security state
   const [nameInput, setNameInput] = useState('')
@@ -113,15 +133,12 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     let ignore = false
     async function fetchPurchases() {
       try {
-        const data = await fetchApi<{ orders?: Order[] } | Order[]>('/orders/mine')
+        const data = await fetchApi<{ orders: Order[]; total: number; totalPages: number }>('/orders/mine?page=1')
         if (!ignore) {
-          if (Array.isArray(data)) {
-            setPurchases(data)
-          } else if (data && Array.isArray(data.orders)) {
-            setPurchases(data.orders)
-          } else {
-            setPurchases([])
-          }
+          setPurchases(data.orders)
+          setPurchaseTotal(data.total)
+          setPurchaseTotalPages(data.totalPages)
+          setPurchasePage(1)
           setLoadingPurchases(false)
         }
       } catch (err) {
@@ -171,15 +188,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     let ignore = false
     async function fetchSales() {
       try {
-        const data = await fetchApi<{ sales?: Order[] } | Order[]>('/orders/sales')
+        const data = await fetchApi<{ sales: SellerSale[]; totalSales: number; totalGrossSales: number; totalSellerEarnings: number; totalPages: number }>('/orders/sales?page=1')
         if (!ignore) {
-          if (Array.isArray(data)) {
-            setSales(data)
-          } else if (data && Array.isArray(data.sales)) {
-            setSales(data.sales)
-          } else {
-            setSales([])
-          }
+          setSales(data.sales)
+          setSalesTotal(data.totalSales)
+          setSalesGross(data.totalGrossSales)
+          setSellerEarnings(data.totalSellerEarnings)
+          setSalesTotalPages(data.totalPages)
+          setSalesPage(1)
           setLoadingSales(false)
         }
       } catch (err) {
@@ -194,6 +210,32 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       ignore = true
     }
   }, [activeTab, user])
+
+  const loadMorePurchases = async () => {
+    if (loadingMorePurchases || purchasePage >= purchaseTotalPages) return
+    setLoadingMorePurchases(true)
+    setPurchasePageError(false)
+    try {
+      const data = await fetchApi<{ orders: Order[] }>(`/orders/mine?page=${purchasePage + 1}`)
+      setPurchases((previous) => [...previous, ...data.orders])
+      setPurchasePage((previous) => previous + 1)
+    } catch {
+      setPurchasePageError(true)
+    } finally { setLoadingMorePurchases(false) }
+  }
+
+  const loadMoreSales = async () => {
+    if (loadingMoreSales || salesPage >= salesTotalPages) return
+    setLoadingMoreSales(true)
+    setSalesPageError(false)
+    try {
+      const data = await fetchApi<{ sales: SellerSale[] }>(`/orders/sales?page=${salesPage + 1}`)
+      setSales((previous) => [...previous, ...data.sales])
+      setSalesPage((previous) => previous + 1)
+    } catch {
+      setSalesPageError(true)
+    } finally { setLoadingMoreSales(false) }
+  }
 
   // Download File Handler
   const handleDownloadFile = async (productId: string, fallbackName: string) => {
@@ -273,6 +315,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     setEditingProduct(prod)
     setEditName(prod.name)
     setEditDesc(prod.description)
+    setEditCategory(prod.category)
     setEditPriceDollars((prod.price / 100).toFixed(2))
     setEditFile(null)
   }
@@ -287,6 +330,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       if (editFile) formData.append('file', editFile)
       formData.append('name', editName)
       formData.append('description', editDesc)
+      formData.append('category', editCategory)
       formData.append('price', String(dollarsToCents(editPriceDollars)))
 
       await fetchApi(`/uploads/mine/${editingProduct.id}`, {
@@ -438,7 +482,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 {isAr ? 'الأدوات المشتراة وتراخيص الاستخدام' : 'Purchased Assets & Licenses'}
               </h2>
               <span className="text-xs font-mono text-[var(--muted-2)]">
-                {purchases.length} {isAr ? 'عنصر' : 'Items'}
+                {purchaseTotal} {isAr ? 'عنصر' : 'Items'}
               </span>
             </div>
 
@@ -503,6 +547,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 </p>
               </div>
             )}
+            {purchasePage < purchaseTotalPages && <button onClick={() => void loadMorePurchases()} disabled={loadingMorePurchases} className="mt-6 px-4 py-2 rounded-lg border border-[var(--line)] text-sm text-[var(--text)] disabled:opacity-50">{loadingMorePurchases ? 'Loading...' : 'Load more orders'}</button>}
+            {purchasePageError && <p role="alert" className="mt-2 text-sm text-[var(--rose)]">Could not load more orders. Please retry.</p>}
           </div>
         )}
 
@@ -542,13 +588,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <form onSubmit={handleUploadSubmit} className="space-y-5">
                 {/* Drag Drop File Zone */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-2">
+                  <label htmlFor="asset-upload-file" className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-2">
                     {isAr ? 'الملف الرقمي (حد أقصى 50MB)' : 'DIGITAL ASSET FILE (MAX 50MB)'}
                   </label>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer border-2 border-dashed border-[var(--line-bright)] hover:border-[var(--blue-bright)] rounded-xl p-8 text-center bg-[var(--surface-2)]/50 transition-colors"
-                  >
+                  <div className="border-2 border-dashed border-[var(--line-bright)] rounded-xl p-6 text-center bg-[var(--surface-2)]/50">
                     <Upload className="w-8 h-8 text-[var(--blue-bright)] mx-auto mb-2" />
                     {uploadFile ? (
                       <div className="font-mono text-xs text-[var(--green)] font-semibold">
@@ -557,7 +600,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     ) : (
                       <>
                         <div className="text-xs font-semibold text-[var(--text)]">
-                          {isAr ? 'اضغط لاختيار ملف أو اسحبه هنا' : 'Click to select file or drag & drop'}
+                          {isAr ? 'اختر ملف الأداة الرقمية' : 'Select your asset file'}
                         </div>
                         <div className="text-[10px] font-mono text-[var(--muted-2)] mt-1">
                           .json, .py, .ts, .js, .sh, .zip, .tar, .sql (Prohibited: .exe, .bat)
@@ -565,9 +608,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       </>
                     )}
                     <input
+                      id="asset-upload-file"
                       ref={fileInputRef}
                       type="file"
-                      className="hidden"
+                      className="mt-4 block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-bright)] transition-colors"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setUploadFile(e.target.files[0])
@@ -618,10 +662,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       onChange={(e) => setUploadCategory(e.target.value as ProductCategory)}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
                     >
-                      <option value="workflow">workflow (n8n, Make)</option>
-                      <option value="agentic">agentic (Autonomous AI Agents)</option>
-                      <option value="script">script (Python, Bash)</option>
-                      <option value="code">code (Templates, Schemas)</option>
+                      {categoryOptions.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -727,9 +770,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             ) : myUploads.length > 0 ? (
               <div className="space-y-4">
                 {myUploads.map((prod) => {
-                  const isApproved = prod.status === 'approved'
-                  const isPending = prod.status === 'pending'
-                  const isRejected = prod.status === 'rejected'
+                  const isApproved = prod.status === 'APPROVED'
+                  const isPending = prod.status === 'PENDING'
+                  const isRejected = prod.status === 'REJECTED'
 
                   return (
                     <div
@@ -824,7 +867,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   {isAr ? 'إجمالي المبيعات' : 'TOTAL SALES'}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--blue-bright)] mt-1">
-                  {sales.length}
+                  {salesTotal}
                 </div>
               </div>
 
@@ -833,7 +876,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   {isAr ? 'إجمالي الإيرادات' : 'GROSS SALES AMOUNT'}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--text)] mt-1">
-                  {formatCents(sales.reduce((sum, s) => sum + s.amount, 0))}
+                  {formatCents(salesGross)}
                 </div>
               </div>
 
@@ -842,7 +885,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   {isAr ? 'صافي أرباحك المحققة' : 'NET SELLER PAYOUT'}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--green)] mt-1">
-                  {formatCents(sales.reduce((sum, s) => sum + s.sellerAmount, 0))}
+                  {formatCents(sellerEarnings)}
                 </div>
               </div>
             </div>
@@ -869,9 +912,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     </thead>
                     <tbody className="divide-y divide-[var(--line)] font-mono">
                       {sales.map((s) => (
-                        <tr key={s.id} className="hover:bg-[var(--surface-2)]/50 transition-colors">
-                          <td className="px-4 py-3 font-semibold text-[var(--text)]">#{s.id.slice(0, 8).toUpperCase()}</td>
-                          <td className="px-4 py-3 text-[var(--blue-bright)] font-sans">{s.product?.name || 'Asset'}</td>
+                        <tr key={s.orderId} className="hover:bg-[var(--surface-2)]/50 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-[var(--text)]">#{s.orderId.slice(0, 8).toUpperCase()}</td>
+                          <td className="px-4 py-3 text-[var(--blue-bright)] font-sans">{isAr && s.productNameAr ? s.productNameAr : s.productName}</td>
                           <td className="px-4 py-3 text-[var(--text)]">{formatCents(s.amount)}</td>
                           <td className="px-4 py-3 text-[var(--orange)]">-{formatCents(s.commissionAmount)}</td>
                           <td className="px-4 py-3 text-[var(--green)] font-bold">{formatCents(s.sellerAmount)}</td>
@@ -890,6 +933,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 </h3>
               </div>
             )}
+            {salesPage < salesTotalPages && <button onClick={() => void loadMoreSales()} disabled={loadingMoreSales} className="mt-6 px-4 py-2 rounded-lg border border-[var(--line)] text-sm text-[var(--text)] disabled:opacity-50">{loadingMoreSales ? 'Loading...' : 'Load more sales'}</button>}
+            {salesPageError && <p role="alert" className="mt-2 text-sm text-[var(--rose)]">Could not load more sales. Please retry.</p>}
           </div>
         )}
 
@@ -1012,7 +1057,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       {/* Edit & Resubmit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-lg deeptools-card rounded-2xl p-6 border border-[var(--line-bright)] shadow-2xl">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto deeptools-card rounded-2xl p-6 border border-[var(--line-bright)] shadow-2xl">
             <h3 className="text-base font-bold text-[var(--text)] mb-4">
               {isAr ? 'تعديل الأداة وإعادة تقديمها للمراجعة' : 'Edit & Resubmit Asset'}
             </h3>
@@ -1027,6 +1072,22 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="asset-edit-category" className="block text-xs font-mono text-[var(--muted-2)] mb-1">
+                  {isAr ? 'القسم' : 'CATEGORY'}
+                </label>
+                <select
+                  id="asset-edit-category"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value as ProductCategory)}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono"
+                >
+                  {categoryOptions.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1053,17 +1114,18 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">
+                <label htmlFor="asset-edit-file" className="block text-xs font-mono text-[var(--muted-2)] mb-1">
                   REPLACE ASSET FILE (OPTIONAL)
                 </label>
                 <input
+                  id="asset-edit-file"
                   type="file"
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
                       setEditFile(e.target.files[0])
                     }
                   }}
-                  className="text-xs text-[var(--muted)]"
+                  className="block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-bright)] transition-colors"
                 />
               </div>
 
