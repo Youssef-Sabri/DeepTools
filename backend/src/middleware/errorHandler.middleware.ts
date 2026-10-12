@@ -10,6 +10,11 @@ export const errorHandler: ErrorRequestHandler = (
 ): void => {
   const requestId = req.headers["x-request-id"] || "unknown";
 
+  if (res.headersSent || res.destroyed) {
+    if (!res.destroyed) res.destroy(err);
+    return;
+  }
+
   if (err instanceof ApiError) {
     res.status(err.statusCode).json({
       success: false,

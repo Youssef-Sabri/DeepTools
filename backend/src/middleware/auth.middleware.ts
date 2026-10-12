@@ -4,6 +4,7 @@ import { ApiError } from "../utils/apiError";
 import { env } from "../config/env";
 import { Role } from "@prisma/client";
 import { prisma } from "../config/database";
+import { SESSION_COOKIE, readCookie, validSessionCsrf } from "../modules/auth/session";
 
 // Extend Express Request interface globally to include 'user'
 declare global {
@@ -30,14 +31,20 @@ export const authenticate = async (
   next: NextFunction,
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const cookieToken = readCookie(req, SESSION_COOKIE);
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+  const token = cookieToken || bearerToken;
+  if (!token) {
     return next(
       ApiError.unauthorized("Authentication token is missing or invalid"),
     );
   }
 
-  const token = authHeader.split(" ")[1];
+  if (cookieToken && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    if (!validSessionCsrf(req, cookieToken)) {
+      return next(ApiError.forbidden("CSRF verification failed"));
+    }
+  }
 
   let decoded: JwtPayload;
   try {

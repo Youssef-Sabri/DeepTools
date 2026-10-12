@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { authService, AuthService } from "./auth.service";
+import { clearSession, setSession } from "./session";
 import {
   RegisterInput,
   LoginInput,
@@ -14,12 +15,13 @@ export class AuthController {
   register = async (req: Request, res: Response): Promise<void> => {
     const input = req.body as RegisterInput;
     const result = await this.service.register(input);
+    setSession(res, result.token);
 
     res.status(201).json({
       success: true,
       statusCode: 201,
       message: "User registered successfully",
-      data: result,
+      data: { user: result.user },
     });
   };
 
@@ -27,13 +29,19 @@ export class AuthController {
   login = async (req: Request, res: Response): Promise<void> => {
     const input = req.body as LoginInput;
     const result = await this.service.login(input);
+    setSession(res, result.token);
 
     res.status(200).json({
       success: true,
       statusCode: 200,
       message: "Login successful",
-      data: result,
+      data: { user: result.user },
     });
+  };
+
+  logout = async (_req: Request, res: Response): Promise<void> => {
+    clearSession(res);
+    res.status(204).end();
   };
 
   // Handle forgot password

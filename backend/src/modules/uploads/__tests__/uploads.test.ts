@@ -51,6 +51,17 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
     (prisma.order.count as jest.Mock).mockResolvedValue(0);
   });
 
+  it("rejects malformed list queries and upload IDs before querying products", async () => {
+    const invalidQuery = await request(app).get("/api/v1/uploads/mine?page=0")
+      .set("Authorization", `Bearer ${userToken}`);
+    const invalidId = await request(app).get("/api/v1/uploads/mine/not-a-uuid")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(invalidQuery.status).toBe(422);
+    expect(invalidId.status).toBe(422);
+    expect(prisma.product.findMany).not.toHaveBeenCalled();
+    expect(prisma.product.findUnique).not.toHaveBeenCalled();
+  });
+
   describe("POST /api/v1/uploads", () => {
     it("creates pending product on successful upload", async () => {
       (storageService.save as jest.Mock).mockResolvedValue(
@@ -159,7 +170,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
   describe("PUT /api/v1/uploads/mine/:id", () => {
     it("resets status to pending when editing a rejected upload", async () => {
       (prisma.product.findUnique as jest.Mock).mockResolvedValueOnce({
-        id: "p-rejected",
+        id: "20000000-0000-4000-8000-000000000001",
         sellerId: mockUser.id,
         name: "Rejected Product",
         description: "Old description here",
@@ -168,7 +179,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       });
 
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
-        id: "p-rejected",
+        id: "20000000-0000-4000-8000-000000000001",
         sellerId: mockUser.id,
         name: "Fixed Product",
         description: "Updated description here",
@@ -177,7 +188,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       });
 
       const res = await request(app)
-        .put("/api/v1/uploads/mine/p-rejected")
+        .put("/api/v1/uploads/mine/20000000-0000-4000-8000-000000000001")
         .set("Authorization", `Bearer ${userToken}`)
         .field("name", "Fixed Product")
         .field("description", "Updated description here");
@@ -191,13 +202,13 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
   describe("DELETE /api/v1/uploads/mine/:id", () => {
     it("returns 403 when attempting to delete an approved product", async () => {
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
-        id: "p-approved",
+        id: "20000000-0000-4000-8000-000000000002",
         sellerId: mockUser.id,
         status: "APPROVED",
       });
 
       const res = await request(app)
-        .delete("/api/v1/uploads/mine/p-approved")
+        .delete("/api/v1/uploads/mine/20000000-0000-4000-8000-000000000002")
         .set("Authorization", `Bearer ${userToken}`);
 
       expect(res.status).toBe(403);
@@ -205,7 +216,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
 
     it("deletes pending product and removes file from disk", async () => {
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
-        id: "p-pending",
+        id: "20000000-0000-4000-8000-000000000003",
         sellerId: mockUser.id,
         status: "PENDING",
         fileKey: "uploads/file-to-delete.zip",
@@ -214,7 +225,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       (storageService.delete as jest.Mock).mockResolvedValue(undefined);
 
       const res = await request(app)
-        .delete("/api/v1/uploads/mine/p-pending")
+        .delete("/api/v1/uploads/mine/20000000-0000-4000-8000-000000000003")
         .set("Authorization", `Bearer ${userToken}`);
 
       expect(res.status).toBe(200);

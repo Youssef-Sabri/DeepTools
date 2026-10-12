@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { createApp } from "../../../app";
 import { prisma } from "../../../config/database";
 import { mockAdmin, mockUser, createToken } from "../../../test/test-helpers";
+import { csrfForSession } from "../session";
 
 jest.mock("../../../config/database", () => ({
   prisma: {
@@ -35,6 +36,28 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
       if (where.id === mockAdmin.id) return Promise.resolve(mockAdmin);
       return Promise.resolve(null);
     });
+  });
+
+  it("requires a matching CSRF header for cookie-authenticated state changes", async () => {
+    const csrf = csrfForSession(userToken);
+    const cookies = `dt_session=${userToken}; dt_csrf=${csrf}`;
+    const rejected = await request(app).post("/api/v1/auth/logout").set("Cookie", cookies);
+    expect(rejected.status).toBe(403);
+    const accepted = await request(app).post("/api/v1/auth/logout").set("Cookie", cookies).set("X-CSRF-Token", csrf);
+    expect(accepted.status).toBe(204);
+    expect(accepted.headers["set-cookie"]).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^dt_session=;/),
+      expect.stringMatching(/^dt_csrf=;/),
+    ]));
+  });
+
+  it("clears an expired session when its CSRF token matches", async () => {
+    const expiredToken = "expired.jwt.value";
+    const csrf = csrfForSession(expiredToken);
+    const res = await request(app).post("/api/v1/auth/logout")
+      .set("Cookie", `dt_session=${expiredToken}; dt_csrf=${csrf}`)
+      .set("X-CSRF-Token", csrf);
+    expect(res.status).toBe(204);
   });
 
   describe("Task A-2: Register and Login", () => {
@@ -101,7 +124,11 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty("token");
+      expect(res.body.data).not.toHaveProperty("token");
+      expect(res.headers["set-cookie"]).toEqual(expect.arrayContaining([
+        expect.stringMatching(/^dt_session=.*HttpOnly/),
+        expect.stringMatching(/^dt_csrf=/),
+      ]));
       expect(res.body.data.user).not.toHaveProperty("passwordHash");
     });
   });

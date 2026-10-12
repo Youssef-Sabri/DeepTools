@@ -77,12 +77,6 @@ export const AuthResponseSchema = registry.register(
   "AuthResponse",
   z.object({
     user: UserSchema,
-    accessToken: z
-      .string()
-      .openapi({ example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }),
-    refreshToken: z
-      .string()
-      .openapi({ example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }),
   }),
 );
 
@@ -315,7 +309,7 @@ export const OrderSchema = registry.register(
     commissionPercent: z.number().int().openapi({ example: 10 }),
     commissionAmount: z.number().int().openapi({ example: 490 }),
     sellerAmount: z.number().int().openapi({ example: 4410 }),
-    status: z.string().openapi({ example: "completed" }),
+    status: z.string().openapi({ example: "PENDING" }),
     paymentGateway: z.string().openapi({ example: "simulated" }),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -325,9 +319,8 @@ export const OrderSchema = registry.register(
 export const PurchaseResponseSchema = registry.register(
   "PurchaseResponse",
   z.object({
-    message: z.string().openapi({ example: "Purchase completed successfully" }),
+    message: z.string().openapi({ example: "Order pending payment verification" }),
     product: ProductSchema,
-    license: LicenseSchema,
     order: OrderSchema,
   }),
 );
@@ -336,6 +329,7 @@ export const UserLicenseSchema = registry.register(
   "UserLicense",
   z.object({
     id: z.string().uuid(),
+    productId: z.string().uuid(),
     licenseKey: z.string().openapi({ example: "DF-A1B2-C3D4-E5F6" }),
     isActive: z.boolean().openapi({ example: true }),
     expiresAt: z.string().datetime().nullable(),
@@ -472,8 +466,8 @@ export const SellerProductSchema = registry.register(
     price: z.number().int().openapi({ example: 4900 }),
     version: z.string().openapi({ example: "1.0.0" }),
     status: z
-      .enum(["pending", "approved", "rejected"])
-      .openapi({ example: "pending" }),
+      .enum(["PENDING", "APPROVED", "REJECTED"])
+      .openapi({ example: "PENDING" }),
     fileKey: z.string().nullable().optional().openapi({
       example: "uploads/550e8400-e29b-41d4-a716-446655440000.zip",
     }),
@@ -590,8 +584,9 @@ export const BuyerOrderItemSchema = registry.register(
   "BuyerOrderItem",
   z.object({
     id: z.string().uuid(),
+    productId: z.string().uuid().nullable(),
     amount: z.number().int().openapi({ example: 4900 }),
-    status: z.string().openapi({ example: "completed" }),
+    status: z.string().openapi({ example: "COMPLETED" }),
     paymentGateway: z.string().openapi({ example: "simulated" }),
     createdAt: z.string().datetime(),
     product: z
@@ -612,6 +607,8 @@ export const BuyerOrdersResponseSchema = registry.register(
   z.object({
     orders: z.array(BuyerOrderItemSchema),
     total: z.number().int().openapi({ example: 3 }),
+    page: z.number().int(),
+    totalPages: z.number().int(),
   }),
 );
 
@@ -636,6 +633,9 @@ export const SellerSalesResponseSchema = registry.register(
     sales: z.array(SellerSaleItemSchema),
     totalSales: z.number().int().openapi({ example: 12 }),
     totalSellerEarnings: z.number().int().openapi({ example: 52920 }),
+    totalGrossSales: z.number().int().openapi({ example: 58800 }),
+    page: z.number().int(),
+    totalPages: z.number().int(),
   }),
 );
 

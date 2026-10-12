@@ -1,4 +1,5 @@
 import fs from "fs";
+import { pipeline } from "stream/promises";
 import path from "path";
 import { createHash, randomUUID } from "crypto";
 import { Response } from "express";
@@ -375,23 +376,7 @@ export class LocalStorageService implements StorageService {
       throw new NotFoundError("File not found");
     }
 
-    return new Promise((resolve, reject) => {
-      const readStream = fs.createReadStream(filePath);
-
-      readStream.on("error", (err) => {
-        if (!res.headersSent) {
-          reject(err);
-        } else {
-          res.end();
-          resolve();
-        }
-      });
-
-      res.on("finish", () => resolve());
-      res.on("close", () => resolve());
-
-      readStream.pipe(res);
-    });
+    await pipeline(fs.createReadStream(filePath), res);
   }
 
   async stat(key: string): Promise<{ size: number; mimeType: string }> {

@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { paginationFields, paginationDepthError, withinPaginationDepth } from "../../middleware/requestBounds";
 
 export const listOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-});
+  page: paginationFields.page,
+  limit: paginationFields.limit.default(20),
+}).refine(withinPaginationDepth, paginationDepthError);
 
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;

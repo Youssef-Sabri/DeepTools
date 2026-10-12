@@ -12,6 +12,7 @@ jest.mock("../../../config/database", () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
+      count: jest.fn(),
     },
     order: {
       findMany: jest.fn(),
@@ -42,6 +43,13 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
       if (where.id === mockAdmin.id) return Promise.resolve(mockAdmin);
       return Promise.resolve(null);
     });
+  });
+
+  it("rejects pagination beyond the allowed depth", async () => {
+    const res = await request(app).get("/api/v1/orders/mine?page=201")
+      .set("Authorization", `Bearer ${buyerToken}`);
+    expect(res.status).toBe(422);
+    expect(prisma.order.findMany).not.toHaveBeenCalled();
   });
 
   describe("GET /api/v1/orders/mine", () => {
@@ -77,7 +85,7 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
   describe("GET /api/v1/orders/sales", () => {
     it("returns seller sales and accurately computes totalSellerEarnings", async () => {
       (prisma.order.count as jest.Mock).mockResolvedValue(2);
-      (prisma.order.aggregate as jest.Mock).mockResolvedValue({ _sum: { sellerAmount: 5310 } });
+      (prisma.order.aggregate as jest.Mock).mockResolvedValue({ _sum: { amount: 5900, sellerAmount: 5310 } });
       (prisma.order.findMany as jest.Mock).mockResolvedValue([
         {
           id: "ord-1",
@@ -116,6 +124,7 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
       expect(res.body.data.sales).toHaveLength(2);
       expect(res.body.data.totalSales).toBe(2);
       expect(res.body.data.totalSellerEarnings).toBe(5310);
+      expect(res.body.data.totalGrossSales).toBe(5900);
     });
   });
 
@@ -137,9 +146,7 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
 
       (prisma.order.count as jest.Mock).mockResolvedValue(342);
 
-      (prisma.product.groupBy as jest.Mock).mockResolvedValue(
-        Array.from({ length: 28 }, (_, i) => ({ sellerId: `seller-${i}` })),
-      );
+      (prisma.user.count as jest.Mock).mockResolvedValue(28);
 
       (prisma.order.groupBy as jest.Mock).mockResolvedValue([
         { productId: "prod-top-1", _count: { id: 45 } },
@@ -170,6 +177,8 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
         totalSellerPayouts: 1503000,
       });
       expect(res.body.data.sellers.total).toBe(28);
+      expect(prisma.user.count).toHaveBeenCalledWith({ where: { sellerProducts: { some: {} } } });
+      expect(prisma.product.groupBy).not.toHaveBeenCalled();
       expect(res.body.data.topProducts).toHaveLength(2);
       expect(res.body.data.topProducts[0].salesCount).toBe(45);
     });

@@ -51,6 +51,23 @@ export const validateQuery = (schema: ZodSchema) => {
   };
 };
 
+export const validateParams = (schema: ZodSchema) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.params);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const message = error.issues
+          .map((issue) => `${issue.path.join(".") || "params"}: ${issue.message}`)
+          .join(", ");
+        return next(new ValidationError(message, error.issues));
+      }
+      next(error);
+    }
+  };
+};
+
 // Validate incoming request schema
 export const validate = (schema: AnyZodObject) => {
   return (req: Request, res: Response, next: NextFunction): void => {

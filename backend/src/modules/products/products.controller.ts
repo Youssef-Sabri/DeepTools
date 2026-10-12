@@ -57,7 +57,7 @@ export class ProductsController {
   download = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const userId = req.user!.id;
-    await this.service.downloadProduct(userId, id, res);
+    await this.service.downloadProduct(userId, id, res, req.method === "HEAD");
   };
 
   getMyLicenses = async (req: Request, res: Response): Promise<void> => {

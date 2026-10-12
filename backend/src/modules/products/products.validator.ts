@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationFields, paginationDepthError, withinPaginationDepth } from "../../middleware/requestBounds";
 
 export const productCategoryEnum = z.enum([
   "workflow",
@@ -8,14 +9,19 @@ export const productCategoryEnum = z.enum([
 ]);
 
 export const listPublicProductsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  page: paginationFields.page,
+  limit: paginationFields.limit.default(20),
   category: z
     .enum(["workflow", "script", "code", "agentic"])
-    .or(z.string())
+    .or(z.string().max(50))
     .optional(),
-  search: z.string().optional(),
+  search: z.string().max(100).optional(),
+  sort: z.enum(["newest", "priceAsc", "priceDesc"]).default("newest"),
   lang: z.enum(["en", "ar"]).default("en").optional(),
+}).refine(withinPaginationDepth, paginationDepthError);
+
+export const getPublicProductQuerySchema = z.object({
+  lang: z.enum(["en", "ar"]).optional(),
 });
 
 export const createProductSchema = z.object({

@@ -2,6 +2,8 @@ import request from "supertest";
 import { createApp } from "../../../app";
 import { prisma } from "../../../config/database";
 import { mockAdmin, mockUser, createToken } from "../../../test/test-helpers";
+import { env } from "../../../config/env";
+import { settingsService } from "../settings.service";
 
 jest.mock("../../../config/database", () => ({
   prisma: {
@@ -19,6 +21,9 @@ describe("Commission Settings Endpoints (Task B-5)", () => {
   const app = createApp();
   const adminToken = createToken(mockAdmin);
   const userToken = createToken(mockUser);
+  const initialFallback = env.COMMISSION_PERCENT;
+
+  afterEach(() => { env.COMMISSION_PERCENT = initialFallback; });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -31,6 +36,21 @@ describe("Commission Settings Endpoints (Task B-5)", () => {
   });
 
   describe("GET /api/v1/admin/settings/commission", () => {
+    it("preserves a configured 0% fallback and stored 0% value", async () => {
+      env.COMMISSION_PERCENT = 0;
+      (prisma.setting.findUnique as jest.Mock).mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ value: "0", updatedAt: new Date() });
+      const fallback = await request(app).get("/api/v1/admin/settings/commission")
+        .set("Authorization", `Bearer ${adminToken}`);
+      const stored = await request(app).get("/api/v1/admin/settings/commission")
+        .set("Authorization", `Bearer ${adminToken}`);
+      expect(fallback.body.data.commissionPercent).toBe(0);
+      expect(stored.body.data.commissionPercent).toBe(0);
+      (prisma.setting.findUnique as jest.Mock).mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ value: "0", updatedAt: new Date() });
+      expect(await settingsService.getCommissionPercent()).toBe(0);
+      expect(await settingsService.getCommissionPercent()).toBe(0);
+    });
     it("returns env default commission when no DB row exists", async () => {
       (prisma.setting.findUnique as jest.Mock).mockResolvedValue(null);
 

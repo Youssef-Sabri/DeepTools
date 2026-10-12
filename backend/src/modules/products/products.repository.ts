@@ -8,6 +8,7 @@ export class ProductsRepository {
     limit?: number;
     category?: string;
     search?: string;
+    sort?: "newest" | "priceAsc" | "priceDesc";
     status?: ProductStatus | "all";
   }) {
     const page = params?.page || 1;
@@ -18,6 +19,7 @@ export class ProductsRepository {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       ...(status !== "all" ? { status: status as ProductStatus } : {}),
+      ...(status === ProductStatus.APPROVED ? { approvedFileKey: { not: null } } : {}),
       ...(params?.category ? { category: params.category } : {}),
       ...(params?.search
         ? {
@@ -41,7 +43,7 @@ export class ProductsRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: params?.sort === "priceAsc" ? [{ price: "asc" }, { id: "asc" }] : params?.sort === "priceDesc" ? [{ price: "desc" }, { id: "asc" }] : [{ createdAt: "desc" }, { id: "desc" }],
         include: {
           seller: {
             select: { id: true, name: true },
@@ -172,6 +174,7 @@ export class ProductsRepository {
 
     return list.map((lic) => ({
       id: lic.id,
+      productId: lic.productId,
       licenseKey: lic.licenseKey,
       isActive: lic.isActive,
       expiresAt: lic.expiresAt,

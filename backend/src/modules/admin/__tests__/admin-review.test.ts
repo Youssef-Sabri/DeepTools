@@ -43,7 +43,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
   describe("PATCH /api/v1/admin/uploads/:id/approve", () => {
     it("approves a pending product successfully", async () => {
       (prisma.product.findFirst as jest.Mock).mockResolvedValue({
-        id: "upload-1",
+        id: "30000000-0000-4000-8000-000000000001",
         name: "Pending Upload",
         status: "PENDING",
         fileKey: "uploads/file-1.zip",
@@ -55,7 +55,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
       const now = new Date();
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
-        id: "upload-1",
+        id: "30000000-0000-4000-8000-000000000001",
         name: "Pending Upload",
         status: "APPROVED",
         reviewedAt: now,
@@ -63,7 +63,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-1/approve")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve")
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
@@ -71,7 +71,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       expect(res.body.data.status).toBe("APPROVED");
       expect(prisma.product.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ id: "upload-1", status: "PENDING", deletedAt: null }),
+          where: expect.objectContaining({ id: "30000000-0000-4000-8000-000000000001", status: "PENDING", deletedAt: null }),
           data: expect.objectContaining({ status: "APPROVED" }),
         }),
       );
@@ -79,12 +79,12 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 409 when approving already-approved product", async () => {
       (prisma.product.findFirst as jest.Mock).mockResolvedValue({
-        id: "upload-already",
+        id: "30000000-0000-4000-8000-000000000003",
         status: "APPROVED",
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-already/approve")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000003/approve")
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(409);
@@ -93,7 +93,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 403 when regular user token is used on admin route", async () => {
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-1/approve")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve")
         .set("Authorization", `Bearer ${userToken}`);
 
       expect(res.status).toBe(403);
@@ -103,21 +103,21 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
   describe("PATCH /api/v1/admin/uploads/:id/reject", () => {
     it("rejects a product with reason successfully", async () => {
       (prisma.product.findFirst as jest.Mock).mockResolvedValue({
-        id: "upload-2",
+        id: "30000000-0000-4000-8000-000000000002",
         status: "PENDING",
         updatedAt: new Date(),
       });
 
       const now = new Date();
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
-        id: "upload-2",
+        id: "30000000-0000-4000-8000-000000000002",
         status: "REJECTED",
         rejectionNote: "File contains prohibited libraries.",
         reviewedAt: now,
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-2/reject")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ reason: "File contains prohibited libraries." });
 
@@ -128,7 +128,7 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 422 when rejecting without reason or reason is empty", async () => {
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-2/reject")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({});
 
@@ -137,12 +137,12 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 409 when rejecting already-rejected product", async () => {
       (prisma.product.findFirst as jest.Mock).mockResolvedValue({
-        id: "upload-already-rej",
+        id: "30000000-0000-4000-8000-000000000004",
         status: "REJECTED",
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/upload-already-rej/reject")
+        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000004/reject")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ reason: "Duplicate rejection attempt." });
 

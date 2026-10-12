@@ -4,7 +4,9 @@ import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import {
   validateBody,
   validateQuery,
+  validateParams,
 } from "../../middleware/validation.middleware";
+import { uuidIdParamsSchema } from "../../middleware/requestBounds";
 import { asyncHandler } from "../../utils/asyncHandler";
 import {
   rejectUploadSchema,
@@ -30,7 +32,7 @@ router.get(
 router.get("/insights/users", asyncHandler(adminController.getUsersInsights));
 
 // 3. User details by ID
-router.get("/users/:id", asyncHandler(adminController.getUserById));
+router.get("/users/:id", validateParams(uuidIdParamsSchema), asyncHandler(adminController.getUserById));
 
 // Uploads review queue & decisions
 router.get(
@@ -38,13 +40,15 @@ router.get(
   validateQuery(listAdminUploadsQuerySchema),
   asyncHandler(adminController.getUploads),
 );
-router.get("/uploads/:id", asyncHandler(adminController.getUploadById));
+router.get("/uploads/:id", validateParams(uuidIdParamsSchema), asyncHandler(adminController.getUploadById));
 router.patch(
   "/uploads/:id/approve",
+  validateParams(uuidIdParamsSchema),
   asyncHandler(adminController.approveUpload),
 );
 router.patch(
   "/uploads/:id/reject",
+  validateParams(uuidIdParamsSchema),
   validateBody(rejectUploadSchema),
   asyncHandler(adminController.rejectUpload),
 );

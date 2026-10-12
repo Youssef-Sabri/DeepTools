@@ -83,7 +83,7 @@ export class ProductsService {
     };
   }
 
-  async findAll(query: ListPublicProductsQuery = { page: 1, limit: 20 }): Promise<PaginatedPublicProducts> {
+  async findAll(query: ListPublicProductsQuery = { page: 1, limit: 20, sort: "newest" }): Promise<PaginatedPublicProducts> {
     const page = query.page || 1;
     const limit = query.limit || 20;
 
@@ -92,7 +92,8 @@ export class ProductsService {
       limit,
       category: query.category,
       search: query.search,
-      status: ProductStatus.PENDING,
+      sort: query.sort,
+      status: ProductStatus.APPROVED,
     });
 
     return {
@@ -106,7 +107,7 @@ export class ProductsService {
 
   async findOne(id: string, lang?: string, status: ProductStatus = ProductStatus.APPROVED): Promise<PublicProduct> {
     const product = await this.repo.findById(id, status);
-    if (!product) {
+    if (!product || (status === ProductStatus.APPROVED && !product.approvedFileKey)) {
       throw new NotFoundError("Product not found");
     }
     return this.formatPublicProduct(product, lang);
@@ -120,7 +121,7 @@ export class ProductsService {
       descriptionAr: data.descriptionAr ?? null,
       badge: data.badge ?? null,
       badgeAr: data.badgeAr ?? null,
-      status: ProductStatus.APPROVED, 
+      status: ProductStatus.PENDING,
     });
   }
 
@@ -181,7 +182,26 @@ export class ProductsService {
     };
   }
 
-  async downloadProduct(userId: string, productId: string, res: Response): Promise<void> {
+  async downloadProduct(userId: string, productId: string, res: Response, headOnly = false): Promise<void> {
+    const ownedProduct = await this.repo.findById(productId, "");
+    if (ownedProduct?.sellerId === userId) {
+      const ownFileKey = ownedProduct.fileKey;
+      if (!ownFileKey) throw new InternalServerError("Product file is unavailable");
+      try {
+        const resolvedPath = this.storage.resolveKeyPath(ownFileKey);
+        await fs.promises.access(resolvedPath, fs.constants.R_OK);
+      } catch {
+        throw new InternalServerError("Product file is unavailable");
+      }
+      const ext = path.extname(ownFileKey) || "";
+      const safeName = ownedProduct.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}${ext}"`);
+      res.setHeader("Content-Type", ownedProduct.fileMime || "application/octet-stream");
+      res.setHeader("Cache-Control", "private, no-store");
+      if (headOnly) { res.status(200).end(); return; }
+      await this.storage.stream(ownFileKey, res);
+      return;
+    }
     const license = await this.repo.findLicense(userId, productId);
     if (!license) {
       throw new ForbiddenError("You do not have a license to download this product");
@@ -215,7 +235,9 @@ export class ProductsService {
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", license.fileMime || product.approvedFileMime || "application/octet-stream");
+    res.setHeader("Cache-Control", "private, no-store");
 
+    if (headOnly) { res.status(200).end(); return; }
     await this.storage.stream(fileKey, res);
   }
 
