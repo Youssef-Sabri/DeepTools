@@ -15,34 +15,31 @@ export class SettingsService {
     private readonly settingsRepo: SettingsRepository = settingsRepository,
   ) {}
 
-  /**
-   * Get the current effective commission percentage as an integer (0-100).
-   * Reads from database settings table; falls back to env.COMMISSION_PERCENT if not configured.
-   */
   async getCommissionPercent(): Promise<number> {
     const setting = await this.settingsRepo.findByKey(
       SETTING_KEYS.COMMISSION_PERCENT,
     );
 
+    const fallbackCommission = Number(env.COMMISSION_PERCENT) || 10;
+
     if (!setting) {
-      return env.COMMISSION_PERCENT;
+      return fallbackCommission;
     }
 
     const parsed = parseInt(setting.value, 10);
-    return Number.isFinite(parsed) ? parsed : env.COMMISSION_PERCENT;
+    return Number.isFinite(parsed) ? parsed : fallbackCommission;
   }
 
-  /**
-   * Get current commission settings payload for API response
-   */
   async getCommission(): Promise<CommissionSettingResponse> {
     const setting = await this.settingsRepo.findByKey(
       SETTING_KEYS.COMMISSION_PERCENT,
     );
+    
+    const fallbackCommission = Number(env.COMMISSION_PERCENT) || 10;
 
     if (!setting) {
       return {
-        commissionPercent: env.COMMISSION_PERCENT,
+        commissionPercent: fallbackCommission,
       };
     }
 
@@ -50,15 +47,11 @@ export class SettingsService {
     return {
       commissionPercent: Number.isFinite(parsed)
         ? parsed
-        : env.COMMISSION_PERCENT,
+        : fallbackCommission,
       updatedAt: setting.updatedAt,
     };
   }
 
-  /**
-   * Update the marketplace platform commission percentage.
-   * Future orders will use this value; past orders remain immutable.
-   */
   async updateCommission(
     commissionPercent: number,
   ): Promise<CommissionSettingResponse> {

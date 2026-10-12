@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProductStatus } from "@prisma/client"; 
 
 export const uploadCategoryEnum = z.enum([
   "workflow",
@@ -7,11 +8,8 @@ export const uploadCategoryEnum = z.enum([
   "agentic",
 ]);
 
-export const uploadStatusEnum = z.enum(["pending", "approved", "rejected"]);
+export const uploadStatusEnum = z.nativeEnum(ProductStatus);
 
-/**
- * Validator for creating a new seller upload (multipart/form-data text fields)
- */
 export const createUploadSchema = z.object({
   name: z
     .string()
@@ -42,14 +40,8 @@ export const createUploadSchema = z.object({
   version: z.string().default("1.0.0").optional(),
 });
 
-/**
- * Validator for updating an existing upload (PUT /api/v1/uploads/mine/:id)
- */
 export const updateUploadSchema = createUploadSchema.partial();
 
-/**
- * Validator for listing own uploads with pagination and filtering
- */
 export const listMyUploadsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),

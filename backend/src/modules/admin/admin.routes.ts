@@ -2,7 +2,6 @@ import { Router } from "express";
 import { adminController } from "./admin.controller";
 import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import {
-  validate,
   validateBody,
   validateQuery,
 } from "../../middleware/validation.middleware";
@@ -20,14 +19,14 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole(["ADMIN"]));
 
-// 1. User management routes (search, filter, pagination)
+// 1. User management routes
 router.get(
   "/users",
-  validate(getUsersQuerySchema),
+  validateQuery(getUsersQuerySchema),
   asyncHandler(adminController.getUsers),
 );
 
-// 2. User registration insights (defined before :id to prevent collision)
+// 2. User registration insights
 router.get("/insights/users", asyncHandler(adminController.getUsersInsights));
 
 // 3. User details by ID

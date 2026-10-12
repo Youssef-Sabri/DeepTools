@@ -1,48 +1,64 @@
 import { prisma } from "../../config/database";
+import { OrderStatus } from "@prisma/client";
 
 export class OrdersRepository {
-  /**
-   * Find orders placed by a buyer (their purchases)
-   */
-  async findBuyerOrders(userId: string) {
-    return prisma.order.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
-            category: true,
-            price: true,
+  async findBuyerOrders(userId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      prisma.order.findMany({
+        where: { userId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          product: {
+            select: { id: true, name: true, nameAr: true, category: true, price: true },
           },
         },
-      },
-    });
+      }),
+      prisma.order.count({ where: { userId } }),
+    ]);
+
+    return { items, total, page, limit };
   }
 
-  /**
-   * Find sales for a seller's products
-   */
-  async findSellerSales(sellerId: string) {
-    return prisma.order.findMany({
-      where: {
-        product: {
-          sellerId,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            nameAr: true,
+  async findSellerSales(sellerId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const whereCondition = {
+      status: OrderStatus.COMPLETED,
+      product: { sellerId },
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.order.findMany({
+        where: whereCondition,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          product: {
+            select: { id: true, name: true, nameAr: true },
           },
         },
+      }),
+      prisma.order.count({ where: whereCondition }),
+    ]);
+
+    return { items, total, page, limit };
+  }
+
+  async getSellerTotalEarnings(sellerId: string): Promise<number> {
+    const result = await prisma.order.aggregate({
+      _sum: { sellerAmount: true },
+      where: {
+        status: OrderStatus.COMPLETED,
+        product: { sellerId },
       },
     });
+
+    return result._sum.sellerAmount || 0;
   }
 }
 

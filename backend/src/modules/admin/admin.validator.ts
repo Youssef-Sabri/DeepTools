@@ -1,23 +1,15 @@
 import { z } from "zod";
-import { Role } from "@prisma/client";
+import { Role, ProductStatus } from "@prisma/client";
 
 export const toggleLicenseSchema = z.object({
   isActive: z.boolean(),
 });
 
 export const getUsersQuerySchema = z.object({
-  query: z.object({
-    page: z
-      .string()
-      .optional()
-      .transform((val) => (val ? parseInt(val) : 1)),
-    limit: z
-      .string()
-      .optional()
-      .transform((val) => (val ? parseInt(val) : 10)),
-    search: z.string().optional(),
-    role: z.nativeEnum(Role).optional(),
-  }),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
+  search: z.string().optional(),
+  role: z.nativeEnum(Role).optional(),
 });
 
 export const rejectUploadSchema = z
@@ -41,10 +33,10 @@ export const rejectUploadSchema = z
 export const listAdminUploadsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  status: z.enum(["pending", "approved", "rejected"]).optional(),
+  status: z.nativeEnum(ProductStatus).optional(),
 });
 
 export type ToggleLicenseInput = z.infer<typeof toggleLicenseSchema>;
 export type RejectUploadInput = z.infer<typeof rejectUploadSchema>;
 export type ListAdminUploadsQuery = z.infer<typeof listAdminUploadsQuerySchema>;
-export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>["query"];
+export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;

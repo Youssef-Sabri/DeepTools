@@ -34,7 +34,8 @@ export class AuthService {
   }
 
   private async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, env.BCRYPT_SALT_ROUNDS);
+    const saltRounds = Number(env.BCRYPT_SALT_ROUNDS) || 12;
+    return bcrypt.hash(password, saltRounds);
   }
 
   private generateToken(userId: string, role: Role): string {
@@ -52,6 +53,7 @@ export class AuthService {
     role: Role;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt: Date | null;
   }): UserResponse {
     return {
       id: user.id,
@@ -87,7 +89,8 @@ export class AuthService {
 
   async login(input: LoginInput): Promise<AuthResult> {
     const user = await this.repo.findByEmail(input.email);
-    if (!user) {
+
+    if (!user || user.deletedAt !== null) {
       throw ApiError.unauthorized("Invalid email or password");
     }
 
@@ -110,7 +113,7 @@ export class AuthService {
   async forgotPassword(input: ForgotPasswordInput): Promise<void> {
     const user = await this.repo.findByEmail(input.email);
 
-    if (!user) return;
+    if (!user || user.deletedAt !== null) return;
 
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -123,7 +126,6 @@ export class AuthService {
     );
   }
 
-  // Handle actual password reset
   async resetPassword(input: ResetPasswordInput): Promise<void> {
     const tokenHash = crypto
       .createHash("sha256")
@@ -136,8 +138,8 @@ export class AuthService {
     }
 
     const user = await this.repo.findById(record.userId);
-    if (!user) {
-      throw ApiError.badRequest("User does not exist");
+    if (!user || user.deletedAt !== null) {
+      throw ApiError.badRequest("User does not exist or has been deactivated");
     }
 
     const isSamePassword = await bcrypt.compare(

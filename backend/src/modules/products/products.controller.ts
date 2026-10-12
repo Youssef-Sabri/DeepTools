@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { productsService, ProductsService } from "./products.service";
+import { ProductStatus } from "@prisma/client";
 import {
   CreateProductInput,
   UpdateProductInput,
@@ -7,7 +8,7 @@ import {
 } from "./products.validator";
 
 export class ProductsController {
-  constructor(private readonly service: ProductsService = productsService) {}
+  constructor(private readonly service: ProductsService = productsService) { }
 
   getAll = async (req: Request, res: Response): Promise<void> => {
     const query = listPublicProductsQuerySchema.parse(req.query);
@@ -17,9 +18,8 @@ export class ProductsController {
 
   getOne = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const lang =
-      (req.query.lang as string) || (req.headers["accept-language"] as string);
-    const product = await this.service.findOne(id, lang, "approved");
+    const lang = (req.query.lang as string) || (req.headers["accept-language"] as string);
+    const product = await this.service.findOne(id, lang, ProductStatus.APPROVED);
     res.status(200).json({ success: true, data: product });
   };
 

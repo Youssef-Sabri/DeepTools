@@ -1,5 +1,5 @@
 import { prisma } from "../../config/database";
-import { Product } from "@prisma/client";
+import { Product, ProductStatus } from "@prisma/client";
 
 export class UploadsRepository {
   async create(data: {
@@ -11,7 +11,7 @@ export class UploadsRepository {
     category: string;
     price: number;
     version?: string;
-    status: string;
+    status: ProductStatus;
     fileKey: string;
     fileSize: number;
     fileMime: string;
@@ -24,14 +24,17 @@ export class UploadsRepository {
 
   async findById(id: string): Promise<Product | null> {
     return prisma.product.findUnique({
-      where: { id },
+      where: { 
+        id,
+        deletedAt: null
+      },
     });
   }
 
   async findBySeller(
     sellerId: string,
     params: {
-      status?: string;
+      status?: ProductStatus;
       skip: number;
       take: number;
     },
@@ -39,6 +42,7 @@ export class UploadsRepository {
     return prisma.product.findMany({
       where: {
         sellerId,
+        deletedAt: null, 
         ...(params.status ? { status: params.status } : {}),
       },
       skip: params.skip,
@@ -47,10 +51,11 @@ export class UploadsRepository {
     });
   }
 
-  async countBySeller(sellerId: string, status?: string): Promise<number> {
+  async countBySeller(sellerId: string, status?: ProductStatus): Promise<number> {
     return prisma.product.count({
       where: {
         sellerId,
+        deletedAt: null,
         ...(status ? { status } : {}),
       },
     });
@@ -66,7 +71,7 @@ export class UploadsRepository {
       category: string;
       price: number;
       version?: string;
-      status: string;
+      status: ProductStatus;
       fileKey?: string | null;
       fileSize?: number | null;
       fileMime?: string | null;
@@ -82,8 +87,9 @@ export class UploadsRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.product.delete({
+    await prisma.product.update({
       where: { id },
+      data: { deletedAt: new Date() }
     });
   }
 }

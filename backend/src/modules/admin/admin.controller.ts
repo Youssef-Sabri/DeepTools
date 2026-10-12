@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { adminService, AdminService } from "./admin.service";
-import { listAdminUploadsQuerySchema } from "./admin.validator";
-import { GetUsersQuery } from "./admin.validator";
+import { listAdminUploadsQuerySchema, getUsersQuerySchema } from "./admin.validator";
 
 export class AdminController {
   private service: AdminService;
@@ -10,9 +9,8 @@ export class AdminController {
     this.service = service ?? adminService;
   }
 
-  // Retrieve paginated list of users with search and filter
   getUsers = async (req: Request, res: Response): Promise<void> => {
-    const query = req.query as unknown as GetUsersQuery;
+    const query = getUsersQuerySchema.parse(req.query);
     const result = await this.service.getUsers(query);
 
     res.status(200).json({
@@ -22,27 +20,15 @@ export class AdminController {
     });
   };
 
-  // Retrieve platform user registration insights
   getUsersInsights = async (req: Request, res: Response): Promise<void> => {
     const insights = await this.service.getUsersInsights();
-
-    res.status(200).json({
-      success: true,
-      statusCode: 200,
-      data: insights,
-    });
+    res.status(200).json({ success: true, statusCode: 200, data: insights });
   };
 
-  // Retrieve single user profile by ID
   getUserById = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const user = await this.service.getUserById(id);
-
-    res.status(200).json({
-      success: true,
-      statusCode: 200,
-      data: user,
-    });
+    res.status(200).json({ success: true, statusCode: 200, data: user });
   };
 
   toggleLicense = async (req: Request, res: Response): Promise<void> => {
@@ -89,10 +75,7 @@ export class AdminController {
     });
   };
 
-  getMarketplaceInsights = async (
-    _req: Request,
-    res: Response,
-  ): Promise<void> => {
+  getMarketplaceInsights = async (_req: Request, res: Response): Promise<void> => {
     const data = await this.service.getMarketplaceInsights();
     res.status(200).json({ success: true, data });
   };

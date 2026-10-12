@@ -45,6 +45,8 @@ export const createApp = (): Application => {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
+  app.set("trust proxy", 1);
+
   // 3. Swagger OpenAPI Documentation
   app.get("/api/docs.json", (_req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/json");

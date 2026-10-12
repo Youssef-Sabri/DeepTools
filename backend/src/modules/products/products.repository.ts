@@ -1,5 +1,5 @@
 import { prisma } from "../../config/database";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProductStatus, OrderStatus } from "@prisma/client";
 
 export class ProductsRepository {
   async findAll(params?: {
@@ -7,30 +7,31 @@ export class ProductsRepository {
     limit?: number;
     category?: string;
     search?: string;
-    status?: string;
+    status?: ProductStatus | "all";
   }) {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
     const skip = (page - 1) * limit;
-    const status = params?.status || "approved";
+    const status = params?.status || ProductStatus.APPROVED;
 
     const where: Prisma.ProductWhereInput = {
-      ...(status !== "all" ? { status } : {}),
+      deletedAt: null,
+      ...(status !== "all" ? { status: status as ProductStatus } : {}),
       ...(params?.category ? { category: params.category } : {}),
       ...(params?.search
         ? {
-            OR: [
-              { name: { contains: params.search, mode: "insensitive" } },
-              { nameAr: { contains: params.search, mode: "insensitive" } },
-              { description: { contains: params.search, mode: "insensitive" } },
-              {
-                descriptionAr: {
-                  contains: params.search,
-                  mode: "insensitive",
-                },
+          OR: [
+            { name: { contains: params.search, mode: "insensitive" } },
+            { nameAr: { contains: params.search, mode: "insensitive" } },
+            { description: { contains: params.search, mode: "insensitive" } },
+            {
+              descriptionAr: {
+                contains: params.search,
+                mode: "insensitive",
               },
-            ],
-          }
+            },
+          ],
+        }
         : {}),
     };
 
@@ -42,10 +43,7 @@ export class ProductsRepository {
         orderBy: { createdAt: "desc" },
         include: {
           seller: {
-            select: {
-              id: true,
-              name: true,
-            },
+            select: { id: true, name: true },
           },
         },
       }),
@@ -55,18 +53,16 @@ export class ProductsRepository {
     return { items, total };
   }
 
-  async findById(id: string, status: string = "approved") {
+  async findById(id: string, status?: ProductStatus | "") {
     return prisma.product.findFirst({
       where: {
         id,
-        ...(status ? { status } : {}),
+        deletedAt: null,
+        ...(status ? { status: status as ProductStatus } : {}),
       },
       include: {
         seller: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
       },
     });
@@ -81,53 +77,44 @@ export class ProductsRepository {
     category: string;
     price: number;
     version?: string;
-    status?: string;
+    status?: ProductStatus;
     fileKey?: string | null;
     fileSize?: number | null;
     fileMime?: string | null;
     fileChecksum?: string | null;
-    downloadUrl?: string | null;
     badge?: string | null;
     badgeAr?: string | null;
   }) {
-    return prisma.product.create({
-      data,
-    });
+    return prisma.product.create({ data });
   }
 
-  async update(
-    id: string,
-    data: Partial<{
-      name: string;
-      nameAr?: string | null;
-      description: string;
-      descriptionAr?: string | null;
-      category: string;
-      price: number;
-      version?: string;
-      downloadUrl?: string;
-      badge?: string | null;
-      badgeAr?: string | null;
-    }>,
-  ) {
-    return prisma.product.update({
-      where: { id },
-      data,
-    });
+  async update(id: string, data: Partial<{
+    name: string;
+    nameAr?: string | null;
+    description: string;
+    descriptionAr?: string | null;
+    category: string;
+    price: number;
+    version?: string;
+    fileKey?: string;
+    badge?: string | null;
+    badgeAr?: string | null;
+    status?: ProductStatus;
+  }>) {
+    return prisma.product.update({ where: { id }, data });
   }
 
   async delete(id: string) {
-    await prisma.product.delete({
+    // التعديل: تحويل الحذف النهائي لحذف وهمي
+    await prisma.product.update({
       where: { id },
+      data: { deletedAt: new Date() }
     });
   }
 
   async findLicense(userId: string, productId: string) {
     return prisma.license.findFirst({
-      where: {
-        userId,
-        productId,
-      },
+      where: { userId, productId },
     });
   }
 
@@ -137,9 +124,7 @@ export class ProductsRepository {
     licenseKey: string;
     expiresAt: Date;
   }) {
-    return prisma.license.create({
-      data,
-    });
+    return prisma.license.create({ data });
   }
 
   async createPurchaseTransaction(data: {
@@ -170,7 +155,7 @@ export class ProductsRepository {
           commissionPercent: data.commissionPercent,
           commissionAmount: data.commissionAmount,
           sellerAmount: data.sellerAmount,
-          status: "completed",
+          status: OrderStatus.COMPLETED,
           paymentGateway: "simulated",
         },
       });
@@ -184,11 +169,7 @@ export class ProductsRepository {
       where: { userId },
       include: {
         product: {
-          select: {
-            name: true,
-            nameAr: true,
-            downloadUrl: true,
-          },
+          select: { name: true, nameAr: true },
         },
       },
     });
@@ -201,7 +182,6 @@ export class ProductsRepository {
       createdAt: lic.createdAt,
       productName: lic.product.name,
       productNameAr: lic.product.nameAr,
-      downloadUrl: lic.product.downloadUrl,
     }));
   }
 }

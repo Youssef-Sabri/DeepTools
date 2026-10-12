@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const strongPasswordSchema = z
+  .string({ required_error: "New password is required" })
+  .min(8, "Password must be at least 8 characters")
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+  );
+
 export const updateProfileSchema = z.object({
   body: z.object({
     name: z
@@ -13,9 +21,7 @@ export const changePasswordSchema = z.object({
     currentPassword: z.string({
       required_error: "Current password is required",
     }),
-    newPassword: z
-      .string({ required_error: "New password is required" })
-      .min(8, "Password must be at least 8 characters"),
+    newPassword: strongPasswordSchema,
   }),
 });
 

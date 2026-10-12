@@ -1,10 +1,9 @@
 import { adminRepository, AdminRepository } from "./admin.repository";
-import { NotFoundError, ConflictError } from "../../utils/apiError";
-import { ListAdminUploadsQuery } from "./admin.validator";
+import { NotFoundError, ConflictError, ApiError } from "../../utils/apiError";
+import { ListAdminUploadsQuery, GetUsersQuery } from "./admin.validator";
 import { prisma } from "../../config/database";
-import { GetUsersQuery } from "./admin.validator";
-import { ApiError } from "../../utils/apiError";
 import { ApiFeatures } from "../../utils/apiFeatures";
+import { ProductStatus } from "@prisma/client";
 
 export class AdminService {
   private repo: AdminRepository;
@@ -13,9 +12,7 @@ export class AdminService {
     this.repo = repo ?? adminRepository;
   }
 
-  // 1. Retrieve paginated list of users with search and filtering
   async getUsers(query: GetUsersQuery) {
-    // Build query via ApiFeatures utility
     const features = new ApiFeatures(query || {})
       .filter(["role"])
       .search(["name", "email"])
@@ -24,7 +21,6 @@ export class AdminService {
 
     const prismaArgs = features.get();
 
-    // Execute data fetch and count queries concurrently
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         ...prismaArgs,
@@ -34,12 +30,12 @@ export class AdminService {
           name: true,
           role: true,
           createdAt: true,
+          deletedAt: true,
         },
       }),
       prisma.user.count({ where: prismaArgs.where }),
     ]);
 
-    // Calculate pagination metadata
     const page = Number(query?.page) || 1;
     const limit = Number(query?.limit) || 10;
 
@@ -49,7 +45,6 @@ export class AdminService {
     };
   }
 
-  // 2. Retrieve single user profile by ID
   async getUserById(id: string) {
     const user = await prisma.user.findUnique({
       where: { id },
@@ -60,6 +55,7 @@ export class AdminService {
         role: true,
         createdAt: true,
         updatedAt: true,
+        deletedAt: true,
       },
     });
 
@@ -67,7 +63,6 @@ export class AdminService {
     return user;
   }
 
-  // 3. User registration insights (total users and new signups in last 30 days)
   async getUsersInsights() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -109,27 +104,23 @@ export class AdminService {
 
   async findUploadById(id: string) {
     const upload = await this.repo.findUploadById(id);
-    if (!upload) {
-      throw new NotFoundError("Upload not found");
-    }
+    if (!upload) throw new NotFoundError("Upload not found");
     return upload;
   }
 
   async approveUpload(adminId: string, id: string) {
     const upload = await this.findUploadById(id);
 
-    // Rule 4: Approving an already approved product returns 409
-    if (upload.status === "approved") {
+    if (upload.status === ProductStatus.APPROVED) {
       throw new ConflictError("Product is already approved");
     }
 
     const updated = await this.repo.updateUploadReview(id, {
-      status: "approved",
+      status: ProductStatus.APPROVED,
       rejectionNote: null,
       reviewedAt: new Date(),
     });
 
-    // Rule 8: Structured audit log
     console.log(
       JSON.stringify({
         level: "info",
@@ -146,18 +137,16 @@ export class AdminService {
   async rejectUpload(adminId: string, id: string, rejectionNote: string) {
     const upload = await this.findUploadById(id);
 
-    // Rule 5: Rejecting an already rejected product returns 409
-    if (upload.status === "rejected") {
+    if (upload.status === ProductStatus.REJECTED) {
       throw new ConflictError("Product is already rejected");
     }
 
     const updated = await this.repo.updateUploadReview(id, {
-      status: "rejected",
+      status: ProductStatus.REJECTED,
       rejectionNote,
       reviewedAt: new Date(),
     });
 
-    // Rule 8: Structured audit log
     console.log(
       JSON.stringify({
         level: "info",
@@ -172,9 +161,6 @@ export class AdminService {
     return updated;
   }
 
-  /**
-   * Platform-wide marketplace metrics (uploads, orders, revenue, payouts, sellers, top products)
-   */
   async getMarketplaceInsights() {
     return await this.repo.getMarketplaceInsights();
   }

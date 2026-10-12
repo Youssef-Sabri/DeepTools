@@ -26,7 +26,7 @@ export const createProductSchema = z.object({
   category: z.string().min(1, "Category is required"),
   price: z.number().int().nonnegative("Price must be a non-negative integer"),
   version: z.string().optional(),
-  downloadUrl: z.string().optional(),
+  fileKey: z.string().optional(),
   badge: z.string().nullable().optional(),
   badgeAr: z.string().nullable().optional(),
 });

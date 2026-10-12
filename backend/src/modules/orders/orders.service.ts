@@ -1,4 +1,5 @@
 import { OrdersRepository, ordersRepository } from "./orders.repository";
+import { ListOrdersQuery } from "./orders.validator";
 
 export interface SellerSaleItem {
   orderId: string;
@@ -16,20 +17,24 @@ export interface SellerSalesResponse {
   sales: SellerSaleItem[];
   totalSales: number;
   totalSellerEarnings: number;
+  page: number;
+  totalPages: number;
 }
 
 export class OrdersService {
   constructor(
     private readonly ordersRepo: OrdersRepository = ordersRepository,
-  ) {}
+  ) { }
 
-  /**
-   * Retrieve purchases made by the authenticated user (buyer perspective)
-   */
-  async getMyPurchases(userId: string) {
-    const orders = await this.ordersRepo.findBuyerOrders(userId);
+  async getMyPurchases(userId: string, query: ListOrdersQuery) {
+    const { items, total, page, limit } = await this.ordersRepo.findBuyerOrders(
+      userId,
+      query.page,
+      query.limit
+    );
+
     return {
-      orders: orders.map((o) => ({
+      orders: items.map((o) => ({
         id: o.id,
         amount: o.amount,
         status: o.status,
@@ -37,18 +42,19 @@ export class OrdersService {
         createdAt: o.createdAt,
         product: o.product,
       })),
-      total: orders.length,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
     };
   }
 
-  /**
-   * Retrieve sales history and net earnings for a seller (seller perspective)
-   * Only includes orders where the sold product belongs to sellerId.
-   */
-  async getSellerSales(sellerId: string): Promise<SellerSalesResponse> {
-    const orders = await this.ordersRepo.findSellerSales(sellerId);
+  async getSellerSales(sellerId: string, query: ListOrdersQuery): Promise<SellerSalesResponse> {
+    const [salesData, totalSellerEarnings] = await Promise.all([
+      this.ordersRepo.findSellerSales(sellerId, query.page, query.limit),
+      this.ordersRepo.getSellerTotalEarnings(sellerId) 
+    ]);
 
-    const sales: SellerSaleItem[] = orders.map((o) => ({
+    const sales: SellerSaleItem[] = salesData.items.map((o) => ({
       orderId: o.id,
       productId: o.productId ?? "",
       productName: o.product?.name ?? "Unknown Product",
@@ -60,15 +66,12 @@ export class OrdersService {
       createdAt: o.createdAt,
     }));
 
-    const totalSellerEarnings = sales.reduce(
-      (sum, item) => sum + item.sellerAmount,
-      0,
-    );
-
     return {
       sales,
-      totalSales: sales.length,
+      totalSales: salesData.total,
       totalSellerEarnings,
+      page: salesData.page,
+      totalPages: Math.ceil(salesData.total / salesData.limit) || 1,
     };
   }
 }

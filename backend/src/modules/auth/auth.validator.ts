@@ -3,6 +3,16 @@ import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 
 extendZodWithOpenApi(z);
 
+// التعديل: إنشاء قاعدة موحدة للباسوورد القوي لمنع التكرار
+const strongPasswordSchema = z
+  .string({ required_error: "Password is required" })
+  .min(8, "Password must be at least 8 characters")
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+  )
+  .openapi({ example: "StrongPass123!" });
+
 export const registerSchema = z.object({
   body: z.object({
     name: z
@@ -14,10 +24,7 @@ export const registerSchema = z.object({
       .email("Invalid email address")
       .toLowerCase()
       .openapi({ example: "mahmoud@example.com" }),
-    password: z
-      .string({ required_error: "Password is required" })
-      .min(8, "Password must be at least 8 characters")
-      .openapi({ example: "StrongPass123!" }),
+    password: strongPasswordSchema,
   }),
 });
 
@@ -48,10 +55,7 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   body: z.object({
     token: z.string({ required_error: "Token is required" }),
-    newPassword: z
-      .string({ required_error: "New password is required" })
-      .min(8, "Password must be at least 8 characters")
-      .openapi({ example: "NewStrongPass123!" }),
+    newPassword: strongPasswordSchema,
   }),
 });
 

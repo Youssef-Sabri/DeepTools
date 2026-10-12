@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authController } from "./auth.controller";
 import { validate } from "../../middleware/validation.middleware";
+import { authRateLimiter } from "../../middleware/rateLimit.middleware";
 import {
   registerSchema,
   loginSchema,
@@ -10,6 +11,9 @@ import {
 import { asyncHandler } from "../../utils/asyncHandler";
 
 const router = Router();
+
+
+router.use(authRateLimiter);
 
 // Register new public user
 router.post(

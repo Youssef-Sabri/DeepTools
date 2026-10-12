@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import { ProductStatus, OrderStatus } from "@prisma/client"; 
 
 export class AdminRepository {
   async findAllUsers() {
@@ -9,6 +10,7 @@ export class AdminRepository {
         email: true,
         role: true,
         createdAt: true,
+        deletedAt: true, 
       },
     });
   }
@@ -20,26 +22,17 @@ export class AdminRepository {
   }
 
   async deleteUser(id: string) {
-    await prisma.user.delete({
+    await prisma.user.update({
       where: { id },
+      data: { deletedAt: new Date() }
     });
   }
 
   async findAllLicenses() {
     const list = await prisma.license.findMany({
       include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        product: {
-          select: {
-            name: true,
-            nameAr: true,
-          },
-        },
+        user: { select: { name: true, email: true } },
+        product: { select: { name: true, nameAr: true } },
       },
     });
 
@@ -49,17 +42,15 @@ export class AdminRepository {
       isActive: lic.isActive,
       expiresAt: lic.expiresAt,
       createdAt: lic.createdAt,
-      userName: lic.user.name,
-      userEmail: lic.user.email,
-      productName: lic.product.name,
-      productNameAr: lic.product.nameAr,
+      userName: lic.user?.name,
+      userEmail: lic.user?.email,
+      productName: lic.product?.name,
+      productNameAr: lic.product?.nameAr,
     }));
   }
 
   async findLicenseById(id: string) {
-    return prisma.license.findUnique({
-      where: { id },
-    });
+    return prisma.license.findUnique({ where: { id } });
   }
 
   async updateLicenseStatus(id: string, isActive: boolean) {
@@ -69,11 +60,7 @@ export class AdminRepository {
     });
   }
 
-  async findAllUploads(params: {
-    page: number;
-    limit: number;
-    status?: string;
-  }) {
+  async findAllUploads(params: { page: number; limit: number; status?: ProductStatus }) {
     const skip = (params.page - 1) * params.limit;
     const where = params.status ? { status: params.status } : {};
 
@@ -84,13 +71,7 @@ export class AdminRepository {
         take: params.limit,
         orderBy: { createdAt: "desc" },
         include: {
-          seller: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          seller: { select: { id: true, name: true, email: true } },
         },
       }),
       prisma.product.count({ where }),
@@ -103,25 +84,16 @@ export class AdminRepository {
     return prisma.product.findUnique({
       where: { id },
       include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        seller: { select: { id: true, name: true, email: true } },
       },
     });
   }
 
-  async updateUploadReview(
-    id: string,
-    data: {
-      status: string;
-      rejectionNote: string | null;
-      reviewedAt: Date;
-    },
-  ) {
+  async updateUploadReview(id: string, data: {
+    status: ProductStatus;
+    rejectionNote: string | null;
+    reviewedAt: Date;
+  }) {
     return prisma.product.update({
       where: { id },
       data: {
@@ -130,20 +102,11 @@ export class AdminRepository {
         reviewedAt: data.reviewedAt,
       },
       include: {
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        seller: { select: { id: true, name: true, email: true } },
       },
     });
   }
 
-  /**
-   * Aggregate marketplace-wide insights across uploads, orders, revenue, sellers, and top products
-   */
   async getMarketplaceInsights() {
     const [
       totalUploads,
@@ -156,48 +119,32 @@ export class AdminRepository {
       topProductOrders,
     ] = await Promise.all([
       prisma.product.count(),
-      prisma.product.count({ where: { status: "pending" } }),
-      prisma.product.count({ where: { status: "approved" } }),
-      prisma.product.count({ where: { status: "rejected" } }),
+      prisma.product.count({ where: { status: ProductStatus.PENDING } }),
+      prisma.product.count({ where: { status: ProductStatus.APPROVED } }),
+      prisma.product.count({ where: { status: ProductStatus.REJECTED } }),
       prisma.order.aggregate({
-        _sum: {
-          amount: true,
-          commissionAmount: true,
-          sellerAmount: true,
-        },
+        _sum: { amount: true, commissionAmount: true, sellerAmount: true },
+        where: { status: OrderStatus.COMPLETED } 
       }),
-      prisma.order.count(),
-      prisma.product.groupBy({
-        by: ["sellerId"],
-      }),
+      prisma.order.count({ where: { status: OrderStatus.COMPLETED } }),
+      prisma.product.groupBy({ by: ["sellerId"] }),
       prisma.order.groupBy({
         by: ["productId"],
-        where: {
-          productId: { not: null },
-        },
-        _count: {
-          id: true,
-        },
-        orderBy: {
-          _count: {
-            id: "desc",
-          },
-        },
+        where: { productId: { not: null }, status: OrderStatus.COMPLETED },
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
         take: 10,
       }),
     ]);
 
-    const productIds = topProductOrders
-      .map((t) => t.productId)
-      .filter((id): id is string => Boolean(id));
+    const productIds = topProductOrders.map((t) => t.productId).filter((id): id is string => Boolean(id));
 
-    const products =
-      productIds.length > 0
-        ? await prisma.product.findMany({
-            where: { id: { in: productIds } },
-            select: { id: true, name: true },
-          })
-        : [];
+    const products = productIds.length > 0
+      ? await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true },
+      })
+      : [];
 
     const productMap = new Map(products.map((p) => [p.id, p.name]));
 
@@ -220,9 +167,7 @@ export class AdminRepository {
         totalCommission: orderAggregates._sum.commissionAmount ?? 0,
         totalSellerPayouts: orderAggregates._sum.sellerAmount ?? 0,
       },
-      sellers: {
-        total: distinctSellers.length,
-      },
+      sellers: { total: distinctSellers.length },
       topProducts,
     };
   }

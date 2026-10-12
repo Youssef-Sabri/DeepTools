@@ -24,10 +24,6 @@ export class LocalStorageService implements StorageService {
     this.uploadDir = path.resolve(process.cwd(), uploadDir);
   }
 
-  /**
-   * Detect and validate file MIME type inspecting buffer magic bytes and structure.
-   * Does NOT trust the client-provided Content-Type header.
-   */
   public detectMimeType(buffer: Buffer, originalName?: string): string | null {
     if (!buffer || buffer.length === 0) {
       return null;
@@ -37,7 +33,6 @@ export class LocalStorageService implements StorageService {
       ? path.extname(originalName).toLowerCase()
       : "";
 
-    // 1. Explicitly reject dangerous executable extensions
     if (
       extFromOriginal &&
       (BLOCKED_EXTENSIONS as readonly string[]).includes(extFromOriginal)
@@ -45,12 +40,9 @@ export class LocalStorageService implements StorageService {
       return null;
     }
 
-    // 2. Reject executable binaries by magic bytes inspection
-    // Windows PE / MZ header (MZ = 0x4D, 0x5A)
     if (buffer.length >= 2 && buffer[0] === 0x4d && buffer[1] === 0x5a) {
       return null;
     }
-    // Linux ELF header (0x7F, 'E', 'L', 'F')
     if (
       buffer.length >= 4 &&
       buffer[0] === 0x7f &&
@@ -60,7 +52,6 @@ export class LocalStorageService implements StorageService {
     ) {
       return null;
     }
-    // Mach-O binaries (macOS executables)
     if (
       buffer.length >= 4 &&
       ((buffer[0] === 0xfe && buffer[1] === 0xed && buffer[2] === 0xfa) ||
@@ -69,7 +60,6 @@ export class LocalStorageService implements StorageService {
     ) {
       return null;
     }
-    // Java class magic bytes (0xCA, 0xFE, 0xBA, 0xBE)
     if (
       buffer.length >= 4 &&
       buffer[0] === 0xca &&
@@ -80,7 +70,6 @@ export class LocalStorageService implements StorageService {
       return null;
     }
 
-    // 3. Document formats: PDF magic bytes: %PDF- (0x25, 0x50, 0x44, 0x46, 0x2D)
     if (
       buffer.length >= 5 &&
       buffer.subarray(0, 5).equals(Buffer.from("%PDF-"))
@@ -88,8 +77,6 @@ export class LocalStorageService implements StorageService {
       return "application/pdf";
     }
 
-    // 4. Archive formats:
-    // ZIP magic bytes: PK\x03\x04 or PK\x05\x06 or PK\x07\x08
     if (
       buffer.length >= 4 &&
       buffer[0] === 0x50 &&
@@ -101,12 +88,10 @@ export class LocalStorageService implements StorageService {
       return "application/zip";
     }
 
-    // GZIP magic bytes: 0x1F, 0x8B
     if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
       return "application/gzip";
     }
 
-    // TAR magic bytes (check 'ustar' signature at byte 257)
     if (
       buffer.length >= 262 &&
       buffer.subarray(257, 262).equals(Buffer.from("ustar"))
@@ -114,8 +99,6 @@ export class LocalStorageService implements StorageService {
       return "application/x-tar";
     }
 
-    // 5. Text & Source Code & Workflow formats (GitHub solution files)
-    // Inspect up to first 8KB for null bytes (0x00 is non-text binary)
     const scanLimit = Math.min(buffer.length, 8192);
     let isBinary = false;
     for (let i = 0; i < scanLimit; i++) {
@@ -127,23 +110,15 @@ export class LocalStorageService implements StorageService {
 
     if (!isBinary) {
       try {
-        const textContent = buffer.toString("utf-8");
-        const trimmed = textContent.trim();
+        const textChunk = buffer.subarray(0, scanLimit).toString("utf-8").trimStart();
 
-        // Check if JSON / Jupyter notebook
         if (
-          (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-          (trimmed.startsWith("[") && trimmed.endsWith("]"))
+          extFromOriginal === ".json" &&
+          (textChunk.startsWith("{") || textChunk.startsWith("["))
         ) {
-          try {
-            JSON.parse(trimmed);
-            return "application/json";
-          } catch {
-            // Not valid JSON, continue to other text/code checks
-          }
+          return "application/json";
         }
 
-        // Map source code and script extensions
         switch (extFromOriginal) {
           case ".py":
             return "text/x-python";
@@ -212,15 +187,11 @@ export class LocalStorageService implements StorageService {
     return null;
   }
 
-  /**
-   * Determine safe file extension based on MIME type and original filename.
-   */
   private getSafeExtension(mimeType: string, originalName?: string): string {
     const extFromOriginal = originalName
       ? path.extname(originalName).toLowerCase()
       : "";
 
-    // If original extension is safe (not blocked), preserve it
     if (
       extFromOriginal &&
       !(BLOCKED_EXTENSIONS as readonly string[]).includes(extFromOriginal)
@@ -229,81 +200,51 @@ export class LocalStorageService implements StorageService {
     }
 
     switch (mimeType) {
-      case "application/pdf":
-        return ".pdf";
+      case "application/pdf": return ".pdf";
       case "application/zip":
-      case "application/x-zip-compressed":
-        return ".zip";
-      case "application/x-tar":
-        return ".tar";
+      case "application/x-zip-compressed": return ".zip";
+      case "application/x-tar": return ".tar";
       case "application/gzip":
-      case "application/x-gzip":
-        return ".gz";
-      case "application/json":
-        return ".json";
-      case "application/typescript":
-        return ".ts";
+      case "application/x-gzip": return ".gz";
+      case "application/json": return ".json";
+      case "application/typescript": return ".ts";
       case "text/javascript":
-      case "application/javascript":
-        return ".js";
+      case "application/javascript": return ".js";
       case "text/x-python":
-      case "application/x-python-code":
-        return ".py";
+      case "application/x-python-code": return ".py";
       case "text/x-shellscript":
-      case "application/x-sh":
-        return ".sh";
+      case "application/x-sh": return ".sh";
       case "text/yaml":
       case "application/yaml":
       case "application/x-yaml":
-      case "text/x-yaml":
-        return ".yml";
+      case "text/x-yaml": return ".yml";
       case "text/x-toml":
-      case "application/toml":
-        return ".toml";
+      case "application/toml": return ".toml";
       case "text/xml":
-      case "application/xml":
-        return ".xml";
+      case "application/xml": return ".xml";
       case "text/x-sql":
-      case "application/sql":
-        return ".sql";
+      case "application/sql": return ".sql";
       case "text/markdown":
-      case "text/x-markdown":
-        return ".md";
-      case "text/html":
-        return ".html";
-      case "text/css":
-        return ".css";
-      case "text/csv":
-        return ".csv";
-      case "text/x-go":
-        return ".go";
-      case "text/x-rust":
-        return ".rs";
-      case "text/x-java-source":
-        return ".java";
-      case "text/x-c":
-        return ".c";
-      case "text/x-c++":
-        return ".cpp";
-      case "text/x-csharp":
-        return ".cs";
-      case "text/x-ruby":
-        return ".rb";
-      case "text/x-php":
-        return ".php";
-      default:
-        return ".txt";
+      case "text/x-markdown": return ".md";
+      case "text/html": return ".html";
+      case "text/css": return ".css";
+      case "text/csv": return ".csv";
+      case "text/x-go": return ".go";
+      case "text/x-rust": return ".rs";
+      case "text/x-java-source": return ".java";
+      case "text/x-c": return ".c";
+      case "text/x-c++": return ".cpp";
+      case "text/x-csharp": return ".cs";
+      case "text/x-ruby": return ".rb";
+      case "text/x-php": return ".php";
+      default: return ".txt";
     }
   }
 
-  /**
-   * Resolve and sanitize file key path to prevent directory traversal.
-   */
   public resolveKeyPath(key: string): string {
     const sanitizedKey = path.basename(key);
     const resolvedPath = path.resolve(this.uploadDir, sanitizedKey);
 
-    // Guard against directory traversal
     if (
       !resolvedPath.startsWith(this.uploadDir + path.sep) &&
       resolvedPath !== this.uploadDir
@@ -314,10 +255,6 @@ export class LocalStorageService implements StorageService {
     return resolvedPath;
   }
 
-  /**
-   * Save a file buffer to private disk storage under a generated UUID filename.
-   * Enforces max file size, buffer magic byte validation, and partial write cleanup.
-   */
   async save(
     buffer: Buffer,
     originalName: string,
@@ -327,14 +264,12 @@ export class LocalStorageService implements StorageService {
       throw new ValidationError("Uploaded file is empty");
     }
 
-    // 1. File size validation
     if (buffer.length > MAX_FILE_SIZE_BYTES) {
       throw new ValidationError(
         `File size exceeds maximum allowed limit of ${env.MAX_FILE_SIZE_MB}MB`,
       );
     }
 
-    // 2. MIME type inspection from buffer magic bytes
     const detectedMime = this.detectMimeType(buffer, originalName);
     if (!detectedMime) {
       throw new ValidationError(
@@ -351,7 +286,6 @@ export class LocalStorageService implements StorageService {
       );
     }
 
-    // If client claimed a MIME type, ensure it doesn't conflict with detected type
     if (claimedMimeType) {
       const isZipMatch =
         (detectedMime === "application/zip" ||
@@ -377,7 +311,6 @@ export class LocalStorageService implements StorageService {
         detectedMime.includes("sql");
 
       if (!isZipMatch && !isTarMatch && detectedMime !== claimedMimeType) {
-        // Disallow spoofing attempts where declared binary type contradicts inspected buffer
         if (
           claimedMimeType === "application/pdf" ||
           claimedMimeType === "application/zip" ||
@@ -388,7 +321,6 @@ export class LocalStorageService implements StorageService {
           );
         }
 
-        // If client claimed text/plain or another generic text type on valid code, allow it
         if (!isTextMatch) {
           throw new ValidationError(
             `Declared MIME type '${claimedMimeType}' does not match detected content type '${detectedMime}'`,
@@ -397,31 +329,25 @@ export class LocalStorageService implements StorageService {
       }
     }
 
-    // 3. Generate secure name uploads/<UUID>.<ext>
     const fileId = randomUUID();
     const ext = this.getSafeExtension(detectedMime, originalName);
     const fileName = `${fileId}${ext}`;
     const targetPath = path.resolve(this.uploadDir, fileName);
     const tempPath = `${targetPath}.${randomUUID()}.tmp`;
 
-    // 4. Atomic write with cleanup on failure
     try {
       await fs.promises.mkdir(this.uploadDir, { recursive: true });
       await fs.promises.writeFile(tempPath, buffer);
       await fs.promises.rename(tempPath, targetPath);
     } catch (error) {
-      // Clean up any partially written temp or target file
-      await fs.promises.unlink(tempPath).catch(() => {});
-      await fs.promises.unlink(targetPath).catch(() => {});
+      await fs.promises.unlink(tempPath).catch(() => { });
+      await fs.promises.unlink(targetPath).catch(() => { });
       throw error;
     }
 
     return `uploads/${fileName}`;
   }
 
-  /**
-   * Delete a file from disk storage.
-   */
   async delete(key: string): Promise<void> {
     const filePath = this.resolveKeyPath(key);
     try {
@@ -433,15 +359,12 @@ export class LocalStorageService implements StorageService {
         "code" in error &&
         (error as { code: string }).code === "ENOENT"
       ) {
-        return; // Idempotent deletion
+        return;
       }
       throw error;
     }
   }
 
-  /**
-   * Stream a private file directly to the HTTP response.
-   */
   async stream(key: string, res: Response): Promise<void> {
     const filePath = this.resolveKeyPath(key);
 
@@ -470,9 +393,6 @@ export class LocalStorageService implements StorageService {
     });
   }
 
-  /**
-   * Get file metadata (size and detected MIME type) from disk storage.
-   */
   async stat(key: string): Promise<{ size: number; mimeType: string }> {
     const filePath = this.resolveKeyPath(key);
 
@@ -483,7 +403,6 @@ export class LocalStorageService implements StorageService {
       throw new NotFoundError("File not found");
     }
 
-    // Inspect first chunk to verify MIME
     const fd = await fs.promises.open(filePath, "r");
     const buffer = Buffer.alloc(Math.min(8192, fileStats.size));
     try {

@@ -11,7 +11,7 @@ import {
   NotFoundError,
   ForbiddenError,
 } from "../../utils/apiError";
-import { Product } from "@prisma/client";
+import { Product, ProductStatus } from "@prisma/client";
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -27,9 +27,6 @@ export class UploadsService {
     private readonly storage: StorageService = storageService,
   ) {}
 
-  /**
-   * Upload a new solution file and create a product in 'pending' status.
-   */
   async create(
     sellerId: string,
     input: CreateUploadInput,
@@ -39,20 +36,17 @@ export class UploadsService {
       throw new ValidationError("A solution file is required for upload");
     }
 
-    // 1. Calculate SHA-256 checksum of the file
     const fileChecksum = crypto
       .createHash("sha256")
       .update(file.buffer)
       .digest("hex");
 
-    // 2. Save file via private storage service (enforces size limit & magic byte validation)
     const fileKey = await this.storage.save(
       file.buffer,
       file.originalname,
       file.mimetype,
     );
 
-    // 3. Persist product record in database with status 'pending'
     return this.repo.create({
       sellerId,
       name: input.name,
@@ -62,7 +56,7 @@ export class UploadsService {
       category: input.category,
       price: input.price,
       version: input.version || "1.0.0",
-      status: "pending",
+      status: ProductStatus.PENDING, 
       fileKey,
       fileSize: file.buffer.length,
       fileMime: file.mimetype,
@@ -70,9 +64,6 @@ export class UploadsService {
     });
   }
 
-  /**
-   * List the authenticated user's own uploads with pagination and status filtering.
-   */
   async findMyUploads(
     sellerId: string,
     query: ListMyUploadsQuery,
@@ -99,9 +90,6 @@ export class UploadsService {
     };
   }
 
-  /**
-   * Retrieve a specific upload owned by the authenticated seller.
-   */
   async findMyUploadById(sellerId: string, id: string): Promise<Product> {
     const product = await this.repo.findById(id);
     if (!product || product.sellerId !== sellerId) {
@@ -110,10 +98,6 @@ export class UploadsService {
     return product;
   }
 
-  /**
-   * Edit and resubmit an upload.
-   * If rejected or approved, resets status to 'pending' and clears rejectionNote.
-   */
   async updateMyUpload(
     sellerId: string,
     id: string,
@@ -127,7 +111,6 @@ export class UploadsService {
     let newFileMime: string | undefined;
     let newFileChecksum: string | undefined;
 
-    // If replacement file is provided, process and save new file
     if (file && file.buffer) {
       newFileChecksum = crypto
         .createHash("sha256")
@@ -142,21 +125,17 @@ export class UploadsService {
       newFileSize = file.buffer.length;
       newFileMime = file.mimetype;
 
-      // Delete old file from storage if different
       if (existing.fileKey) {
         await this.storage.delete(existing.fileKey).catch(() => {});
       }
     }
 
-    // Business Rules:
-    // - Editing a rejected product resets status to pending and clears rejectionNote.
-    // - Editing an approved product moves it back to pending.
     const shouldResetToPending =
-      existing.status === "rejected" ||
-      existing.status === "approved" ||
+      existing.status === ProductStatus.REJECTED ||
+      existing.status === ProductStatus.APPROVED ||
       file !== undefined;
 
-    const status = shouldResetToPending ? "pending" : existing.status;
+    const status = shouldResetToPending ? ProductStatus.PENDING : existing.status;
     const rejectionNote = shouldResetToPending ? null : existing.rejectionNote;
     const reviewedAt = shouldResetToPending ? null : existing.reviewedAt;
 
@@ -184,25 +163,18 @@ export class UploadsService {
     });
   }
 
-  /**
-   * Delete an upload owned by the seller.
-   * Rejects deletion of approved products with 403.
-   * Deletes the associated file from disk.
-   */
   async deleteMyUpload(
     sellerId: string,
     id: string,
   ): Promise<{ message: string }> {
     const product = await this.findMyUploadById(sellerId, id);
 
-    // Rule 6: Deleting an approved product returns 403
-    if (product.status === "approved") {
+    if (product.status === ProductStatus.APPROVED) {
       throw new ForbiddenError(
         "Cannot delete an approved product. Please contact support.",
       );
     }
 
-    // Rule 7: Deleting removes the file from disk in the same operation
     if (product.fileKey) {
       await this.storage.delete(product.fileKey).catch(() => {});
     }
