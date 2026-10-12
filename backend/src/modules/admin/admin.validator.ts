@@ -1,16 +1,17 @@
 import { z } from "zod";
 import { Role, ProductStatus } from "@prisma/client";
+import { paginationFields, paginationDepthError, withinPaginationDepth } from "../../middleware/requestBounds";
 
 export const toggleLicenseSchema = z.object({
   isActive: z.boolean(),
 });
 
 export const getUsersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(10),
-  search: z.string().optional(),
+  page: paginationFields.page,
+  limit: paginationFields.limit.default(10),
+  search: z.string().max(100).optional(),
   role: z.nativeEnum(Role).optional(),
-});
+}).refine(withinPaginationDepth, paginationDepthError);
 
 export const rejectUploadSchema = z
   .object({
@@ -31,10 +32,10 @@ export const rejectUploadSchema = z
   });
 
 export const listAdminUploadsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  page: paginationFields.page,
+  limit: paginationFields.limit.default(20),
   status: z.nativeEnum(ProductStatus).optional(),
-});
+}).refine(withinPaginationDepth, paginationDepthError);
 
 export type ToggleLicenseInput = z.infer<typeof toggleLicenseSchema>;
 export type RejectUploadInput = z.infer<typeof rejectUploadSchema>;

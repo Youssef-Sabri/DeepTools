@@ -98,7 +98,7 @@ registry.registerPath({
   },
   responses: {
     200: {
-      description: "Logged in successfully, returns JWT token",
+      description: "Logged in successfully; sets HttpOnly dt_session and readable dt_csrf cookies",
       content: { "application/json": { schema: envelope(AuthResponseSchema) } },
     },
     401: {
@@ -109,15 +109,13 @@ registry.registerPath({
 });
 
 registry.registerPath({
-  method: "get",
-  path: "/auth/me",
+  method: "post",
+  path: "/auth/logout",
   tags: ["Auth"],
-  summary: "Get current authenticated user profile",
-  security: [{ bearerAuth: [] }],
+  summary: "Clear the current browser session (send X-CSRF-Token when a session cookie exists)",
   responses: {
-    200: {
-      description: "Profile of authenticated user",
-      content: { "application/json": { schema: envelope(UserSchema) } },
+    204: {
+      description: "Session cookies cleared",
     },
     401: {
       description: "Unauthorized",
@@ -219,13 +217,13 @@ registry.registerPath({
     "List approved digital products (paginated, with search and category filtering)",
   request: {
     query: z.object({
-      page: z.coerce.number().optional().openapi({ example: 1 }),
-      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      page: z.coerce.number().int().min(1).max(200).optional().openapi({ example: 1, description: "Offset cannot exceed 10,000 records" }),
+      limit: z.coerce.number().int().min(1).max(100).optional().openapi({ example: 20 }),
       category: z
         .enum(["workflow", "script", "code", "agentic"])
         .optional()
         .openapi({ example: "code" }),
-      search: z.string().optional().openapi({ example: "ai" }),
+      search: z.string().max(100).optional().openapi({ example: "ai" }),
       lang: LangQueryParam,
     }),
   },
@@ -711,12 +709,12 @@ registry.registerPath({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      page: z.coerce.number().optional().openapi({ example: 1 }),
-      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      page: z.coerce.number().int().min(1).max(200).optional().openapi({ example: 1, description: "Offset cannot exceed 10,000 records" }),
+      limit: z.coerce.number().int().min(1).max(100).optional().openapi({ example: 20 }),
       status: z
-        .enum(["pending", "approved", "rejected"])
+        .enum(["PENDING", "APPROVED", "REJECTED"])
         .optional()
-        .openapi({ example: "pending" }),
+        .openapi({ example: "PENDING" }),
     }),
   },
   responses: {
@@ -928,12 +926,12 @@ registry.registerPath({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      page: z.coerce.number().optional().openapi({ example: 1 }),
-      limit: z.coerce.number().optional().openapi({ example: 20 }),
+      page: z.coerce.number().int().min(1).max(200).optional().openapi({ example: 1, description: "Offset cannot exceed 10,000 records" }),
+      limit: z.coerce.number().int().min(1).max(100).optional().openapi({ example: 20 }),
       status: z
-        .enum(["pending", "approved", "rejected"])
+        .enum(["PENDING", "APPROVED", "REJECTED"])
         .optional()
-        .openapi({ example: "pending" }),
+        .openapi({ example: "PENDING" }),
     }),
   },
   responses: {

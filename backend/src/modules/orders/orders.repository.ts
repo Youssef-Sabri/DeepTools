@@ -49,16 +49,16 @@ export class OrdersRepository {
     return { items, total, page, limit };
   }
 
-  async getSellerTotalEarnings(sellerId: string): Promise<number> {
+  async getSellerTotals(sellerId: string): Promise<{ gross: number; earnings: number }> {
     const result = await prisma.order.aggregate({
-      _sum: { sellerAmount: true },
+      _sum: { amount: true, sellerAmount: true },
       where: {
         status: OrderStatus.COMPLETED,
         sellerId,
       },
     });
 
-    return result._sum.sellerAmount || 0;
+    return { gross: result._sum.amount || 0, earnings: result._sum.sellerAmount || 0 };
   }
 }
 

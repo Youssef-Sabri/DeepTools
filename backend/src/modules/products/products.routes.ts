@@ -4,13 +4,16 @@ import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import {
   validateBody,
   validateQuery,
+  validateParams,
 } from "../../middleware/validation.middleware";
+import { uuidIdParamsSchema } from "../../middleware/requestBounds";
 import { authRateLimiter } from "../../middleware/rateLimit.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import {
   createProductSchema,
   updateProductSchema,
   listPublicProductsQuerySchema,
+  getPublicProductQuerySchema,
 } from "./products.validator";
 
 const router = Router();
@@ -30,7 +33,7 @@ router.get(
 );
 
 // Public route to get a single product
-router.get("/:id", asyncHandler(productsController.getOne));
+router.get("/:id", validateParams(uuidIdParamsSchema), validateQuery(getPublicProductQuerySchema), asyncHandler(productsController.getOne));
 
 // Admin routes
 router.post(
@@ -45,6 +48,7 @@ router.patch(
   "/:id",
   authenticate,
   requireRole("admin"),
+  validateParams(uuidIdParamsSchema),
   validateBody(updateProductSchema),
   asyncHandler(productsController.update),
 );
@@ -53,6 +57,7 @@ router.delete(
   "/:id",
   authenticate,
   requireRole("admin"),
+  validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.remove),
 );
 
@@ -61,13 +66,21 @@ router.post(
   "/:id/purchase",
   authRateLimiter,
   authenticate,
+  validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.purchase),
 );
 
 // Authenticated route to stream purchased file
+router.head(
+  "/:id/download",
+  authenticate,
+  validateParams(uuidIdParamsSchema),
+  asyncHandler(productsController.download),
+);
 router.get(
   "/:id/download",
   authenticate,
+  validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.download),
 );
 

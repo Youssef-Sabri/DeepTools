@@ -36,7 +36,7 @@ export const createApp = (): Application => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id", "X-CSRF-Token"],
   };
   app.use(cors(corsOptions));
 

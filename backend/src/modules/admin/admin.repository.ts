@@ -117,7 +117,7 @@ export class AdminRepository {
       rejectedUploads,
       orderAggregates,
       totalOrders,
-      distinctSellers,
+      totalSellers,
       topProductOrders,
     ] = await Promise.all([
       prisma.product.count(),
@@ -129,7 +129,7 @@ export class AdminRepository {
         where: { status: OrderStatus.COMPLETED } 
       }),
       prisma.order.count({ where: { status: OrderStatus.COMPLETED } }),
-      prisma.product.groupBy({ by: ["sellerId"] }),
+      prisma.user.count({ where: { sellerProducts: { some: {} } } }),
       prisma.order.groupBy({
         by: ["productId"],
         where: { productId: { not: null }, status: OrderStatus.COMPLETED },
@@ -169,7 +169,7 @@ export class AdminRepository {
         totalCommission: orderAggregates._sum.commissionAmount ?? 0,
         totalSellerPayouts: orderAggregates._sum.sellerAmount ?? 0,
       },
-      sellers: { total: distinctSellers.length },
+      sellers: { total: totalSellers },
       topProducts,
     };
   }

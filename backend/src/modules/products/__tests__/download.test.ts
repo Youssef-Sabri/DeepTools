@@ -31,7 +31,7 @@ describe("Product Download Endpoints (Task B-6)", () => {
   const buyerToken = createToken(mockBuyer);
 
   const testProduct = {
-    id: "prod-200",
+    id: "10000000-0000-4000-8000-000000000200",
     name: "Automation Pro",
     status: "PENDING",
     deletedAt: new Date(),
@@ -42,6 +42,7 @@ describe("Product Download Endpoints (Task B-6)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (prisma.product.findFirst as jest.Mock).mockResolvedValue(null);
 
     (prisma.user.findUnique as jest.Mock).mockImplementation(({ where }) => {
       if (where.id === mockBuyer.id) return Promise.resolve(mockBuyer);
@@ -58,6 +59,19 @@ describe("Product Download Endpoints (Task B-6)", () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toMatch(/do not have a license/i);
+  });
+
+  it("allows the creator to download their own uploaded file without a license", async () => {
+    (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+      ...testProduct, sellerId: mockBuyer.id, deletedAt: null,
+    });
+    (storageService.resolveKeyPath as jest.Mock).mockReturnValue("/mock/path/creator.zip");
+    jest.spyOn(fs.promises, "access").mockResolvedValue(undefined);
+    (storageService.stream as jest.Mock).mockImplementation(async (_key, res) => res.end("creator file"));
+    const res = await request(app).get(`/api/v1/products/${testProduct.id}/download`).set("Authorization", `Bearer ${buyerToken}`);
+    expect(res.status).toBe(200);
+    expect(storageService.stream).toHaveBeenCalledWith(testProduct.fileKey, expect.anything());
+    expect(prisma.license.findFirst).not.toHaveBeenCalled();
   });
 
   it("returns 403 when user license is inactive or revoked", async () => {
@@ -113,5 +127,23 @@ describe("Product Download Endpoints (Task B-6)", () => {
       testProduct.approvedFileKey,
       expect.anything(),
     );
+  });
+
+  it("authorizes a HEAD download without reading the file stream", async () => {
+    (prisma.license.findFirst as jest.Mock).mockResolvedValue({
+      id: "lic-valid", userId: mockBuyer.id, productId: testProduct.id,
+      isActive: true, fileKey: testProduct.approvedFileKey,
+      fileMime: testProduct.fileMime, product: testProduct,
+    });
+    (storageService.resolveKeyPath as jest.Mock).mockReturnValue("/mock/path/file-200.zip");
+    jest.spyOn(fs.promises, "access").mockResolvedValue(undefined);
+
+    const res = await request(app)
+      .head(`/api/v1/products/${testProduct.id}/download`)
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-disposition"]).toMatch(/attachment/);
+    expect(storageService.stream).not.toHaveBeenCalled();
   });
 });

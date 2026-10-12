@@ -17,6 +17,7 @@ export interface SellerSalesResponse {
   sales: SellerSaleItem[];
   totalSales: number;
   totalSellerEarnings: number;
+  totalGrossSales: number;
   page: number;
   totalPages: number;
 }
@@ -36,6 +37,7 @@ export class OrdersService {
     return {
       orders: items.map((o) => ({
         id: o.id,
+        productId: o.productId,
         amount: o.amount,
         status: o.status,
         paymentGateway: o.paymentGateway,
@@ -49,9 +51,9 @@ export class OrdersService {
   }
 
   async getSellerSales(sellerId: string, query: ListOrdersQuery): Promise<SellerSalesResponse> {
-    const [salesData, totalSellerEarnings] = await Promise.all([
+    const [salesData, totals] = await Promise.all([
       this.ordersRepo.findSellerSales(sellerId, query.page, query.limit),
-      this.ordersRepo.getSellerTotalEarnings(sellerId) 
+      this.ordersRepo.getSellerTotals(sellerId)
     ]);
 
     const sales: SellerSaleItem[] = salesData.items.map((o) => ({
@@ -69,7 +71,8 @@ export class OrdersService {
     return {
       sales,
       totalSales: salesData.total,
-      totalSellerEarnings,
+      totalSellerEarnings: totals.earnings,
+      totalGrossSales: totals.gross,
       page: salesData.page,
       totalPages: Math.ceil(salesData.total / salesData.limit) || 1,
     };

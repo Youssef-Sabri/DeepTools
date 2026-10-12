@@ -20,14 +20,14 @@ export class SettingsService {
       SETTING_KEYS.COMMISSION_PERCENT,
     );
 
-    const fallbackCommission = Number(env.COMMISSION_PERCENT) || 10;
+    const fallbackCommission = env.COMMISSION_PERCENT;
 
     if (!setting) {
       return fallbackCommission;
     }
 
-    const parsed = parseInt(setting.value, 10);
-    return Number.isFinite(parsed) ? parsed : fallbackCommission;
+    const parsed = Number(setting.value);
+    return setting.value.trim() !== "" && Number.isInteger(parsed) && parsed >= 0 && parsed <= 100 ? parsed : fallbackCommission;
   }
 
   async getCommission(): Promise<CommissionSettingResponse> {
@@ -35,7 +35,7 @@ export class SettingsService {
       SETTING_KEYS.COMMISSION_PERCENT,
     );
     
-    const fallbackCommission = Number(env.COMMISSION_PERCENT) || 10;
+    const fallbackCommission = env.COMMISSION_PERCENT;
 
     if (!setting) {
       return {
@@ -43,9 +43,9 @@ export class SettingsService {
       };
     }
 
-    const parsed = parseInt(setting.value, 10);
+    const parsed = Number(setting.value);
     return {
-      commissionPercent: Number.isFinite(parsed)
+      commissionPercent: setting.value.trim() !== "" && Number.isInteger(parsed) && parsed >= 0 && parsed <= 100
         ? parsed
         : fallbackCommission,
       updatedAt: setting.updatedAt,

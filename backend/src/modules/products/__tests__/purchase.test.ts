@@ -16,6 +16,8 @@ jest.mock("../../../config/database", () => ({
     },
     product: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
     license: {
       findFirst: jest.fn(),
@@ -38,8 +40,29 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
   const sellerToken = createToken(mockUser);
   const adminToken = createToken(mockAdmin);
 
+  it("lists only approved products in the public catalog", async () => {
+    (prisma.product.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.product.count as jest.Mock).mockResolvedValue(0);
+    const res = await request(app).get("/api/v1/products?sort=priceAsc");
+    expect(res.status).toBe(200);
+    expect(prisma.product.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: "APPROVED", deletedAt: null, approvedFileKey: { not: null } }),
+      orderBy: [{ price: "asc" }, { id: "asc" }],
+    }));
+  });
+
+  it("rejects invalid UUIDs and excessive catalog searches before database access", async () => {
+    expect((await request(app).get("/api/v1/products/not-a-uuid")).status).toBe(422);
+    expect((await request(app).get("/api/v1/products?page=201")).status).toBe(422);
+    expect((await request(app).get("/api/v1/products?page=102&limit=100")).status).toBe(422);
+    expect((await request(app).get(`/api/v1/products?search=${"a".repeat(101)}`)).status).toBe(422);
+    expect((await request(app).get("/api/v1/products/10000000-0000-4000-8000-000000000100?lang=xx")).status).toBe(422);
+    expect(prisma.product.findFirst).not.toHaveBeenCalled();
+    expect(prisma.product.findMany).not.toHaveBeenCalled();
+  });
+
   const approvedProduct = {
-    id: "prod-100",
+    id: "10000000-0000-4000-8000-000000000100",
     sellerId: mockUser.id,
     name: "Enterprise Workflow Engine",
     description: "Production-ready workflow engine",
@@ -149,7 +172,7 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     (prisma.product.findFirst as jest.Mock).mockResolvedValue(null);
 
     const res = await request(app)
-      .post("/api/v1/products/prod-pending/purchase")
+      .post("/api/v1/products/10000000-0000-4000-8000-000000000101/purchase")
       .set("Authorization", `Bearer ${buyerToken}`);
 
     expect(res.status).toBe(404);
