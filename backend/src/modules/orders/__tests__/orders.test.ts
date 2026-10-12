@@ -76,6 +76,8 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
 
   describe("GET /api/v1/orders/sales", () => {
     it("returns seller sales and accurately computes totalSellerEarnings", async () => {
+      (prisma.order.count as jest.Mock).mockResolvedValue(2);
+      (prisma.order.aggregate as jest.Mock).mockResolvedValue({ _sum: { sellerAmount: 5310 } });
       (prisma.order.findMany as jest.Mock).mockResolvedValue([
         {
           id: "ord-1",

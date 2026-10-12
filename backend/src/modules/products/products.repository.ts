@@ -1,5 +1,6 @@
 import { prisma } from "../../config/database";
 import { Prisma, ProductStatus, OrderStatus } from "@prisma/client";
+import { splitCommission } from "../../utils/commission";
 
 export class ProductsRepository {
   async findAll(params?: {
@@ -115,53 +116,48 @@ export class ProductsRepository {
   async findLicense(userId: string, productId: string) {
     return prisma.license.findFirst({
       where: { userId, productId },
+      include: { product: true },
     });
   }
 
-  async createLicense(data: {
+  async createPendingOrder(data: {
     userId: string;
     productId: string;
-    licenseKey: string;
-    expiresAt: Date;
-  }) {
-    return prisma.license.create({ data });
-  }
-
-  async createPurchaseTransaction(data: {
-    userId: string;
-    productId: string;
-    licenseKey: string;
-    expiresAt: Date;
-    amount: number;
     commissionPercent: number;
-    commissionAmount: number;
-    sellerAmount: number;
+    gateway: string;
+    currency: string;
   }) {
-    return prisma.$transaction(async (tx) => {
-      const license = await tx.license.create({
-        data: {
-          userId: data.userId,
-          productId: data.productId,
-          licenseKey: data.licenseKey,
-          expiresAt: data.expiresAt,
-        },
+    const pendingKey = `${data.userId}:${data.productId}`;
+    try { return await prisma.$transaction(async (tx) => {
+      const existing = await tx.order.findUnique({ where: { pendingKey } });
+      if (existing) return existing;
+      const product = await tx.product.findFirst({
+        where: { id: data.productId, status: ProductStatus.APPROVED, deletedAt: null, approvedFileKey: { not: null } },
       });
-
-      const order = await tx.order.create({
-        data: {
-          userId: data.userId,
-          productId: data.productId,
-          amount: data.amount,
-          commissionPercent: data.commissionPercent,
-          commissionAmount: data.commissionAmount,
-          sellerAmount: data.sellerAmount,
-          status: OrderStatus.COMPLETED,
-          paymentGateway: "simulated",
-        },
-      });
-
-      return { license, order };
-    });
+      if (!product || !product.approvedFileKey) return null;
+      const { commissionAmount, sellerAmount } = splitCommission(product.price, data.commissionPercent);
+      return tx.order.create({ data: {
+        userId: data.userId,
+        productId: product.id,
+        sellerId: product.sellerId,
+        productName: product.name,
+        fileKey: product.approvedFileKey,
+        fileMime: product.approvedFileMime,
+        pendingKey,
+        amount: product.price,
+        commissionPercent: data.commissionPercent,
+        commissionAmount,
+        sellerAmount,
+        status: OrderStatus.PENDING,
+        paymentGateway: data.gateway,
+        currency: data.currency,
+      } });
+    }); } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return prisma.order.findUnique({ where: { pendingKey } });
+      }
+      throw error;
+    }
   }
 
   async findUserLicenses(userId: string) {

@@ -458,7 +458,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         </span>
                         <span className="text-xs font-mono text-[var(--green)] flex items-center gap-1 font-semibold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {isAr ? 'مرخص' : 'Active'}
+                          {order.status === 'COMPLETED' ? (isAr ? 'مرخص' : 'Active') : (isAr ? 'بانتظار الدفع' : 'Pending Payment')}
                         </span>
                       </div>
 
@@ -468,13 +468,13 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                       <div className="mt-3 text-xs font-mono text-[var(--muted-2)] space-y-1">
                         <div>{isAr ? 'مرجع الطلب:' : 'Order Ref:'} #{order.id.slice(0, 8).toUpperCase()}</div>
-                        <div>{isAr ? 'تاريخ الشراء:' : 'Purchased:'} {formatDate(order.createdAt, locale)}</div>
-                        <div>{isAr ? 'المبلغ المدفوع:' : 'Paid:'} {formatCents(order.amount)}</div>
+                        <div>{isAr ? 'تاريخ الطلب:' : 'Ordered:'} {formatDate(order.createdAt, locale)}</div>
+                        <div>{order.status === 'COMPLETED' ? (isAr ? 'المدفوع:' : 'Paid:') : (isAr ? 'المبلغ المستحق:' : 'Due:')} {formatCents(order.amount)}</div>
                       </div>
                     </div>
 
                     <div className="mt-6 pt-4 border-t border-[var(--line)]">
-                      <button
+                      {order.status === 'COMPLETED' && <button
                         onClick={() =>
                           handleDownloadFile(
                             order.productId || order.product?.id || '',
@@ -485,7 +485,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>{isAr ? 'تحميل الملف الرقمي' : 'Download Asset File'}</span>
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 ))}

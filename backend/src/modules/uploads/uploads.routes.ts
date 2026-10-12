@@ -53,6 +53,7 @@ router.get(
  */
 router.put(
   "/mine/:id",
+  authRateLimiter,
   authenticate,
   upload.single("file"),
   validateBody(updateUploadSchema),

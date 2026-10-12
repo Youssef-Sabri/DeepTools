@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { ApiError } from "../utils/apiError";
 import { env } from "../config/env";
 import { Role } from "@prisma/client";
+import { prisma } from "../config/database";
 
 // Extend Express Request interface globally to include 'user'
 declare global {
@@ -19,14 +20,15 @@ declare global {
 interface JwtPayload {
   sub: string;
   role: Role;
+  tokenVersion: number;
 }
 
 // Verify JWT and attach user payload to request
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -37,17 +39,24 @@ export const authenticate = (
 
   const token = authHeader.split(" ")[1];
 
+  let decoded: JwtPayload;
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
-
-    req.user = {
-      id: decoded.sub,
-      role: decoded.role,
-    };
-
-    next();
+    decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
   } catch {
-    next(ApiError.unauthorized("Invalid or expired token"));
+    return next(ApiError.unauthorized("Invalid or expired token"));
+  }
+  if (typeof decoded.sub !== "string" || !Number.isInteger(decoded.tokenVersion)) {
+    return next(ApiError.unauthorized("Invalid or expired token"));
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { id: decoded.sub }, select: { id: true, role: true, deletedAt: true, tokenVersion: true } });
+    if (!user || user.deletedAt || user.tokenVersion !== decoded.tokenVersion) {
+      return next(ApiError.unauthorized("Invalid or expired token"));
+    }
+    req.user = { id: user.id, role: user.role };
+    next();
+  } catch (error) {
+    next(error);
   }
 };
 

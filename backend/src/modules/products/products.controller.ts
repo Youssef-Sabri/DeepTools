@@ -51,7 +51,7 @@ export class ProductsController {
     const userId = req.user!.id;
     const userRole = req.user!.role;
     const result = await this.service.purchase(userId, userRole, id);
-    res.status(200).json({ success: true, data: result });
+    res.status(202).json({ success: true, data: result });
   };
 
   download = async (req: Request, res: Response): Promise<void> => {

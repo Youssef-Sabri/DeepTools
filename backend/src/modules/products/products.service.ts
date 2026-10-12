@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { Response } from "express";
@@ -9,7 +8,6 @@ import {
   ConflictError,
   InternalServerError,
 } from "../../utils/apiError";
-import { splitCommission } from "../../utils/commission";
 import { settingsService, SettingsService } from "../settings/settings.service";
 import {
   storageService,
@@ -21,6 +19,7 @@ import {
   ListPublicProductsQuery,
 } from "./products.validator";
 import { Product, ProductStatus, Role } from "@prisma/client";
+import { env } from "../../config/env";
 
 export type ProductWithSeller = Product & {
   seller?: { id: string; name: string } | null;
@@ -93,7 +92,7 @@ export class ProductsService {
       limit,
       category: query.category,
       search: query.search,
-      status: ProductStatus.APPROVED, 
+      status: ProductStatus.PENDING,
     });
 
     return {
@@ -128,7 +127,7 @@ export class ProductsService {
   async update(id: string, data: UpdateProductInput) {
     const existing = await this.repo.findById(id, "");
     if (!existing) throw new NotFoundError("Product not found");
-    return this.repo.update(id, data);
+    return this.repo.update(id, { ...data, status: ProductStatus.PENDING });
   }
 
   async remove(id: string) {
@@ -153,30 +152,31 @@ export class ProductsService {
 
     const existingLicense = await this.repo.findLicense(userId, productId);
     if (existingLicense) {
-      throw new ConflictError("You already own an active license for this product");
+      throw new ConflictError("You already own a license for this product");
+    }
+
+    if (!product.approvedFileKey) throw new ConflictError("Product has no approved file");
+    try {
+      const file = await this.storage.stat(product.approvedFileKey);
+      if (product.fileSize !== null && file.size !== product.fileSize) throw new Error("File size mismatch");
+      if (product.approvedFileMime && file.mimeType !== product.approvedFileMime) throw new Error("File type mismatch");
+    } catch {
+      throw new ConflictError("Approved product file is unavailable");
     }
 
     const commissionPercent = await this.settings.getCommissionPercent();
-    const { commissionAmount, sellerAmount } = splitCommission(product.price, commissionPercent);
-
-    const licenseKey = `DF-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
-    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-
-    const { license, order } = await this.repo.createPurchaseTransaction({
+    const order = await this.repo.createPendingOrder({
       userId,
       productId,
-      licenseKey,
-      expiresAt,
-      amount: product.price,
       commissionPercent,
-      commissionAmount,
-      sellerAmount,
+      gateway: env.PAYMENT_PROVIDER,
+      currency: env.PAYMENT_CURRENCY,
     });
+    if (!order) throw new ConflictError("Product is no longer available");
 
     return {
-      message: "Purchase completed successfully",
+      message: "Order pending payment verification",
       product: this.formatPublicProduct(product),
-      license,
       order,
     };
   }
@@ -191,28 +191,32 @@ export class ProductsService {
       throw new ForbiddenError("License is inactive or revoked");
     }
 
-    const product = await this.repo.findById(productId, "");
-    if (!product || !product.fileKey) {
-      console.error(`[DownloadError] Product ${productId} has no associated fileKey`);
+    if (license.expiresAt && license.expiresAt <= new Date()) {
+      throw new ForbiddenError("License has expired");
+    }
+
+    const product = license.product;
+    const fileKey = license.fileKey ?? product?.approvedFileKey;
+    if (!product || !fileKey) {
       throw new InternalServerError("File storage error: file missing on disk");
     }
 
     try {
-      const resolvedPath = this.storage.resolveKeyPath(product.fileKey);
+      const resolvedPath = this.storage.resolveKeyPath(fileKey);
       await fs.promises.access(resolvedPath, fs.constants.R_OK);
     } catch (err) {
-      console.error(`[DownloadError] Product ${productId} references missing file ${product.fileKey} on disk:`, err);
+      console.error(`[DownloadError] Product ${productId} references a missing file`, err);
       throw new InternalServerError("File storage error: file missing on disk");
     }
 
-    const ext = path.extname(product.fileKey) || "";
+    const ext = path.extname(fileKey) || "";
     const safeName = product.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
     const filename = `${safeName}${ext}`;
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", product.fileMime || "application/octet-stream");
+    res.setHeader("Content-Type", license.fileMime || product.approvedFileMime || "application/octet-stream");
 
-    await this.storage.stream(product.fileKey, res);
+    await this.storage.stream(fileKey, res);
   }
 
   async findUserLicenses(userId: string) {

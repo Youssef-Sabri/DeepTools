@@ -39,6 +39,7 @@ model User {
   name          String
   passwordHash  String   @map("password_hash")
   role          Role     @default(USER)
+  tokenVersion  Int      @default(0) @map("token_version")
   
   // حقل الحذف الوهمي (Soft Delete)
   deletedAt     DateTime? @map("deleted_at")
@@ -46,6 +47,7 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  subscriptions       Subscription[]
   licenses            License[]
   orders              Order[]
   sellerProducts      Product[] @relation("SellerProducts")
@@ -86,6 +88,8 @@ model Product {
   fileSize      Int?      @map("file_size")
   fileMime      String?   @map("file_mime") @db.VarChar(100)
   fileChecksum  String?   @map("file_checksum")
+  approvedFileKey String? @map("approved_file_key")
+  approvedFileMime String? @map("approved_file_mime") @db.VarChar(100)
   rejectionNote String?   @map("rejection_note")
   reviewedAt    DateTime? @map("reviewed_at")
   
@@ -154,6 +158,8 @@ model License {
   userId     String    @map("user_id") @db.Uuid
   productId  String    @map("product_id") @db.Uuid
   licenseKey String    @unique @map("license_key")
+  fileKey    String?   @map("file_key")
+  fileMime   String?   @map("file_mime") @db.VarChar(100)
   isActive   Boolean   @default(true) @map("is_active")
   expiresAt  DateTime? @map("expires_at")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -163,6 +169,7 @@ model License {
   user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
+  @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
   @@map("licenses")
@@ -172,23 +179,44 @@ model Order {
   id                String   @id @default(uuid()) @db.Uuid
   userId            String   @map("user_id") @db.Uuid
   productId         String?  @map("product_id") @db.Uuid
+  sellerId          String?  @map("seller_id") @db.Uuid
+  productName       String?  @map("product_name")
+  fileKey           String?  @map("file_key")
+  fileMime          String?  @map("file_mime") @db.VarChar(100)
+  pendingKey        String?  @unique @map("pending_key")
+  currency          String   @default("USD") @db.VarChar(3)
   amount            Int
   commissionPercent Int      @default(10) @map("commission_percent")
   commissionAmount  Int      @default(0) @map("commission_amount")
   sellerAmount      Int      @default(0) @map("seller_amount")
-  status            OrderStatus @default(COMPLETED) // تم التعديل لاستخدام Enum
-  paymentGateway    String   @default("simulated") @map("payment_gateway") @db.VarChar(50)
+  status            OrderStatus @default(PENDING)
+  paymentGateway    String   @default("unconfigured") @map("payment_gateway") @db.VarChar(50)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   
   // SetNull هنا ممتاز، لو المنتج اتحذف الطلب هيفضل موجود كإيصال مالي بس بدون تفاصيل المنتج
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Restrict)
+  paymentEvents PaymentEvent[]
 
   @@index([userId])
   @@index([productId])
   @@map("orders")
+  @@index([sellerId, status])
+}
+
+model PaymentEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  gateway   String   @db.VarChar(50)
+  eventId   String   @map("event_id")
+  orderId   String   @map("order_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([gateway, eventId])
+  @@index([orderId])
+  @@map("payment_events")
 }
 
 model Setting {
@@ -199,4 +227,13 @@ model Setting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
+}
+
+model RateLimitBucket {
+  key     String   @id @db.VarChar(128)
+  hits    Int
+  resetAt DateTime @map("reset_at")
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
 }

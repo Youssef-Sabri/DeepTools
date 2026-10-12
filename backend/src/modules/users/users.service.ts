@@ -73,10 +73,11 @@ export class UsersService {
     const saltRounds = Number(env.BCRYPT_SALT_ROUNDS);
     const newPasswordHash = await bcrypt.hash(input.newPassword, saltRounds);
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: newPasswordHash },
+    const updated = await prisma.user.updateMany({
+      where: { id: userId, deletedAt: null, passwordHash: user.passwordHash, tokenVersion: user.tokenVersion },
+      data: { passwordHash: newPasswordHash, tokenVersion: { increment: 1 } },
     });
+    if (updated.count !== 1) throw ApiError.conflict("Password changed; retry with current credentials");
   }
 }
 

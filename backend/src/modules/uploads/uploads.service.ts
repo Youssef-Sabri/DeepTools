@@ -10,6 +10,7 @@ import {
   ValidationError,
   NotFoundError,
   ForbiddenError,
+  ConflictError,
 } from "../../utils/apiError";
 import { Product, ProductStatus } from "@prisma/client";
 
@@ -47,7 +48,10 @@ export class UploadsService {
       file.mimetype,
     );
 
-    return this.repo.create({
+    try {
+      const stored = await this.storage.stat(fileKey);
+      if (stored.size !== file.buffer.length) throw new ValidationError("Stored file size mismatch");
+      return await this.repo.create({
       sellerId,
       name: input.name,
       nameAr: input.nameAr ?? null,
@@ -58,10 +62,13 @@ export class UploadsService {
       version: input.version || "1.0.0",
       status: ProductStatus.PENDING, 
       fileKey,
-      fileSize: file.buffer.length,
-      fileMime: file.mimetype,
+      fileSize: stored.size,
+      fileMime: stored.mimeType,
       fileChecksum,
-    });
+    }); } catch (error) {
+      await this.storage.delete(fileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+      throw error;
+    }
   }
 
   async findMyUploads(
@@ -122,12 +129,16 @@ export class UploadsService {
         file.originalname,
         file.mimetype,
       );
-      newFileSize = file.buffer.length;
-      newFileMime = file.mimetype;
-
-      if (existing.fileKey) {
-        await this.storage.delete(existing.fileKey).catch(() => {});
+      try {
+        const stored = await this.storage.stat(newFileKey);
+        if (stored.size !== file.buffer.length) throw new ValidationError("Stored file size mismatch");
+        newFileSize = stored.size;
+        newFileMime = stored.mimeType;
+      } catch (error) {
+        await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+        throw error;
       }
+
     }
 
     const shouldResetToPending =
@@ -139,7 +150,8 @@ export class UploadsService {
     const rejectionNote = shouldResetToPending ? null : existing.rejectionNote;
     const reviewedAt = shouldResetToPending ? null : existing.reviewedAt;
 
-    return this.repo.update(id, {
+    let updated: Product | null;
+    try { updated = await this.repo.update(id, sellerId, existing.updatedAt, {
       ...(input.name ? { name: input.name } : {}),
       ...(input.nameAr !== undefined ? { nameAr: input.nameAr } : {}),
       ...(input.description ? { description: input.description } : {}),
@@ -160,7 +172,18 @@ export class UploadsService {
             fileChecksum: newFileChecksum,
           }
         : {}),
-    });
+    }); } catch (error) {
+      if (newFileKey) await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+      throw error;
+    }
+    if (!updated) {
+      if (newFileKey) await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+      throw new ConflictError("Upload changed; reload and try again");
+    }
+    if (newFileKey && existing.fileKey && existing.fileKey !== newFileKey) {
+      await this.deleteUnreferencedFile(existing.fileKey);
+    }
+    return updated;
   }
 
   async deleteMyUpload(
@@ -175,12 +198,15 @@ export class UploadsService {
       );
     }
 
-    if (product.fileKey) {
-      await this.storage.delete(product.fileKey).catch(() => {});
-    }
-
-    await this.repo.delete(id);
+    const deleted = await this.repo.delete(id, sellerId, product.updatedAt);
+    if (!deleted) throw new ConflictError("Upload changed; reload and try again");
+    if (product.fileKey) await this.deleteUnreferencedFile(product.fileKey);
     return { message: "Upload deleted successfully" };
+  }
+
+  private async deleteUnreferencedFile(key: string) {
+    if (await this.repo.isFileReferenced(key)) return;
+    await this.storage.delete(key).catch((error) => console.error("Unreferenced file cleanup failed", error));
   }
 }
 

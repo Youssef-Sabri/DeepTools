@@ -24,11 +24,9 @@ export function CartDrawer({
   onClose,
   locale,
   isOwned = false,
-  onOrderCompleted,
 }: CartDrawerProps) {
   const [loading, setLoading] = useState(false)
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
-  const [licenseKey, setLicenseKey] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,22 +50,13 @@ export function CartDrawer({
 
     try {
       // Backend contract: POST /api/v1/products/:id/purchase
-      const result = await fetchApi<{ order: Order; license?: { licenseKey: string } }>(
+      const result = await fetchApi<{ order: Order }>(
         `/products/${product.id}/purchase`,
         { method: 'POST' }
       )
 
       const orderObj = result.order || (result as unknown as Order)
       setCompletedOrder(orderObj)
-      if (result.license?.licenseKey) {
-        setLicenseKey(result.license.licenseKey)
-      } else {
-        setLicenseKey(`DT_KEY_${Math.random().toString(36).substring(2, 10).toUpperCase()}`)
-      }
-
-      if (onOrderCompleted) {
-        onOrderCompleted(product.id)
-      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Checkout transaction failed'
       setError(msg)
@@ -108,7 +97,7 @@ export function CartDrawer({
                 <ShoppingCart className="w-5 h-5 text-[var(--blue-bright)]" />
                 <h2 className="text-lg font-bold text-[var(--text)]">
                   {completedOrder
-                    ? (isAr ? 'تم تأكيد الطلب' : 'Order Confirmed')
+                    ? (isAr ? 'الطلب قيد الدفع' : 'Order Pending')
                     : (isAr ? 'سلة المشتريات والدفع' : 'Secure Checkout')}
                 </h2>
               </div>
@@ -123,49 +112,25 @@ export function CartDrawer({
             {/* Body */}
             <div className="p-6 flex-1 overflow-y-auto">
               {completedOrder ? (
-                /* Success View */
+                /* Pending payment view */
                 <div className="py-6 flex flex-col items-center text-center">
                   <div className="success-ring flex items-center justify-center mb-6">
                     <Check className="w-8 h-8 text-[var(--green)] stroke-[3]" />
                   </div>
 
                   <span className="text-xs font-mono uppercase tracking-widest text-[var(--green)] font-semibold mb-1">
-                    {isAr ? 'عملية الشراء مكتملة' : 'TRANSACTION VERIFIED'}
+                    {isAr ? 'بانتظار تأكيد الدفع' : 'AWAITING PAYMENT VERIFICATION'}
                   </span>
                   <h3 className="text-xl font-bold text-[var(--text)]">
-                    {isAr ? 'شكراً لطلبك!' : 'License Activated'}
+                    {isAr ? 'تم إنشاء طلبك' : 'Order Created'}
                   </h3>
                   <p className="text-xs text-[var(--muted)] mt-1 font-mono">
-                    {isAr ? 'مرجع الطلب:' : 'Order ID:'} #{completedOrder.id ? completedOrder.id.slice(0, 8).toUpperCase() : 'DT-10492'}
+                    {isAr ? 'مرجع الطلب:' : 'Order ID:'} #{completedOrder.id.slice(0, 8).toUpperCase()}
                   </p>
 
-                  {/* License Key Box */}
-                  {licenseKey && (
-                    <div className="w-full mt-6 p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-left">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--muted-2)] block mb-1">
-                        {isAr ? 'مفتاح الترخيص الخاص بك' : 'Your Digital License Key'}
-                      </span>
-                      <code className="text-xs font-mono text-[var(--green)] select-all block break-all font-semibold">
-                        {licenseKey}
-                      </code>
-                    </div>
-                  )}
-
-                  {/* Immediate Download */}
-                  <div className="w-full mt-6">
-                    <button
-                      onClick={handleDownload}
-                      disabled={downloading}
-                      className="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center justify-center gap-2 transition-all shadow-lg"
-                    >
-                      {downloading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                      {downloading ? (isAr ? 'جارٍ التحميل...' : 'Downloading...') : (isAr ? 'تحميل الملف الرقمي الآن' : 'Download Asset File Now')}
-                    </button>
-                  </div>
+                  <p className="text-xs text-[var(--muted)] mt-6">
+                    {isAr ? 'سيصبح التنزيل متاحاً بعد التحقق من الدفع وإصدار الترخيص.' : 'Download becomes available after payment is verified and a license is issued.'}
+                  </p>
                 </div>
               ) : isCreator ? (
                 /* Author / Creator View */
@@ -278,8 +243,8 @@ export function CartDrawer({
                     <ShieldCheck className="w-4 h-4 text-[var(--green)] shrink-0" />
                     <span>
                       {isAr
-                        ? 'تنزيل فوري مع ترخيص إنتاجي مدى الحياة وتحديثات أمنية معتمدة.'
-                        : 'Instant delivery with lifetime commercial usage license.'}
+                        ? 'سيصدر الترخيص بعد التحقق من الدفع.'
+                        : 'A license is issued after payment verification.'}
                     </span>
                   </div>
                 </div>
@@ -298,7 +263,7 @@ export function CartDrawer({
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>{isAr ? 'إتمام الشراء الآن' : 'Confirm & Execute Purchase'}</span>
+                      <span>{isAr ? 'إنشاء طلب قيد الدفع' : 'Create Pending Order'}</span>
                       <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                     </>
                   )}

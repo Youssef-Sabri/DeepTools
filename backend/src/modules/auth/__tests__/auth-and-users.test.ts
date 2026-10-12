@@ -30,6 +30,11 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (prisma.user.findUnique as jest.Mock).mockImplementation(({ where }) => {
+      if (where.id === mockUser.id) return Promise.resolve(mockUser);
+      if (where.id === mockAdmin.id) return Promise.resolve(mockAdmin);
+      return Promise.resolve(null);
+    });
   });
 
   describe("Task A-2: Register and Login", () => {
@@ -40,6 +45,8 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
         name: "New Tester",
         email: "newtester@example.com",
         role: "USER",
+        deletedAt: null,
+        tokenVersion: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -83,6 +90,8 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
         email: mockUser.email,
         passwordHash,
         role: "USER",
+        deletedAt: null,
+        tokenVersion: 0,
       });
 
       const res = await request(app).post("/api/v1/auth/login").send({
@@ -105,21 +114,21 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
         .post("/api/v1/auth/forgot-password")
         .send({ email: "nonexistent@example.com" });
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.message).toMatch(
-        /password reset token has been generated/i,
-      );
+      expect(res.status).toBe(503);
+      expect(res.body.message).toMatch(/temporarily unavailable/i);
     });
   });
 
   describe("Task A-4: Own Profile", () => {
     it("returns current user profile without passwordHash", async () => {
+      (prisma.user.findFirst as jest.Mock).mockResolvedValue({ ...mockUser, createdAt: new Date(), updatedAt: new Date() });
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: mockUser.id,
         email: mockUser.email,
         name: mockUser.name,
         role: "USER",
+        tokenVersion: 0,
+        deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -141,6 +150,21 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
   });
 
   describe("Task A-5: Admin: Users & Insights", () => {
+    it("rejects a deleted admin even when the JWT was previously valid", async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ ...mockAdmin, deletedAt: new Date() });
+      const res = await request(app).get("/api/v1/admin/users").set("Authorization", `Bearer ${adminToken}`);
+      expect(res.status).toBe(401);
+    });
+
+    it("uses the current database role and token version", async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({ ...mockAdmin, role: "USER" });
+      const demoted = await request(app).get("/api/v1/admin/users").set("Authorization", `Bearer ${adminToken}`);
+      expect(demoted.status).toBe(403);
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({ ...mockAdmin, tokenVersion: 1 });
+      const revoked = await request(app).get("/api/v1/admin/users").set("Authorization", `Bearer ${adminToken}`);
+      expect(revoked.status).toBe(401);
+    });
     it("allows Admin to list users and supports pagination & search", async () => {
       (prisma.user.findMany as jest.Mock).mockResolvedValue([
         mockUser,

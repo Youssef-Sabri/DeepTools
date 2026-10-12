@@ -16,8 +16,11 @@ jest.mock("../../../config/database", () => ({
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
+    license: { count: jest.fn() },
+    order: { count: jest.fn() },
   },
 }));
 
@@ -25,6 +28,7 @@ jest.mock("../../../storage/storage.service", () => ({
   storageService: {
     save: jest.fn(),
     delete: jest.fn(),
+    stat: jest.fn(),
     resolveKeyPath: jest.fn(),
     stream: jest.fn(),
   },
@@ -41,6 +45,10 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       if (where.id === mockUser.id) return Promise.resolve(mockUser);
       return Promise.resolve(null);
     });
+    (prisma.product.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+    (prisma.product.count as jest.Mock).mockResolvedValue(0);
+    (prisma.license.count as jest.Mock).mockResolvedValue(0);
+    (prisma.order.count as jest.Mock).mockResolvedValue(0);
   });
 
   describe("POST /api/v1/uploads", () => {
@@ -56,7 +64,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         description: "Complete Python automation solution script",
         category: "script",
         price: 2500,
-        status: "pending",
+        status: "PENDING",
         fileKey: "uploads/11111111-2222-3333-4444-555555555555.zip",
         fileSize: 1024,
         fileMime: "application/zip",
@@ -67,6 +75,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       });
 
       const fakeZip = Buffer.from("PK\x03\x04test content inside zip");
+      (storageService.stat as jest.Mock).mockResolvedValue({ size: fakeZip.length, mimeType: "application/zip" });
 
       const res = await request(app)
         .post("/api/v1/uploads")
@@ -79,7 +88,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.status).toBe("pending");
+      expect(res.body.data.status).toBe("PENDING");
       expect(res.body.data.sellerId).toBe(mockUser.id);
     });
 
@@ -130,7 +139,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
           id: "p-1",
           sellerId: mockUser.id,
           name: "My Upload",
-          status: "pending",
+          status: "PENDING",
           price: 2500,
         },
       ]);
@@ -149,21 +158,21 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
 
   describe("PUT /api/v1/uploads/mine/:id", () => {
     it("resets status to pending when editing a rejected upload", async () => {
-      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.product.findUnique as jest.Mock).mockResolvedValueOnce({
         id: "p-rejected",
         sellerId: mockUser.id,
         name: "Rejected Product",
         description: "Old description here",
-        status: "rejected",
+        status: "REJECTED",
         rejectionNote: "Fix the docs",
       });
 
-      (prisma.product.update as jest.Mock).mockResolvedValue({
+      (prisma.product.findUnique as jest.Mock).mockResolvedValue({
         id: "p-rejected",
         sellerId: mockUser.id,
         name: "Fixed Product",
         description: "Updated description here",
-        status: "pending",
+        status: "PENDING",
         rejectionNote: null,
       });
 
@@ -174,7 +183,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         .field("description", "Updated description here");
 
       expect(res.status).toBe(200);
-      expect(res.body.data.status).toBe("pending");
+      expect(res.body.data.status).toBe("PENDING");
       expect(res.body.data.rejectionNote).toBeNull();
     });
   });
@@ -184,7 +193,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
         id: "p-approved",
         sellerId: mockUser.id,
-        status: "approved",
+        status: "APPROVED",
       });
 
       const res = await request(app)
@@ -198,7 +207,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       (prisma.product.findUnique as jest.Mock).mockResolvedValue({
         id: "p-pending",
         sellerId: mockUser.id,
-        status: "pending",
+        status: "PENDING",
         fileKey: "uploads/file-to-delete.zip",
       });
       (prisma.product.delete as jest.Mock).mockResolvedValue({});
