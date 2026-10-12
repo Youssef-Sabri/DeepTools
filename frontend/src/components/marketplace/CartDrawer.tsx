@@ -179,7 +179,7 @@ export function CartDrawer({
                   <p className="text-xs text-[var(--muted)] mt-2 max-w-xs leading-relaxed">
                     {isAr
                       ? 'لقد قمت بشراء ترخيص إنتاجي مدى الحياة لهذه الأداة مسبقاً.'
-                      : 'You already hold an active lifetime commercial license for this digital asset.'}
+                      : 'You already hold an active commercial license for this digital asset.'}
                   </p>
                   <div className="w-full mt-6">
                     <button

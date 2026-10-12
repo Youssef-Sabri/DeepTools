@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  other: {
+    google: 'notranslate',
+  },
 }
 
 export default function RootLayout({

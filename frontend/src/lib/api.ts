@@ -1,7 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = '/api/v1'
 
-export interface ApiFetchOptions extends RequestInit {
-  token?: string
+export type ApiFetchOptions = RequestInit
+
+function csrfToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const value = document.cookie.split('; ').find((cookie) => cookie.startsWith('dt_csrf='))?.slice('dt_csrf='.length)
+  return value ? decodeURIComponent(value) : undefined
 }
 
 export class ApiError extends Error {
@@ -17,11 +21,6 @@ export class ApiError extends Error {
 }
 
 export async function fetchApi<T = unknown>(endpoint: string, options: ApiFetchOptions = {}): Promise<T> {
-  let token = options.token || null
-  if (!token && typeof window !== 'undefined') {
-    token = localStorage.getItem('token')
-  }
-
   const headers = new Headers(options.headers || {})
 
   // Only set application/json if not uploading FormData
@@ -37,13 +36,15 @@ export async function fetchApi<T = unknown>(endpoint: string, options: ApiFetchO
     }
   }
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`)
+  if (!['GET', 'HEAD', 'OPTIONS'].includes((options.method || 'GET').toUpperCase())) {
+    const csrf = csrfToken()
+    if (csrf) headers.set('X-CSRF-Token', csrf)
   }
 
   const config: RequestInit = {
     ...options,
     headers,
+    credentials: 'same-origin',
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
@@ -51,7 +52,6 @@ export async function fetchApi<T = unknown>(endpoint: string, options: ApiFetchO
   if (!response.ok) {
     if (response.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
         window.dispatchEvent(new Event('auth:unauthorized'))
       }
     }
@@ -83,45 +83,18 @@ export async function fetchApi<T = unknown>(endpoint: string, options: ApiFetchO
  * Triggers an authenticated binary stream download (e.g. GET /api/v1/products/:id/download)
  */
 export async function downloadProductFile(productId: string, fallbackFileName: string = 'product_asset.zip'): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-
-  const headers: HeadersInit = {}
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  const response = await fetch(`${API_BASE_URL}/products/${productId}/download`, {
-    headers,
-  })
+  const url = `${API_BASE_URL}/products/${encodeURIComponent(productId)}/download`
+  const response = await fetch(url, { method: 'HEAD', credentials: 'same-origin', cache: 'no-store' })
 
   if (!response.ok) {
-    let errMessage = 'Download failed'
-    try {
-      const err = await response.json()
-      if (err.message) errMessage = err.message
-    } catch {
-      // not json
-    }
-    throw new ApiError(errMessage, response.status)
+    if (response.status === 401) window.dispatchEvent(new Event('auth:unauthorized'))
+    throw new ApiError(`Download unavailable (${response.status})`, response.status)
   }
 
-  // Extract filename from Content-Disposition header if available
-  const disposition = response.headers.get('content-disposition')
-  let filename = fallbackFileName
-  if (disposition && disposition.includes('filename=')) {
-    const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
-    if (filenameMatch && filenameMatch[1]) {
-      filename = filenameMatch[1].replace(/['"]/g, '')
-    }
-  }
-
-  const blob = await response.blob()
-  const downloadUrl = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = downloadUrl
-  a.download = filename
+  a.href = url
+  a.download = fallbackFileName
   document.body.appendChild(a)
   a.click()
-  document.body.removeChild(a)
-  window.URL.revokeObjectURL(downloadUrl)
+  a.remove()
 }

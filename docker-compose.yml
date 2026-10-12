@@ -61,6 +61,8 @@ services:
     container_name: deeptools-web
     env_file:
       - ./frontend/.env
+    environment:
+      - API_INTERNAL_URL=http://api:4000/api/v1
     ports:
       - "3000:3000"
     depends_on:

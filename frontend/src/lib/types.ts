@@ -11,7 +11,7 @@ export interface User {
 
 export type ProductCategory = 'workflow' | 'script' | 'code' | 'agentic'
 
-export type ProductStatus = 'pending' | 'approved' | 'rejected'
+export type ProductStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface Product {
   id: string
@@ -46,14 +46,13 @@ export interface Product {
 
 export interface License {
   id: string
-  userId: string
   productId: string
   licenseKey: string
   isActive: boolean
   expiresAt: string | null
   createdAt: string
-  updatedAt?: string
-  product?: Product
+  productName: string
+  productNameAr: string | null
 }
 
 export interface Order {
@@ -64,11 +63,23 @@ export interface Order {
   commissionPercent: number // e.g. 10
   commissionAmount: number // integer cents (platform fee)
   sellerAmount: number // integer cents (seller net payout)
-  status: string
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
   paymentGateway?: string
   createdAt: string
   updatedAt?: string
   product?: Product
+}
+
+export interface SellerSale {
+  orderId: string
+  productId: string
+  productName: string
+  productNameAr?: string | null
+  amount: number
+  commissionPercent: number
+  commissionAmount: number
+  sellerAmount: number
+  createdAt: string
 }
 
 export interface MarketplaceInsights {

@@ -79,6 +79,8 @@ export default function Navbar({ locale, dict }: NavbarProps) {
   return (
     <>
       <nav
+        lang={locale}
+        dir={isAr ? 'rtl' : 'ltr'}
         className={`fixed top-0 inset-x-0 z-40 transition-all duration-250 ${
           scrolled
             ? 'bg-[#080b10]/90 backdrop-blur-md border-b border-[var(--line)] shadow-xl'

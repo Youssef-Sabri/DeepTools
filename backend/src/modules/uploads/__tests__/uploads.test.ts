@@ -174,6 +174,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         sellerId: mockUser.id,
         name: "Rejected Product",
         description: "Old description here",
+        category: "workflow",
         status: "REJECTED",
         rejectionNote: "Fix the docs",
       });
@@ -183,6 +184,7 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         sellerId: mockUser.id,
         name: "Fixed Product",
         description: "Updated description here",
+        category: "code",
         status: "PENDING",
         rejectionNote: null,
       });
@@ -191,9 +193,14 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         .put("/api/v1/uploads/mine/20000000-0000-4000-8000-000000000001")
         .set("Authorization", `Bearer ${userToken}`)
         .field("name", "Fixed Product")
-        .field("description", "Updated description here");
+        .field("description", "Updated description here")
+        .field("category", "code");
 
       expect(res.status).toBe(200);
+      expect(prisma.product.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ category: "code" }),
+      }));
+      expect(res.body.data.category).toBe("code");
       expect(res.body.data.status).toBe("PENDING");
       expect(res.body.data.rejectionNote).toBeNull();
     });

@@ -17,16 +17,14 @@ interface RegisterCredentials {
 
 interface AuthResponseData {
   user: User
-  token: string
 }
 
 interface AuthContextType {
   user: User | null
-  token: string | null
   loading: boolean
   login: (credentials: AuthCredentials) => Promise<User>
   register: (credentials: RegisterCredentials) => Promise<User>
-  logout: () => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -34,58 +32,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const logout = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token')
+  const logout = useCallback(async () => {
+    try {
+      await fetchApi('/auth/logout', { method: 'POST' })
+    } catch {
+      window.alert('Could not sign out. Please retry.')
+      return
     }
-    setToken(null)
     setUser(null)
   }, [])
 
   const refreshUser = useCallback(async () => {
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    if (!storedToken) {
-      setUser(null)
-      setToken(null)
-      return
-    }
     try {
-      const profile = await fetchApi<User>('/users/me', { token: storedToken })
+      const profile = await fetchApi<User>('/users/me')
       setUser(profile)
-      setToken(storedToken)
     } catch {
-      logout()
+      setUser(null)
     }
-  }, [logout])
+  }, [])
 
   useEffect(() => {
     let isMounted = true
 
     async function initAuth() {
-      const storedToken = localStorage.getItem('token')
-      if (storedToken) {
-        setToken(storedToken)
-        try {
-          const profile = await fetchApi<User>('/users/me', { token: storedToken })
-          if (isMounted) setUser(profile)
-        } catch {
-          if (isMounted) {
-            localStorage.removeItem('token')
-            setToken(null)
-            setUser(null)
-          }
-        }
-      }
+      localStorage.removeItem('token')
+      try {
+        const profile = await fetchApi<User>('/users/me')
+        if (isMounted) setUser(profile)
+      } catch { if (isMounted) setUser(null) }
       if (isMounted) setLoading(false)
     }
 
     initAuth()
 
     const handleUnauthorized = () => {
-      logout()
+      setUser(null)
     }
     window.addEventListener('auth:unauthorized', handleUnauthorized)
 
@@ -93,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted = false
       window.removeEventListener('auth:unauthorized', handleUnauthorized)
     }
-  }, [logout])
+  }, [])
 
   const login = async (credentials: AuthCredentials): Promise<User> => {
     setLoading(true)
@@ -102,8 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: JSON.stringify(credentials),
       })
-      localStorage.setItem('token', data.token)
-      setToken(data.token)
       setUser(data.user)
       return data.user
     } finally {
@@ -118,8 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         body: JSON.stringify(credentials),
       })
-      localStorage.setItem('token', data.token)
-      setToken(data.token)
       setUser(data.user)
       return data.user
     } finally {
@@ -128,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

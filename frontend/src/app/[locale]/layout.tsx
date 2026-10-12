@@ -42,7 +42,8 @@ export default async function LocaleLayout({
     <html
       lang={validLocale}
       dir={direction}
-      className={`${inter.variable} ${cairo.variable} antialiased`}
+      translate="no"
+      className={`${inter.variable} ${cairo.variable} antialiased notranslate`}
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-background text-foreground">

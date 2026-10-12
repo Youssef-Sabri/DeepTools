@@ -241,7 +241,7 @@ export default function AdminPage() {
         {/* Tab Selector */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
           {[
-            { id: 'uploads', label: 'Moderation Review Queue', icon: CheckCircle, badge: uploads.filter(u => u.status === 'pending').length },
+            { id: 'uploads', label: 'Moderation Review Queue', icon: CheckCircle, badge: uploads.filter(u => u.status === 'PENDING').length },
             { id: 'users', label: 'User Directory & Roles', icon: Users },
             { id: 'commission', label: 'Platform Commission %', icon: Percent },
             { id: 'insights', label: 'Marketplace Insights', icon: TrendingUp },
@@ -325,9 +325,9 @@ export default function AdminPage() {
                           </td>
                           <td className="px-4 py-3 font-mono">
                             <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-semibold ${
-                              item.status === 'approved'
+                              item.status === 'APPROVED'
                                 ? 'bg-[var(--green)]/15 text-[var(--green)] border border-[var(--green)]/30'
-                                : item.status === 'pending'
+                                : item.status === 'PENDING'
                                 ? 'bg-[var(--orange)]/15 text-[var(--orange)] border border-[var(--orange)]/30'
                                 : 'bg-[var(--rose)]/15 text-[var(--rose)] border border-[var(--rose)]/30'
                             }`}>
@@ -338,7 +338,7 @@ export default function AdminPage() {
                             {formatDate(item.createdAt)}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {item.status === 'pending' ? (
+                            {item.status === 'PENDING' ? (
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => handleApprove(item.id)}
