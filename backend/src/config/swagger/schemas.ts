@@ -183,91 +183,6 @@ export const ChangePasswordInputDocs = registry.register(
   }),
 );
 
-// 3. Template Schemas
-export const CreateTemplateInputDocs = registry.register(
-  "CreateTemplateInput",
-  z
-    .object({
-      name: z.string().min(3),
-      description: z.string().min(10),
-      category: z.string(),
-      price: z.number().int().min(0),
-      compatibility: z.array(z.string()).default([]),
-    })
-    .openapi({
-      description: "Template creation payload with bilingual metadata",
-    }),
-);
-
-export const UpdateTemplateInputDocs = registry.register(
-  "UpdateTemplateInput",
-  z
-    .object({
-      name: z.string().min(3).optional(),
-      description: z.string().min(10).optional(),
-      price: z.number().int().min(0).optional(),
-    })
-    .openapi({
-      description: "Template update payload (partial)",
-    }),
-);
-
-export const TemplateSchema = registry.register(
-  "Template",
-  z.object({
-    id: z
-      .string()
-      .uuid()
-      .openapi({ example: "a9101234-bd01-4f05-8b0d-85a15af96810" }),
-    name: z.string().openapi({ example: "Database Auto-Tuning" }),
-    nameAr: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: "الضبط التلقائي لقواعد البيانات" }),
-    description: z.string().openapi({
-      example: "Automated index recommendation and buffer pool optimization.",
-    }),
-    descriptionAr: z.string().nullable().optional().openapi({
-      example: "توليد توصيات الفهارس الذكية وضبط الذاكرة المؤقتة تلقائياً.",
-    }),
-    category: z.string().openapi({ example: "database" }),
-    compatibility: z
-      .array(z.string())
-      .openapi({ example: ["PostgreSQL", "MySQL"] }),
-    price: z.number().int().openapi({ example: 1900 }),
-    downloadsCount: z.number().int().openapi({ example: 420 }),
-    isPremium: z.boolean().openapi({ example: false }),
-    badge: z.string().nullable().optional().openapi({ example: "Popular" }),
-    badgeAr: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: "الأكثر طلباً" }),
-    displayName: z
-      .string()
-      .optional()
-      .openapi({ example: "Database Auto-Tuning" }),
-    displayDescription: z
-      .string()
-      .optional()
-      .openapi({ example: "Automated index recommendation..." }),
-    displayBadge: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: "Popular" }),
-    createdAt: z
-      .string()
-      .datetime()
-      .openapi({ example: "2026-10-08T10:00:00.000Z" }),
-    updatedAt: z
-      .string()
-      .datetime()
-      .openapi({ example: "2026-10-08T10:00:00.000Z" }),
-  }),
-);
-
 // 4. Admin Schemas
 export const ToggleLicenseInputDocs = registry.register(
   "ToggleLicenseInput",
@@ -337,16 +252,6 @@ export const UserLicenseSchema = registry.register(
     productName: z.string().openapi({ example: "QueryOptimizer AI" }),
     productNameAr: z.string().nullable().optional(),
     downloadUrl: z.string().nullable().optional(),
-  }),
-);
-
-export const TemplateDownloadResponseSchema = registry.register(
-  "TemplateDownloadResponse",
-  z.object({
-    message: z
-      .string()
-      .openapi({ example: "Download registered successfully" }),
-    downloadUrl: z.string().openapi({ example: "#" }),
   }),
 );
 

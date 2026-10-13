@@ -14,9 +14,6 @@ CREATE TYPE "ProductStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 -- CreateEnum
 CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED', 'FAILED');
 
--- CreateEnum
-CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'CANCELLED', 'EXPIRED');
-
 -- DropForeignKey
 ALTER TABLE "licenses" DROP CONSTRAINT "licenses_product_id_fkey";
 
@@ -42,14 +39,9 @@ ADD COLUMN     "deleted_at" TIMESTAMP(3),
 DROP COLUMN "status",
 ADD COLUMN     "status" "ProductStatus" NOT NULL DEFAULT 'PENDING';
 
--- AlterTable
-ALTER TABLE "subscriptions" DROP COLUMN "status",
-ADD COLUMN     "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE';
-
--- AlterTable
-ALTER TABLE "templates" DROP COLUMN "download_url",
-ADD COLUMN     "deleted_at" TIMESTAMP(3),
-ADD COLUMN     "file_key" TEXT;
+-- Drop Orphan Tables
+DROP TABLE IF EXISTS "subscriptions" CASCADE;
+DROP TABLE IF EXISTS "templates" CASCADE;
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "deleted_at" TIMESTAMP(3);
@@ -59,9 +51,6 @@ CREATE INDEX "products_status_idx" ON "products"("status");
 
 -- AddForeignKey
 ALTER TABLE "products" ADD CONSTRAINT "products_seller_id_fkey" FOREIGN KEY ("seller_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "licenses" ADD CONSTRAINT "licenses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
