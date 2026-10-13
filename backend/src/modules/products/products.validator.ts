@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { paginationFields, paginationDepthError, withinPaginationDepth } from "../../middleware/requestBounds";
+import {
+  paginationFields,
+  paginationDepthError,
+  withinPaginationDepth,
+} from "../../middleware/requestBounds";
 
 export const productCategoryEnum = z.enum([
   "workflow",
@@ -8,17 +12,19 @@ export const productCategoryEnum = z.enum([
   "agentic",
 ]);
 
-export const listPublicProductsQuerySchema = z.object({
-  page: paginationFields.page,
-  limit: paginationFields.limit.default(20),
-  category: z
-    .enum(["workflow", "script", "code", "agentic"])
-    .or(z.string().max(50))
-    .optional(),
-  search: z.string().max(100).optional(),
-  sort: z.enum(["newest", "priceAsc", "priceDesc"]).default("newest"),
-  lang: z.enum(["en", "ar"]).default("en").optional(),
-}).refine(withinPaginationDepth, paginationDepthError);
+export const listPublicProductsQuerySchema = z
+  .object({
+    page: paginationFields.page,
+    limit: paginationFields.limit.default(20),
+    category: z
+      .enum(["workflow", "script", "code", "agentic"])
+      .or(z.string().max(50))
+      .optional(),
+    search: z.string().max(100).optional(),
+    sort: z.enum(["newest", "priceAsc", "priceDesc"]).default("newest"),
+    lang: z.enum(["en", "ar"]).default("en").optional(),
+  })
+  .refine(withinPaginationDepth, paginationDepthError);
 
 export const getPublicProductQuerySchema = z.object({
   lang: z.enum(["en", "ar"]).optional(),

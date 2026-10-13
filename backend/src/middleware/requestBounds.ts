@@ -5,8 +5,10 @@ export const paginationFields = {
   limit: z.coerce.number().int().positive().max(100),
 };
 
-export const withinPaginationDepth = (query: { page: number; limit: number }): boolean =>
-  (query.page - 1) * query.limit <= 10_000;
+export const withinPaginationDepth = (query: {
+  page: number;
+  limit: number;
+}): boolean => (query.page - 1) * query.limit <= 10_000;
 
 export const paginationDepthError = {
   message: "Pagination depth cannot exceed 10,000 records",

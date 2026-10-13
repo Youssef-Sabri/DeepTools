@@ -60,7 +60,10 @@ export class ProductsService {
     private readonly storage: LocalStorageService = storageService,
   ) {}
 
-  private formatPublicProduct(p: ProductWithSeller, lang?: string): PublicProduct {
+  private formatPublicProduct(
+    p: ProductWithSeller,
+    lang?: string,
+  ): PublicProduct {
     const isAr = lang?.toLowerCase().startsWith("ar");
     return {
       id: p.id,
@@ -74,7 +77,8 @@ export class ProductsService {
       badge: p.badge,
       badgeAr: p.badgeAr,
       displayName: isAr && p.nameAr ? p.nameAr : p.name,
-      displayDescription: isAr && p.descriptionAr ? p.descriptionAr : p.description,
+      displayDescription:
+        isAr && p.descriptionAr ? p.descriptionAr : p.description,
       displayBadge: isAr && p.badgeAr ? p.badgeAr : p.badge,
       sellerId: p.sellerId,
       sellerName: p.seller?.name || "Verified Seller",
@@ -83,7 +87,9 @@ export class ProductsService {
     };
   }
 
-  async findAll(query: ListPublicProductsQuery = { page: 1, limit: 20, sort: "newest" }): Promise<PaginatedPublicProducts> {
+  async findAll(
+    query: ListPublicProductsQuery = { page: 1, limit: 20, sort: "newest" },
+  ): Promise<PaginatedPublicProducts> {
     const page = query.page || 1;
     const limit = query.limit || 20;
 
@@ -105,9 +111,16 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: string, lang?: string, status: ProductStatus = ProductStatus.APPROVED): Promise<PublicProduct> {
+  async findOne(
+    id: string,
+    lang?: string,
+    status: ProductStatus = ProductStatus.APPROVED,
+  ): Promise<PublicProduct> {
     const product = await this.repo.findById(id, status);
-    if (!product || (status === ProductStatus.APPROVED && !product.approvedFileKey)) {
+    if (
+      !product ||
+      (status === ProductStatus.APPROVED && !product.approvedFileKey)
+    ) {
       throw new NotFoundError("Product not found");
     }
     return this.formatPublicProduct(product, lang);
@@ -156,11 +169,17 @@ export class ProductsService {
       throw new ConflictError("You already own a license for this product");
     }
 
-    if (!product.approvedFileKey) throw new ConflictError("Product has no approved file");
+    if (!product.approvedFileKey)
+      throw new ConflictError("Product has no approved file");
     try {
       const file = await this.storage.stat(product.approvedFileKey);
-      if (product.fileSize !== null && file.size !== product.fileSize) throw new Error("File size mismatch");
-      if (product.approvedFileMime && file.mimeType !== product.approvedFileMime) throw new Error("File type mismatch");
+      if (product.fileSize !== null && file.size !== product.fileSize)
+        throw new Error("File size mismatch");
+      if (
+        product.approvedFileMime &&
+        file.mimeType !== product.approvedFileMime
+      )
+        throw new Error("File type mismatch");
     } catch {
       throw new ConflictError("Approved product file is unavailable");
     }
@@ -182,11 +201,17 @@ export class ProductsService {
     };
   }
 
-  async downloadProduct(userId: string, productId: string, res: Response, headOnly = false): Promise<void> {
+  async downloadProduct(
+    userId: string,
+    productId: string,
+    res: Response,
+    headOnly = false,
+  ): Promise<void> {
     const ownedProduct = await this.repo.findById(productId, "");
     if (ownedProduct?.sellerId === userId) {
       const ownFileKey = ownedProduct.fileKey;
-      if (!ownFileKey) throw new InternalServerError("Product file is unavailable");
+      if (!ownFileKey)
+        throw new InternalServerError("Product file is unavailable");
       try {
         const resolvedPath = this.storage.resolveKeyPath(ownFileKey);
         await fs.promises.access(resolvedPath, fs.constants.R_OK);
@@ -195,16 +220,27 @@ export class ProductsService {
       }
       const ext = path.extname(ownFileKey) || "";
       const safeName = ownedProduct.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeName}${ext}"`);
-      res.setHeader("Content-Type", ownedProduct.fileMime || "application/octet-stream");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${safeName}${ext}"`,
+      );
+      res.setHeader(
+        "Content-Type",
+        ownedProduct.fileMime || "application/octet-stream",
+      );
       res.setHeader("Cache-Control", "private, no-store");
-      if (headOnly) { res.status(200).end(); return; }
+      if (headOnly) {
+        res.status(200).end();
+        return;
+      }
       await this.storage.stream(ownFileKey, res);
       return;
     }
     const license = await this.repo.findLicense(userId, productId);
     if (!license) {
-      throw new ForbiddenError("You do not have a license to download this product");
+      throw new ForbiddenError(
+        "You do not have a license to download this product",
+      );
     }
 
     if (!license.isActive) {
@@ -225,7 +261,10 @@ export class ProductsService {
       const resolvedPath = this.storage.resolveKeyPath(fileKey);
       await fs.promises.access(resolvedPath, fs.constants.R_OK);
     } catch (err) {
-      console.error(`[DownloadError] Product ${productId} references a missing file`, err);
+      console.error(
+        `[DownloadError] Product ${productId} references a missing file`,
+        err,
+      );
       throw new InternalServerError("File storage error: file missing on disk");
     }
 
@@ -234,10 +273,18 @@ export class ProductsService {
     const filename = `${safeName}${ext}`;
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", license.fileMime || product.approvedFileMime || "application/octet-stream");
+    res.setHeader(
+      "Content-Type",
+      license.fileMime ||
+        product.approvedFileMime ||
+        "application/octet-stream",
+    );
     res.setHeader("Cache-Control", "private, no-store");
 
-    if (headOnly) { res.status(200).end(); return; }
+    if (headOnly) {
+      res.status(200).end();
+      return;
+    }
     await this.storage.stream(fileKey, res);
   }
 

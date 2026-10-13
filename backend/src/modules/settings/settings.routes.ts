@@ -4,7 +4,7 @@ import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import { validateBody } from "../../middleware/validation.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { updateCommissionSchema } from "./settings.validator";
-import { Role } from "@prisma/client"; 
+import { Role } from "@prisma/client";
 
 const router = Router();
 

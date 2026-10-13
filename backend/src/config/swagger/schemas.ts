@@ -234,7 +234,9 @@ export const OrderSchema = registry.register(
 export const PurchaseResponseSchema = registry.register(
   "PurchaseResponse",
   z.object({
-    message: z.string().openapi({ example: "Order pending payment verification" }),
+    message: z
+      .string()
+      .openapi({ example: "Order pending payment verification" }),
     product: ProductSchema,
     order: OrderSchema,
   }),

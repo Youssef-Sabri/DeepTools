@@ -18,23 +18,25 @@ export class ProductsRepository {
 
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
-      ...(status !== "all" ? { status: status as ProductStatus } : {}),
-      ...(status === ProductStatus.APPROVED ? { approvedFileKey: { not: null } } : {}),
+      ...(status !== "all" ? { status: status } : {}),
+      ...(status === ProductStatus.APPROVED
+        ? { approvedFileKey: { not: null } }
+        : {}),
       ...(params?.category ? { category: params.category } : {}),
       ...(params?.search
         ? {
-          OR: [
-            { name: { contains: params.search, mode: "insensitive" } },
-            { nameAr: { contains: params.search, mode: "insensitive" } },
-            { description: { contains: params.search, mode: "insensitive" } },
-            {
-              descriptionAr: {
-                contains: params.search,
-                mode: "insensitive",
+            OR: [
+              { name: { contains: params.search, mode: "insensitive" } },
+              { nameAr: { contains: params.search, mode: "insensitive" } },
+              { description: { contains: params.search, mode: "insensitive" } },
+              {
+                descriptionAr: {
+                  contains: params.search,
+                  mode: "insensitive",
+                },
               },
-            },
-          ],
-        }
+            ],
+          }
         : {}),
     };
 
@@ -43,7 +45,12 @@ export class ProductsRepository {
         where,
         skip,
         take: limit,
-        orderBy: params?.sort === "priceAsc" ? [{ price: "asc" }, { id: "asc" }] : params?.sort === "priceDesc" ? [{ price: "desc" }, { id: "asc" }] : [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy:
+          params?.sort === "priceAsc"
+            ? [{ price: "asc" }, { id: "asc" }]
+            : params?.sort === "priceDesc"
+              ? [{ price: "desc" }, { id: "asc" }]
+              : [{ createdAt: "desc" }, { id: "desc" }],
         include: {
           seller: {
             select: { id: true, name: true },
@@ -61,7 +68,7 @@ export class ProductsRepository {
       where: {
         id,
         deletedAt: null,
-        ...(status ? { status: status as ProductStatus } : {}),
+        ...(status ? { status: status } : {}),
       },
       include: {
         seller: {
@@ -91,19 +98,22 @@ export class ProductsRepository {
     return prisma.product.create({ data });
   }
 
-  async update(id: string, data: Partial<{
-    name: string;
-    nameAr?: string | null;
-    description: string;
-    descriptionAr?: string | null;
-    category: string;
-    price: number;
-    version?: string;
-    fileKey?: string;
-    badge?: string | null;
-    badgeAr?: string | null;
-    status?: ProductStatus;
-  }>) {
+  async update(
+    id: string,
+    data: Partial<{
+      name: string;
+      nameAr?: string | null;
+      description: string;
+      descriptionAr?: string | null;
+      category: string;
+      price: number;
+      version?: string;
+      fileKey?: string;
+      badge?: string | null;
+      badgeAr?: string | null;
+      status?: ProductStatus;
+    }>,
+  ) {
     return prisma.product.update({ where: { id }, data });
   }
 
@@ -111,7 +121,7 @@ export class ProductsRepository {
     // التعديل: تحويل الحذف النهائي لحذف وهمي
     await prisma.product.update({
       where: { id },
-      data: { deletedAt: new Date() }
+      data: { deletedAt: new Date() },
     });
   }
 
@@ -130,32 +140,47 @@ export class ProductsRepository {
     currency: string;
   }) {
     const pendingKey = `${data.userId}:${data.productId}`;
-    try { return await prisma.$transaction(async (tx) => {
-      const existing = await tx.order.findUnique({ where: { pendingKey } });
-      if (existing) return existing;
-      const product = await tx.product.findFirst({
-        where: { id: data.productId, status: ProductStatus.APPROVED, deletedAt: null, approvedFileKey: { not: null } },
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const existing = await tx.order.findUnique({ where: { pendingKey } });
+        if (existing) return existing;
+        const product = await tx.product.findFirst({
+          where: {
+            id: data.productId,
+            status: ProductStatus.APPROVED,
+            deletedAt: null,
+            approvedFileKey: { not: null },
+          },
+        });
+        if (!product || !product.approvedFileKey) return null;
+        const { commissionAmount, sellerAmount } = splitCommission(
+          product.price,
+          data.commissionPercent,
+        );
+        return tx.order.create({
+          data: {
+            userId: data.userId,
+            productId: product.id,
+            sellerId: product.sellerId,
+            productName: product.name,
+            fileKey: product.approvedFileKey,
+            fileMime: product.approvedFileMime,
+            pendingKey,
+            amount: product.price,
+            commissionPercent: data.commissionPercent,
+            commissionAmount,
+            sellerAmount,
+            status: OrderStatus.PENDING,
+            paymentGateway: data.gateway,
+            currency: data.currency,
+          },
+        });
       });
-      if (!product || !product.approvedFileKey) return null;
-      const { commissionAmount, sellerAmount } = splitCommission(product.price, data.commissionPercent);
-      return tx.order.create({ data: {
-        userId: data.userId,
-        productId: product.id,
-        sellerId: product.sellerId,
-        productName: product.name,
-        fileKey: product.approvedFileKey,
-        fileMime: product.approvedFileMime,
-        pendingKey,
-        amount: product.price,
-        commissionPercent: data.commissionPercent,
-        commissionAmount,
-        sellerAmount,
-        status: OrderStatus.PENDING,
-        paymentGateway: data.gateway,
-        currency: data.currency,
-      } });
-    }); } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
         return prisma.order.findUnique({ where: { pendingKey } });
       }
       throw error;

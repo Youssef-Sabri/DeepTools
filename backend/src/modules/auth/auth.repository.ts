@@ -70,10 +70,20 @@ export class AuthRepository {
     });
   }
 
-  async consumeResetTokenAndUpdatePassword(tokenId: string, userId: string, tokenVersion: number, passwordHash: string): Promise<boolean> {
+  async consumeResetTokenAndUpdatePassword(
+    tokenId: string,
+    userId: string,
+    tokenVersion: number,
+    passwordHash: string,
+  ): Promise<boolean> {
     return prisma.$transaction(async (tx) => {
       const claimed = await tx.passwordResetToken.updateMany({
-        where: { id: tokenId, userId, isUsed: false, expiresAt: { gt: new Date() } },
+        where: {
+          id: tokenId,
+          userId,
+          isUsed: false,
+          expiresAt: { gt: new Date() },
+        },
         data: { isUsed: true },
       });
       if (claimed.count !== 1) return false;
@@ -82,7 +92,10 @@ export class AuthRepository {
         data: { passwordHash, tokenVersion: { increment: 1 } },
       });
       if (updated.count !== 1) return false;
-      await tx.passwordResetToken.updateMany({ where: { userId, isUsed: false }, data: { isUsed: true } });
+      await tx.passwordResetToken.updateMany({
+        where: { userId, isUsed: false },
+        data: { isUsed: true },
+      });
       return true;
     });
   }

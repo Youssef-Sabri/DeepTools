@@ -45,18 +45,39 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     (prisma.product.count as jest.Mock).mockResolvedValue(0);
     const res = await request(app).get("/api/v1/products?sort=priceAsc");
     expect(res.status).toBe(200);
-    expect(prisma.product.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ status: "APPROVED", deletedAt: null, approvedFileKey: { not: null } }),
-      orderBy: [{ price: "asc" }, { id: "asc" }],
-    }));
+    expect(prisma.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "APPROVED",
+          deletedAt: null,
+          approvedFileKey: { not: null },
+        }),
+        orderBy: [{ price: "asc" }, { id: "asc" }],
+      }),
+    );
   });
 
   it("rejects invalid UUIDs and excessive catalog searches before database access", async () => {
-    expect((await request(app).get("/api/v1/products/not-a-uuid")).status).toBe(422);
-    expect((await request(app).get("/api/v1/products?page=201")).status).toBe(422);
-    expect((await request(app).get("/api/v1/products?page=102&limit=100")).status).toBe(422);
-    expect((await request(app).get(`/api/v1/products?search=${"a".repeat(101)}`)).status).toBe(422);
-    expect((await request(app).get("/api/v1/products/10000000-0000-4000-8000-000000000100?lang=xx")).status).toBe(422);
+    expect((await request(app).get("/api/v1/products/not-a-uuid")).status).toBe(
+      422,
+    );
+    expect((await request(app).get("/api/v1/products?page=201")).status).toBe(
+      422,
+    );
+    expect(
+      (await request(app).get("/api/v1/products?page=102&limit=100")).status,
+    ).toBe(422);
+    expect(
+      (await request(app).get(`/api/v1/products?search=${"a".repeat(101)}`))
+        .status,
+    ).toBe(422);
+    expect(
+      (
+        await request(app).get(
+          "/api/v1/products/10000000-0000-4000-8000-000000000100?lang=xx",
+        )
+      ).status,
+    ).toBe(422);
     expect(prisma.product.findFirst).not.toHaveBeenCalled();
     expect(prisma.product.findMany).not.toHaveBeenCalled();
   });
@@ -82,7 +103,10 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/zip" });
+    (storageService.stat as jest.Mock).mockResolvedValue({
+      size: 2048,
+      mimeType: "application/zip",
+    });
 
     (prisma.user.findUnique as jest.Mock).mockImplementation(({ where }) => {
       if (where.id === mockBuyer.id) return Promise.resolve(mockBuyer);
@@ -118,7 +142,10 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
       const tx = {
         product: { findFirst: jest.fn().mockResolvedValue(approvedProduct) },
-        order: { findUnique: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue(createdOrder) },
+        order: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue(createdOrder),
+        },
       };
       return callback(tx);
     });

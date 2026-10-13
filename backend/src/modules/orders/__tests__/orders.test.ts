@@ -46,7 +46,8 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
   });
 
   it("rejects pagination beyond the allowed depth", async () => {
-    const res = await request(app).get("/api/v1/orders/mine?page=201")
+    const res = await request(app)
+      .get("/api/v1/orders/mine?page=201")
       .set("Authorization", `Bearer ${buyerToken}`);
     expect(res.status).toBe(422);
     expect(prisma.order.findMany).not.toHaveBeenCalled();
@@ -85,7 +86,9 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
   describe("GET /api/v1/orders/sales", () => {
     it("returns seller sales and accurately computes totalSellerEarnings", async () => {
       (prisma.order.count as jest.Mock).mockResolvedValue(2);
-      (prisma.order.aggregate as jest.Mock).mockResolvedValue({ _sum: { amount: 5900, sellerAmount: 5310 } });
+      (prisma.order.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: 5900, sellerAmount: 5310 },
+      });
       (prisma.order.findMany as jest.Mock).mockResolvedValue([
         {
           id: "ord-1",
@@ -177,7 +180,9 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
         totalSellerPayouts: 1503000,
       });
       expect(res.body.data.sellers.total).toBe(28);
-      expect(prisma.user.count).toHaveBeenCalledWith({ where: { sellerProducts: { some: {} } } });
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: { sellerProducts: { some: {} } },
+      });
       expect(prisma.product.groupBy).not.toHaveBeenCalled();
       expect(res.body.data.topProducts).toHaveLength(2);
       expect(res.body.data.topProducts[0].salesCount).toBe(45);

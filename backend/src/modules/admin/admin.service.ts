@@ -113,12 +113,23 @@ export class AdminService {
   async approveUpload(adminId: string, id: string) {
     const upload = await this.findUploadById(id);
 
-    if (upload.status !== ProductStatus.PENDING) throw new ConflictError("Only pending products can be approved");
-    if (!upload.fileKey || !upload.fileSize || !upload.fileMime || !upload.fileChecksum) throw new ConflictError("Product has no valid uploaded file");
+    if (upload.status !== ProductStatus.PENDING)
+      throw new ConflictError("Only pending products can be approved");
+    if (
+      !upload.fileKey ||
+      !upload.fileSize ||
+      !upload.fileMime ||
+      !upload.fileChecksum
+    )
+      throw new ConflictError("Product has no valid uploaded file");
     try {
       const file = await storageService.stat(upload.fileKey);
-      if (file.size !== upload.fileSize || file.mimeType !== upload.fileMime) throw new Error("File metadata mismatch");
-      if (await storageService.checksum(upload.fileKey) !== upload.fileChecksum) throw new Error("File checksum mismatch");
+      if (file.size !== upload.fileSize || file.mimeType !== upload.fileMime)
+        throw new Error("File metadata mismatch");
+      if (
+        (await storageService.checksum(upload.fileKey)) !== upload.fileChecksum
+      )
+        throw new Error("File checksum mismatch");
     } catch {
       throw new ConflictError("Uploaded file is unavailable or invalid");
     }
@@ -133,7 +144,9 @@ export class AdminService {
     if (!updated) throw new ConflictError("Product changed during review");
     if (upload.approvedFileKey && upload.approvedFileKey !== upload.fileKey) {
       try {
-        if (!(await uploadsRepository.isFileReferenced(upload.approvedFileKey))) {
+        if (
+          !(await uploadsRepository.isFileReferenced(upload.approvedFileKey))
+        ) {
           await storageService.delete(upload.approvedFileKey);
         }
       } catch (error) {
@@ -157,7 +170,8 @@ export class AdminService {
   async rejectUpload(adminId: string, id: string, rejectionNote: string) {
     const upload = await this.findUploadById(id);
 
-    if (upload.status !== ProductStatus.PENDING) throw new ConflictError("Only pending products can be rejected");
+    if (upload.status !== ProductStatus.PENDING)
+      throw new ConflictError("Only pending products can be rejected");
 
     const updated = await this.repo.updateUploadReview(id, upload.updatedAt, {
       status: ProductStatus.REJECTED,

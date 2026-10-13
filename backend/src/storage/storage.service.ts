@@ -112,7 +112,10 @@ export class LocalStorageService implements StorageService {
 
     if (!isBinary) {
       try {
-        const textChunk = buffer.subarray(0, scanLimit).toString("utf-8").trimStart();
+        const textChunk = buffer
+          .subarray(0, scanLimit)
+          .toString("utf-8")
+          .trimStart();
 
         if (
           extFromOriginal === ".json" &&
@@ -202,44 +205,70 @@ export class LocalStorageService implements StorageService {
     }
 
     switch (mimeType) {
-      case "application/pdf": return ".pdf";
+      case "application/pdf":
+        return ".pdf";
       case "application/zip":
-      case "application/x-zip-compressed": return ".zip";
-      case "application/x-tar": return ".tar";
+      case "application/x-zip-compressed":
+        return ".zip";
+      case "application/x-tar":
+        return ".tar";
       case "application/gzip":
-      case "application/x-gzip": return ".gz";
-      case "application/json": return ".json";
-      case "application/typescript": return ".ts";
+      case "application/x-gzip":
+        return ".gz";
+      case "application/json":
+        return ".json";
+      case "application/typescript":
+        return ".ts";
       case "text/javascript":
-      case "application/javascript": return ".js";
+      case "application/javascript":
+        return ".js";
       case "text/x-python":
-      case "application/x-python-code": return ".py";
+      case "application/x-python-code":
+        return ".py";
       case "text/x-shellscript":
-      case "application/x-sh": return ".sh";
+      case "application/x-sh":
+        return ".sh";
       case "text/yaml":
       case "application/yaml":
       case "application/x-yaml":
-      case "text/x-yaml": return ".yml";
+      case "text/x-yaml":
+        return ".yml";
       case "text/x-toml":
-      case "application/toml": return ".toml";
+      case "application/toml":
+        return ".toml";
       case "text/xml":
-      case "application/xml": return ".xml";
+      case "application/xml":
+        return ".xml";
       case "text/x-sql":
-      case "application/sql": return ".sql";
+      case "application/sql":
+        return ".sql";
       case "text/markdown":
-      case "text/x-markdown": return ".md";
-      case "text/html": return ".html";
-      case "text/css": return ".css";
-      case "text/csv": return ".csv";
-      case "text/x-go": return ".go";
-      case "text/x-rust": return ".rs";
-      case "text/x-java-source": return ".java";
-      case "text/x-c": return ".c";
-      case "text/x-c++": return ".cpp";
-      case "text/x-csharp": return ".cs";
-      case "text/x-ruby": return ".rb";
-      case "text/x-php": return ".php";
-      default: return ".txt";
+      case "text/x-markdown":
+        return ".md";
+      case "text/html":
+        return ".html";
+      case "text/css":
+        return ".css";
+      case "text/csv":
+        return ".csv";
+      case "text/x-go":
+        return ".go";
+      case "text/x-rust":
+        return ".rs";
+      case "text/x-java-source":
+        return ".java";
+      case "text/x-c":
+        return ".c";
+      case "text/x-c++":
+        return ".cpp";
+      case "text/x-csharp":
+        return ".cs";
+      case "text/x-ruby":
+        return ".rb";
+      case "text/x-php":
+        return ".php";
+      default:
+        return ".txt";
     }
   }
 
@@ -342,8 +371,8 @@ export class LocalStorageService implements StorageService {
       await fs.promises.writeFile(tempPath, buffer);
       await fs.promises.rename(tempPath, targetPath);
     } catch (error) {
-      await fs.promises.unlink(tempPath).catch(() => { });
-      await fs.promises.unlink(targetPath).catch(() => { });
+      await fs.promises.unlink(tempPath).catch(() => {});
+      await fs.promises.unlink(targetPath).catch(() => {});
       throw error;
     }
 

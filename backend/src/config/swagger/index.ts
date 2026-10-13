@@ -21,7 +21,10 @@ export const swaggerDocument = generator.generateDocument({
   ],
   tags: [
     { name: "Auth", description: "Authentication and profile management" },
-    { name: "Products", description: "AI agents, tools, scripts and workflows" },
+    {
+      name: "Products",
+      description: "AI agents, tools, scripts and workflows",
+    },
     {
       name: "Admin",
       description: "Administrative controls (requires admin role)",

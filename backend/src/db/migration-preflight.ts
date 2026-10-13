@@ -31,12 +31,17 @@ async function main() {
         `SELECT COUNT(*) AS count FROM "${table}"`,
       );
       if (rows[0].count > 0n) {
-        throw new Error(`Migration preflight stopped: ${table} contains data and the historical destructive migration is pending. Back up and migrate the old columns manually first.`);
+        throw new Error(
+          `Migration preflight stopped: ${table} contains data and the historical destructive migration is pending. Back up and migrate the old columns manually first.`,
+        );
       }
     }
   }
 
-  if ((await tableExists("licenses")) && !(await migrationApplied("20261012075124_add_license_unique_constraint"))) {
+  if (
+    (await tableExists("licenses")) &&
+    !(await migrationApplied("20261012075124_add_license_unique_constraint"))
+  ) {
     const duplicates = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*) AS count FROM (
         SELECT user_id, product_id FROM licenses
@@ -44,12 +49,18 @@ async function main() {
       ) AS duplicates
     `;
     if (duplicates[0].count > 0n) {
-      throw new Error("Migration preflight stopped: duplicate licenses exist. Audit and reconcile them before applying the unique constraint.");
+      throw new Error(
+        "Migration preflight stopped: duplicate licenses exist. Audit and reconcile them before applying the unique constraint.",
+      );
     }
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : "Migration preflight failed");
-  process.exitCode = 1;
-}).finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(
+      error instanceof Error ? error.message : "Migration preflight failed",
+    );
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

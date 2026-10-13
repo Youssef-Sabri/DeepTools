@@ -1,5 +1,5 @@
 import { prisma } from "../../config/database";
-import { ProductStatus, OrderStatus } from "@prisma/client"; 
+import { ProductStatus, OrderStatus } from "@prisma/client";
 
 export class AdminRepository {
   async findAllUsers() {
@@ -10,7 +10,7 @@ export class AdminRepository {
         email: true,
         role: true,
         createdAt: true,
-        deletedAt: true, 
+        deletedAt: true,
       },
     });
   }
@@ -24,7 +24,7 @@ export class AdminRepository {
   async deleteUser(id: string) {
     await prisma.user.update({
       where: { id },
-      data: { deletedAt: new Date() }
+      data: { deletedAt: new Date() },
     });
   }
 
@@ -60,9 +60,16 @@ export class AdminRepository {
     });
   }
 
-  async findAllUploads(params: { page: number; limit: number; status?: ProductStatus }) {
+  async findAllUploads(params: {
+    page: number;
+    limit: number;
+    status?: ProductStatus;
+  }) {
     const skip = (params.page - 1) * params.limit;
-    const where = { deletedAt: null, ...(params.status ? { status: params.status } : {}) };
+    const where = {
+      deletedAt: null,
+      ...(params.status ? { status: params.status } : {}),
+    };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
@@ -89,24 +96,41 @@ export class AdminRepository {
     });
   }
 
-  async updateUploadReview(id: string, expectedUpdatedAt: Date, data: {
-    status: ProductStatus;
-    rejectionNote: string | null;
-    reviewedAt: Date;
-    approvedFileKey?: string;
-    approvedFileMime?: string | null;
-  }) {
+  async updateUploadReview(
+    id: string,
+    expectedUpdatedAt: Date,
+    data: {
+      status: ProductStatus;
+      rejectionNote: string | null;
+      reviewedAt: Date;
+      approvedFileKey?: string;
+      approvedFileMime?: string | null;
+    },
+  ) {
     const claimed = await prisma.product.updateMany({
-      where: { id, status: ProductStatus.PENDING, deletedAt: null, updatedAt: expectedUpdatedAt },
+      where: {
+        id,
+        status: ProductStatus.PENDING,
+        deletedAt: null,
+        updatedAt: expectedUpdatedAt,
+      },
       data: {
         status: data.status,
         rejectionNote: data.rejectionNote,
         reviewedAt: data.reviewedAt,
-        ...(data.approvedFileKey ? { approvedFileKey: data.approvedFileKey, approvedFileMime: data.approvedFileMime } : {}),
+        ...(data.approvedFileKey
+          ? {
+              approvedFileKey: data.approvedFileKey,
+              approvedFileMime: data.approvedFileMime,
+            }
+          : {}),
       },
     });
     if (claimed.count !== 1) return null;
-    return prisma.product.findUnique({ where: { id }, include: { seller: { select: { id: true, name: true, email: true } } } });
+    return prisma.product.findUnique({
+      where: { id },
+      include: { seller: { select: { id: true, name: true, email: true } } },
+    });
   }
 
   async getMarketplaceInsights() {
@@ -126,7 +150,7 @@ export class AdminRepository {
       prisma.product.count({ where: { status: ProductStatus.REJECTED } }),
       prisma.order.aggregate({
         _sum: { amount: true, commissionAmount: true, sellerAmount: true },
-        where: { status: OrderStatus.COMPLETED } 
+        where: { status: OrderStatus.COMPLETED },
       }),
       prisma.order.count({ where: { status: OrderStatus.COMPLETED } }),
       prisma.user.count({ where: { sellerProducts: { some: {} } } }),
@@ -139,14 +163,17 @@ export class AdminRepository {
       }),
     ]);
 
-    const productIds = topProductOrders.map((t) => t.productId).filter((id): id is string => Boolean(id));
+    const productIds = topProductOrders
+      .map((t) => t.productId)
+      .filter((id): id is string => Boolean(id));
 
-    const products = productIds.length > 0
-      ? await prisma.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, name: true },
-      })
-      : [];
+    const products =
+      productIds.length > 0
+        ? await prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, name: true },
+          })
+        : [];
 
     const productMap = new Map(products.map((p) => [p.id, p.name]));
 

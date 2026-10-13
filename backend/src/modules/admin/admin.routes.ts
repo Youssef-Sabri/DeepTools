@@ -32,7 +32,11 @@ router.get(
 router.get("/insights/users", asyncHandler(adminController.getUsersInsights));
 
 // 3. User details by ID
-router.get("/users/:id", validateParams(uuidIdParamsSchema), asyncHandler(adminController.getUserById));
+router.get(
+  "/users/:id",
+  validateParams(uuidIdParamsSchema),
+  asyncHandler(adminController.getUserById),
+);
 
 // Uploads review queue & decisions
 router.get(
@@ -40,7 +44,11 @@ router.get(
   validateQuery(listAdminUploadsQuerySchema),
   asyncHandler(adminController.getUploads),
 );
-router.get("/uploads/:id", validateParams(uuidIdParamsSchema), asyncHandler(adminController.getUploadById));
+router.get(
+  "/uploads/:id",
+  validateParams(uuidIdParamsSchema),
+  asyncHandler(adminController.getUploadById),
+);
 router.patch(
   "/uploads/:id/approve",
   validateParams(uuidIdParamsSchema),

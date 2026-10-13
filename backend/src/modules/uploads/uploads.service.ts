@@ -50,23 +50,29 @@ export class UploadsService {
 
     try {
       const stored = await this.storage.stat(fileKey);
-      if (stored.size !== file.buffer.length) throw new ValidationError("Stored file size mismatch");
+      if (stored.size !== file.buffer.length)
+        throw new ValidationError("Stored file size mismatch");
       return await this.repo.create({
-      sellerId,
-      name: input.name,
-      nameAr: input.nameAr ?? null,
-      description: input.description,
-      descriptionAr: input.descriptionAr ?? null,
-      category: input.category,
-      price: input.price,
-      version: input.version || "1.0.0",
-      status: ProductStatus.PENDING, 
-      fileKey,
-      fileSize: stored.size,
-      fileMime: stored.mimeType,
-      fileChecksum,
-    }); } catch (error) {
-      await this.storage.delete(fileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+        sellerId,
+        name: input.name,
+        nameAr: input.nameAr ?? null,
+        description: input.description,
+        descriptionAr: input.descriptionAr ?? null,
+        category: input.category,
+        price: input.price,
+        version: input.version || "1.0.0",
+        status: ProductStatus.PENDING,
+        fileKey,
+        fileSize: stored.size,
+        fileMime: stored.mimeType,
+        fileChecksum,
+      });
+    } catch (error) {
+      await this.storage
+        .delete(fileKey)
+        .catch((cleanupError) =>
+          console.error("Upload cleanup failed", cleanupError),
+        );
       throw error;
     }
   }
@@ -131,14 +137,18 @@ export class UploadsService {
       );
       try {
         const stored = await this.storage.stat(newFileKey);
-        if (stored.size !== file.buffer.length) throw new ValidationError("Stored file size mismatch");
+        if (stored.size !== file.buffer.length)
+          throw new ValidationError("Stored file size mismatch");
         newFileSize = stored.size;
         newFileMime = stored.mimeType;
       } catch (error) {
-        await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+        await this.storage
+          .delete(newFileKey)
+          .catch((cleanupError) =>
+            console.error("Upload cleanup failed", cleanupError),
+          );
         throw error;
       }
-
     }
 
     const shouldResetToPending =
@@ -146,38 +156,52 @@ export class UploadsService {
       existing.status === ProductStatus.APPROVED ||
       file !== undefined;
 
-    const status = shouldResetToPending ? ProductStatus.PENDING : existing.status;
+    const status = shouldResetToPending
+      ? ProductStatus.PENDING
+      : existing.status;
     const rejectionNote = shouldResetToPending ? null : existing.rejectionNote;
     const reviewedAt = shouldResetToPending ? null : existing.reviewedAt;
 
     let updated: Product | null;
-    try { updated = await this.repo.update(id, sellerId, existing.updatedAt, {
-      ...(input.name ? { name: input.name } : {}),
-      ...(input.nameAr !== undefined ? { nameAr: input.nameAr } : {}),
-      ...(input.description ? { description: input.description } : {}),
-      ...(input.descriptionAr !== undefined
-        ? { descriptionAr: input.descriptionAr }
-        : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
-      ...(input.price !== undefined ? { price: input.price } : {}),
-      ...(input.version ? { version: input.version } : {}),
-      status,
-      rejectionNote,
-      reviewedAt,
-      ...(newFileKey
-        ? {
-            fileKey: newFileKey,
-            fileSize: newFileSize,
-            fileMime: newFileMime,
-            fileChecksum: newFileChecksum,
-          }
-        : {}),
-    }); } catch (error) {
-      if (newFileKey) await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+    try {
+      updated = await this.repo.update(id, sellerId, existing.updatedAt, {
+        ...(input.name ? { name: input.name } : {}),
+        ...(input.nameAr !== undefined ? { nameAr: input.nameAr } : {}),
+        ...(input.description ? { description: input.description } : {}),
+        ...(input.descriptionAr !== undefined
+          ? { descriptionAr: input.descriptionAr }
+          : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.price !== undefined ? { price: input.price } : {}),
+        ...(input.version ? { version: input.version } : {}),
+        status,
+        rejectionNote,
+        reviewedAt,
+        ...(newFileKey
+          ? {
+              fileKey: newFileKey,
+              fileSize: newFileSize,
+              fileMime: newFileMime,
+              fileChecksum: newFileChecksum,
+            }
+          : {}),
+      });
+    } catch (error) {
+      if (newFileKey)
+        await this.storage
+          .delete(newFileKey)
+          .catch((cleanupError) =>
+            console.error("Upload cleanup failed", cleanupError),
+          );
       throw error;
     }
     if (!updated) {
-      if (newFileKey) await this.storage.delete(newFileKey).catch((cleanupError) => console.error("Upload cleanup failed", cleanupError));
+      if (newFileKey)
+        await this.storage
+          .delete(newFileKey)
+          .catch((cleanupError) =>
+            console.error("Upload cleanup failed", cleanupError),
+          );
       throw new ConflictError("Upload changed; reload and try again");
     }
     if (newFileKey && existing.fileKey && existing.fileKey !== newFileKey) {
@@ -199,14 +223,19 @@ export class UploadsService {
     }
 
     const deleted = await this.repo.delete(id, sellerId, product.updatedAt);
-    if (!deleted) throw new ConflictError("Upload changed; reload and try again");
+    if (!deleted)
+      throw new ConflictError("Upload changed; reload and try again");
     if (product.fileKey) await this.deleteUnreferencedFile(product.fileKey);
     return { message: "Upload deleted successfully" };
   }
 
   private async deleteUnreferencedFile(key: string) {
     if (await this.repo.isFileReferenced(key)) return;
-    await this.storage.delete(key).catch((error) => console.error("Unreferenced file cleanup failed", error));
+    await this.storage
+      .delete(key)
+      .catch((error) =>
+        console.error("Unreferenced file cleanup failed", error),
+      );
   }
 }
 

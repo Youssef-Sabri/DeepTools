@@ -24,9 +24,9 @@ export class UploadsRepository {
 
   async findById(id: string): Promise<Product | null> {
     return prisma.product.findUnique({
-      where: { 
+      where: {
         id,
-        deletedAt: null
+        deletedAt: null,
       },
     });
   }
@@ -42,7 +42,7 @@ export class UploadsRepository {
     return prisma.product.findMany({
       where: {
         sellerId,
-        deletedAt: null, 
+        deletedAt: null,
         ...(params.status ? { status: params.status } : {}),
       },
       skip: params.skip,
@@ -51,7 +51,10 @@ export class UploadsRepository {
     });
   }
 
-  async countBySeller(sellerId: string, status?: ProductStatus): Promise<number> {
+  async countBySeller(
+    sellerId: string,
+    status?: ProductStatus,
+  ): Promise<number> {
     return prisma.product.count({
       where: {
         sellerId,
@@ -83,22 +86,43 @@ export class UploadsRepository {
     }>,
   ): Promise<Product | null> {
     const result = await prisma.product.updateMany({
-      where: { id, sellerId, deletedAt: null, updatedAt: expectedUpdatedAt }, data,
+      where: { id, sellerId, deletedAt: null, updatedAt: expectedUpdatedAt },
+      data,
     });
-    return result.count === 1 ? prisma.product.findUnique({ where: { id } }) : null;
+    return result.count === 1
+      ? prisma.product.findUnique({ where: { id } })
+      : null;
   }
 
-  async delete(id: string, sellerId: string, expectedUpdatedAt: Date): Promise<boolean> {
+  async delete(
+    id: string,
+    sellerId: string,
+    expectedUpdatedAt: Date,
+  ): Promise<boolean> {
     const result = await prisma.product.updateMany({
-      where: { id, sellerId, deletedAt: null, updatedAt: expectedUpdatedAt, status: { not: ProductStatus.APPROVED } },
-      data: { deletedAt: new Date(), fileKey: null, fileSize: null, fileMime: null, fileChecksum: null },
+      where: {
+        id,
+        sellerId,
+        deletedAt: null,
+        updatedAt: expectedUpdatedAt,
+        status: { not: ProductStatus.APPROVED },
+      },
+      data: {
+        deletedAt: new Date(),
+        fileKey: null,
+        fileSize: null,
+        fileMime: null,
+        fileChecksum: null,
+      },
     });
     return result.count === 1;
   }
 
   async isFileReferenced(key: string): Promise<boolean> {
     const [products, licenses, orders] = await Promise.all([
-      prisma.product.count({ where: { OR: [{ fileKey: key }, { approvedFileKey: key }] } }),
+      prisma.product.count({
+        where: { OR: [{ fileKey: key }, { approvedFileKey: key }] },
+      }),
       prisma.license.count({ where: { fileKey: key } }),
       prisma.order.count({ where: { fileKey: key } }),
     ]);

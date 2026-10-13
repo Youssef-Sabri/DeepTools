@@ -1,6 +1,10 @@
 import { z } from "zod";
-import { ProductStatus } from "@prisma/client"; 
-import { paginationFields, paginationDepthError, withinPaginationDepth } from "../../middleware/requestBounds";
+import { ProductStatus } from "@prisma/client";
+import {
+  paginationFields,
+  paginationDepthError,
+  withinPaginationDepth,
+} from "../../middleware/requestBounds";
 
 export const uploadCategoryEnum = z.enum([
   "workflow",
@@ -43,11 +47,13 @@ export const createUploadSchema = z.object({
 
 export const updateUploadSchema = createUploadSchema.partial();
 
-export const listMyUploadsQuerySchema = z.object({
-  page: paginationFields.page,
-  limit: paginationFields.limit.default(20),
-  status: uploadStatusEnum.optional(),
-}).refine(withinPaginationDepth, paginationDepthError);
+export const listMyUploadsQuerySchema = z
+  .object({
+    page: paginationFields.page,
+    limit: paginationFields.limit.default(20),
+    status: uploadStatusEnum.optional(),
+  })
+  .refine(withinPaginationDepth, paginationDepthError);
 
 export type CreateUploadInput = z.infer<typeof createUploadSchema>;
 export type UpdateUploadInput = z.infer<typeof updateUploadSchema>;
