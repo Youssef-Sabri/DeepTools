@@ -4,7 +4,7 @@ type AsyncFunction = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<unknown>;
+) => Promise<unknown> | void;
 
 // Catch async rejections and forward to central error middleware
 export const asyncHandler = (fn: AsyncFunction): RequestHandler => {
