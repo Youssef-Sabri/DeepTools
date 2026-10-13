@@ -25,7 +25,7 @@ async function main() {
   if (!(await migrationApplied("20261010161519_improve_schema_security"))) {
     // That historical migration drops status and download URL columns. Do not
     // run it automatically against a populated pre-migration database.
-    for (const table of ["orders", "products", "subscriptions", "templates"]) {
+    for (const table of ["orders", "products"]) {
       if (!(await tableExists(table))) continue;
       const rows = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
         `SELECT COUNT(*) AS count FROM "${table}"`,

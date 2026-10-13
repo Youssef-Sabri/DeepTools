@@ -26,12 +26,6 @@ enum OrderStatus {
   FAILED
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELLED
-  EXPIRED
-}
-
 // ================= Models ================= //
 model User {
   id            String   @id @default(uuid()) @db.Uuid
@@ -47,7 +41,6 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  subscriptions       Subscription[]
   licenses            License[]
   orders              Order[]
   sellerProducts      Product[] @relation("SellerProducts")
@@ -117,46 +110,6 @@ model Product {
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_description_trgm_idx")
   @@index([descriptionAr(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_description_ar_trgm_idx")
   @@map("products")
-}
-
-model Template {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  nameAr        String?  @map("name_ar")
-  description   String
-  descriptionAr String?  @map("description_ar")
-  category      String   @db.VarChar(50)
-  compatibility String[]
-  price         Int
-  version       String   @default("1.0.0") @db.VarChar(20)
-  downloads     Int      @default(0)
-  
-  // تم استبدال downloadUrl بـ fileKey لدواعي أمنية
-  fileKey       String?  @map("file_key") 
-  
-  deletedAt     DateTime? @map("deleted_at")
-
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-  @@map("templates")
-}
-
-model Subscription {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  planName  String    @map("plan_name") @db.VarChar(50)
-  status    SubscriptionStatus @default(ACTIVE) // تم التعديل لاستخدام Enum
-  startDate DateTime  @default(now()) @map("start_date")
-  endDate   DateTime? @map("end_date")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // تم التعديل إلى Restrict لعدم ضياع السجلات المالية
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  @@map("subscriptions")
 }
 
 model License {

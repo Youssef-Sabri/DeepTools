@@ -109,6 +109,7 @@ export const createApp = (): Application => {
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/uploads", uploadsRoutes);
   app.use("/api/v1/orders", ordersRoutes);
+  app.use("/api/v1/payments", paymentsRoutes);
 
   // Fallback handlers for unmatched routes and centralized errors
   app.use(notFoundHandler);

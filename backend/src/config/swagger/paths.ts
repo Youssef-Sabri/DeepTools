@@ -14,14 +14,10 @@ import {
   PaginatedProductsSchema,
   CreateProductInputDocs,
   UpdateProductInputDocs,
-  TemplateSchema,
-  CreateTemplateInputDocs,
-  UpdateTemplateInputDocs,
   LicenseSchema,
   ToggleLicenseInputDocs,
   PurchaseResponseSchema,
   UserLicenseSchema,
-  TemplateDownloadResponseSchema,
   CreateUploadInputDocs,
   UpdateUploadInputDocs,
   SellerProductSchema,
@@ -460,155 +456,7 @@ registry.registerPath({
 });
 
 // ==========================================
-// 3. Template Endpoints
-// ==========================================
-registry.registerPath({
-  method: "get",
-  path: "/templates",
-  tags: ["Templates"],
-  summary: "Retrieve all workflow automation templates",
-  request: {
-    query: z.object({ lang: LangQueryParam }),
-  },
-  responses: {
-    200: {
-      description: "List of templates with localized fields",
-      content: {
-        "application/json": { schema: envelope(z.array(TemplateSchema)) },
-      },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "get",
-  path: "/templates/{id}",
-  tags: ["Templates"],
-  summary: "Retrieve a single template by ID",
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-    query: z.object({ lang: LangQueryParam }),
-  },
-  responses: {
-    200: {
-      description: "Template found with localized fields",
-      content: { "application/json": { schema: envelope(TemplateSchema) } },
-    },
-    404: {
-      description: "Template not found",
-      content: { "application/json": { schema: ApiErrorSchema } },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "post",
-  path: "/templates",
-  tags: ["Templates"],
-  summary: "Create a new template (Admin only)",
-  security: [{ bearerAuth: [] }],
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: CreateTemplateInputDocs,
-        },
-      },
-    },
-  },
-  responses: {
-    201: {
-      description: "Template created successfully",
-      content: { "application/json": { schema: envelope(TemplateSchema) } },
-    },
-    422: {
-      description: "Validation failed",
-      content: { "application/json": { schema: ApiErrorSchema } },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "patch",
-  path: "/templates/{id}",
-  tags: ["Templates"],
-  summary: "Update an existing template (Admin only)",
-  security: [{ bearerAuth: [] }],
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-    body: {
-      content: {
-        "application/json": {
-          schema: UpdateTemplateInputDocs,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: "Template updated successfully",
-      content: { "application/json": { schema: envelope(TemplateSchema) } },
-    },
-    422: {
-      description: "Validation failed",
-      content: { "application/json": { schema: ApiErrorSchema } },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "delete",
-  path: "/templates/{id}",
-  tags: ["Templates"],
-  summary: "Delete a template (Admin only)",
-  security: [{ bearerAuth: [] }],
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-  },
-  responses: {
-    200: {
-      description: "Template deleted successfully",
-      content: {
-        "application/json": {
-          schema: envelope(
-            z.object({
-              message: z
-                .string()
-                .openapi({ example: "Template deleted successfully" }),
-            }),
-          ),
-        },
-      },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "post",
-  path: "/templates/{id}/download",
-  tags: ["Templates"],
-  summary: "Download a template and increment download count",
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-  },
-  responses: {
-    200: {
-      description: "Download registered successfully",
-      content: {
-        "application/json": {
-          schema: envelope(TemplateDownloadResponseSchema),
-        },
-      },
-    },
-    404: {
-      description: "Template not found",
-      content: { "application/json": { schema: ApiErrorSchema } },
-    },
-  },
-});
-
-// ==========================================
-// 4. Admin Endpoints
+// 3. Admin Endpoints
 // ==========================================
 registry.registerPath({
   method: "get",
