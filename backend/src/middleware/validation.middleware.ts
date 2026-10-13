@@ -59,7 +59,9 @@ export const validateParams = (schema: ZodSchema) => {
     } catch (error) {
       if (error instanceof ZodError) {
         const message = error.issues
-          .map((issue) => `${issue.path.join(".") || "params"}: ${issue.message}`)
+          .map(
+            (issue) => `${issue.path.join(".") || "params"}: ${issue.message}`,
+          )
           .join(", ");
         return next(new ValidationError(message, error.issues));
       }

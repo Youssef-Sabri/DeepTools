@@ -36,7 +36,10 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       return Promise.resolve(null);
     });
     (prisma.product.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
-    (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/zip" });
+    (storageService.stat as jest.Mock).mockResolvedValue({
+      size: 2048,
+      mimeType: "application/zip",
+    });
     (storageService.checksum as jest.Mock).mockResolvedValue("abc123hash");
   });
 
@@ -63,7 +66,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve",
+        )
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
@@ -71,7 +76,11 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       expect(res.body.data.status).toBe("APPROVED");
       expect(prisma.product.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ id: "30000000-0000-4000-8000-000000000001", status: "PENDING", deletedAt: null }),
+          where: expect.objectContaining({
+            id: "30000000-0000-4000-8000-000000000001",
+            status: "PENDING",
+            deletedAt: null,
+          }),
           data: expect.objectContaining({ status: "APPROVED" }),
         }),
       );
@@ -84,7 +93,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000003/approve")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000003/approve",
+        )
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(409);
@@ -93,7 +104,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 403 when regular user token is used on admin route", async () => {
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000001/approve",
+        )
         .set("Authorization", `Bearer ${userToken}`);
 
       expect(res.status).toBe(403);
@@ -117,7 +130,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject",
+        )
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ reason: "File contains prohibited libraries." });
 
@@ -128,7 +143,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
 
     it("returns 422 when rejecting without reason or reason is empty", async () => {
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000002/reject",
+        )
         .set("Authorization", `Bearer ${adminToken}`)
         .send({});
 
@@ -142,7 +159,9 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
       });
 
       const res = await request(app)
-        .patch("/api/v1/admin/uploads/30000000-0000-4000-8000-000000000004/reject")
+        .patch(
+          "/api/v1/admin/uploads/30000000-0000-4000-8000-000000000004/reject",
+        )
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ reason: "Duplicate rejection attempt." });
 

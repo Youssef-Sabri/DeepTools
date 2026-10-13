@@ -50,7 +50,7 @@ export class UsersService {
 
   async changePassword(userId: string, input: ChangePasswordInput) {
     const user = await prisma.user.findFirst({
-      where: { id: userId, deletedAt: null }
+      where: { id: userId, deletedAt: null },
     });
 
     if (!user) throw ApiError.notFound("User not found or account deactivated");
@@ -74,10 +74,18 @@ export class UsersService {
     const newPasswordHash = await bcrypt.hash(input.newPassword, saltRounds);
 
     const updated = await prisma.user.updateMany({
-      where: { id: userId, deletedAt: null, passwordHash: user.passwordHash, tokenVersion: user.tokenVersion },
+      where: {
+        id: userId,
+        deletedAt: null,
+        passwordHash: user.passwordHash,
+        tokenVersion: user.tokenVersion,
+      },
       data: { passwordHash: newPasswordHash, tokenVersion: { increment: 1 } },
     });
-    if (updated.count !== 1) throw ApiError.conflict("Password changed; retry with current credentials");
+    if (updated.count !== 1)
+      throw ApiError.conflict(
+        "Password changed; retry with current credentials",
+      );
   }
 }
 

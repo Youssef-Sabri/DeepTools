@@ -4,7 +4,11 @@ import { ApiError } from "../utils/apiError";
 import { env } from "../config/env";
 import { Role } from "@prisma/client";
 import { prisma } from "../config/database";
-import { SESSION_COOKIE, readCookie, validSessionCsrf } from "../modules/auth/session";
+import {
+  SESSION_COOKIE,
+  readCookie,
+  validSessionCsrf,
+} from "../modules/auth/session";
 
 // Extend Express Request interface globally to include 'user'
 declare global {
@@ -32,7 +36,9 @@ export const authenticate = async (
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
   const cookieToken = readCookie(req, SESSION_COOKIE);
-  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : undefined;
   const token = cookieToken || bearerToken;
   if (!token) {
     return next(
@@ -52,11 +58,17 @@ export const authenticate = async (
   } catch {
     return next(ApiError.unauthorized("Invalid or expired token"));
   }
-  if (typeof decoded.sub !== "string" || !Number.isInteger(decoded.tokenVersion)) {
+  if (
+    typeof decoded.sub !== "string" ||
+    !Number.isInteger(decoded.tokenVersion)
+  ) {
     return next(ApiError.unauthorized("Invalid or expired token"));
   }
   try {
-    const user = await prisma.user.findUnique({ where: { id: decoded.sub }, select: { id: true, role: true, deletedAt: true, tokenVersion: true } });
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.sub },
+      select: { id: true, role: true, deletedAt: true, tokenVersion: true },
+    });
     if (!user || user.deletedAt || user.tokenVersion !== decoded.tokenVersion) {
       return next(ApiError.unauthorized("Invalid or expired token"));
     }

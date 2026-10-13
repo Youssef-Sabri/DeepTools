@@ -33,7 +33,12 @@ router.get(
 );
 
 // Public route to get a single product
-router.get("/:id", validateParams(uuidIdParamsSchema), validateQuery(getPublicProductQuerySchema), asyncHandler(productsController.getOne));
+router.get(
+  "/:id",
+  validateParams(uuidIdParamsSchema),
+  validateQuery(getPublicProductQuerySchema),
+  asyncHandler(productsController.getOne),
+);
 
 // Admin routes
 router.post(

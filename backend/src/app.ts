@@ -36,7 +36,12 @@ export const createApp = (): Application => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id", "X-CSRF-Token"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-Id",
+      "X-CSRF-Token",
+    ],
   };
   app.use(cors(corsOptions));
 
@@ -44,14 +49,17 @@ export const createApp = (): Application => {
   app.use(requestIdMiddleware);
 
   app.set("trust proxy", env.TRUST_PROXY_HOPS);
-  app.use("/api/v1", (req, res, next) => req.path.startsWith("/payments/webhooks/") ? next() : generalRateLimiter(req, res, next));
+  app.use("/api/v1", (req, res, next) =>
+    req.path.startsWith("/payments/webhooks/")
+      ? next()
+      : generalRateLimiter(req, res, next),
+  );
   // Webhook signatures must be checked against the unparsed request bytes.
   app.use("/api/v1/payments", paymentsRoutes);
 
   // Limit JSON payload size to prevent memory overload / Denial of Service
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-
 
   // 3. Swagger OpenAPI Documentation
   app.get("/api/docs.json", (_req: Request, res: Response) => {

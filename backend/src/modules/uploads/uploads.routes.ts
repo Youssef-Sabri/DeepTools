@@ -1,10 +1,18 @@
 import { Router } from "express";
 import multer from "multer";
 import { uploadsController } from "./uploads.controller";
-import { createUploadSchema, updateUploadSchema, listMyUploadsQuerySchema } from "./uploads.validator";
+import {
+  createUploadSchema,
+  updateUploadSchema,
+  listMyUploadsQuerySchema,
+} from "./uploads.validator";
 import { authenticate } from "../../middleware/auth.middleware";
 import { authRateLimiter } from "../../middleware/rateLimit.middleware";
-import { validateBody, validateQuery, validateParams } from "../../middleware/validation.middleware";
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from "../../middleware/validation.middleware";
 import { uuidIdParamsSchema } from "../../middleware/requestBounds";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { MAX_FILE_SIZE_BYTES } from "../../storage/storage.config";
@@ -36,7 +44,12 @@ router.post(
  * GET /api/v1/uploads/mine
  * List the current seller's own uploads.
  */
-router.get("/mine", authenticate, validateQuery(listMyUploadsQuerySchema), asyncHandler(uploadsController.getMyUploads));
+router.get(
+  "/mine",
+  authenticate,
+  validateQuery(listMyUploadsQuerySchema),
+  asyncHandler(uploadsController.getMyUploads),
+);
 
 /**
  * GET /api/v1/uploads/mine/:id

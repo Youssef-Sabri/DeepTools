@@ -25,13 +25,13 @@ export interface SellerSalesResponse {
 export class OrdersService {
   constructor(
     private readonly ordersRepo: OrdersRepository = ordersRepository,
-  ) { }
+  ) {}
 
   async getMyPurchases(userId: string, query: ListOrdersQuery) {
     const { items, total, page, limit } = await this.ordersRepo.findBuyerOrders(
       userId,
       query.page,
-      query.limit
+      query.limit,
     );
 
     return {
@@ -50,10 +50,13 @@ export class OrdersService {
     };
   }
 
-  async getSellerSales(sellerId: string, query: ListOrdersQuery): Promise<SellerSalesResponse> {
+  async getSellerSales(
+    sellerId: string,
+    query: ListOrdersQuery,
+  ): Promise<SellerSalesResponse> {
     const [salesData, totals] = await Promise.all([
       this.ordersRepo.findSellerSales(sellerId, query.page, query.limit),
-      this.ordersRepo.getSellerTotals(sellerId)
+      this.ordersRepo.getSellerTotals(sellerId),
     ]);
 
     const sales: SellerSaleItem[] = salesData.items.map((o) => ({

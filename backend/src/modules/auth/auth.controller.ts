@@ -39,7 +39,7 @@ export class AuthController {
     });
   };
 
-  logout = async (_req: Request, res: Response): Promise<void> => {
+  logout = (_req: Request, res: Response): void => {
     clearSession(res);
     res.status(204).end();
   };

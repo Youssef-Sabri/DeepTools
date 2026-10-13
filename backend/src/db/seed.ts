@@ -57,7 +57,9 @@ async function main() {
   });
 
   // 5. Seed 8 Canonical Marketplace Products
-  console.log("📦 Creating 8 bilingual products across canonical categories...");
+  console.log(
+    "📦 Creating 8 bilingual products across canonical categories...",
+  );
 
   const p1 = await prisma.product.create({
     data: {
@@ -244,7 +246,9 @@ async function main() {
   });
 
   // 6. Seed an initial Purchase & License for test buyer
-  console.log("🔑 Creating demo purchase & license key for buyer@deeptools.io...");
+  console.log(
+    "🔑 Creating demo purchase & license key for buyer@deeptools.io...",
+  );
   const sampleLicenseKey = "DF-9A4B-88F1-3CE7";
   const licenseExpires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 

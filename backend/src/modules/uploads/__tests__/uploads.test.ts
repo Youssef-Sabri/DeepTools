@@ -52,9 +52,11 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
   });
 
   it("rejects malformed list queries and upload IDs before querying products", async () => {
-    const invalidQuery = await request(app).get("/api/v1/uploads/mine?page=0")
+    const invalidQuery = await request(app)
+      .get("/api/v1/uploads/mine?page=0")
       .set("Authorization", `Bearer ${userToken}`);
-    const invalidId = await request(app).get("/api/v1/uploads/mine/not-a-uuid")
+    const invalidId = await request(app)
+      .get("/api/v1/uploads/mine/not-a-uuid")
       .set("Authorization", `Bearer ${userToken}`);
     expect(invalidQuery.status).toBe(422);
     expect(invalidId.status).toBe(422);
@@ -86,7 +88,10 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
       });
 
       const fakeZip = Buffer.from("PK\x03\x04test content inside zip");
-      (storageService.stat as jest.Mock).mockResolvedValue({ size: fakeZip.length, mimeType: "application/zip" });
+      (storageService.stat as jest.Mock).mockResolvedValue({
+        size: fakeZip.length,
+        mimeType: "application/zip",
+      });
 
       const res = await request(app)
         .post("/api/v1/uploads")
@@ -197,9 +202,11 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         .field("category", "code");
 
       expect(res.status).toBe(200);
-      expect(prisma.product.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ category: "code" }),
-      }));
+      expect(prisma.product.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: "code" }),
+        }),
+      );
       expect(res.body.data.category).toBe("code");
       expect(res.body.data.status).toBe("PENDING");
       expect(res.body.data.rejectionNote).toBeNull();

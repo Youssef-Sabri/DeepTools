@@ -13,7 +13,13 @@ export class OrdersRepository {
         orderBy: { createdAt: "desc" },
         include: {
           product: {
-            select: { id: true, name: true, nameAr: true, category: true, price: true },
+            select: {
+              id: true,
+              name: true,
+              nameAr: true,
+              category: true,
+              price: true,
+            },
           },
         },
       }),
@@ -23,7 +29,11 @@ export class OrdersRepository {
     return { items, total, page, limit };
   }
 
-  async findSellerSales(sellerId: string, page: number = 1, limit: number = 20) {
+  async findSellerSales(
+    sellerId: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
     const skip = (page - 1) * limit;
 
     const whereCondition = {
@@ -49,7 +59,9 @@ export class OrdersRepository {
     return { items, total, page, limit };
   }
 
-  async getSellerTotals(sellerId: string): Promise<{ gross: number; earnings: number }> {
+  async getSellerTotals(
+    sellerId: string,
+  ): Promise<{ gross: number; earnings: number }> {
     const result = await prisma.order.aggregate({
       _sum: { amount: true, sellerAmount: true },
       where: {
@@ -58,7 +70,10 @@ export class OrdersRepository {
       },
     });
 
-    return { gross: result._sum.amount || 0, earnings: result._sum.sellerAmount || 0 };
+    return {
+      gross: result._sum.amount || 0,
+      earnings: result._sum.sellerAmount || 0,
+    };
   }
 }
 

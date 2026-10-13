@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { adminService, AdminService } from "./admin.service";
-import { listAdminUploadsQuerySchema, getUsersQuerySchema } from "./admin.validator";
+import {
+  listAdminUploadsQuerySchema,
+  getUsersQuerySchema,
+} from "./admin.validator";
 
 export class AdminController {
   private service: AdminService;
@@ -75,7 +78,10 @@ export class AdminController {
     });
   };
 
-  getMarketplaceInsights = async (_req: Request, res: Response): Promise<void> => {
+  getMarketplaceInsights = async (
+    _req: Request,
+    res: Response,
+  ): Promise<void> => {
     const data = await this.service.getMarketplaceInsights();
     res.status(200).json({ success: true, data });
   };

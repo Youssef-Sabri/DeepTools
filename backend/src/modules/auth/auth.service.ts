@@ -38,12 +38,20 @@ export class AuthService {
     return bcrypt.hash(password, saltRounds);
   }
 
-  private generateToken(userId: string, role: Role, tokenVersion: number): string {
+  private generateToken(
+    userId: string,
+    role: Role,
+    tokenVersion: number,
+  ): string {
     const signOptions: SignOptions = {
       expiresIn: env.JWT_EXPIRES_IN as unknown as SignOptions["expiresIn"],
     };
 
-    return jwt.sign({ sub: userId, role, tokenVersion }, env.JWT_SECRET, signOptions);
+    return jwt.sign(
+      { sub: userId, role, tokenVersion },
+      env.JWT_SECRET,
+      signOptions,
+    );
   }
 
   private sanitizeUser(user: {
@@ -79,7 +87,11 @@ export class AuthService {
       role: Role.USER,
     });
 
-    const token = this.generateToken(newUser.id, newUser.role, newUser.tokenVersion);
+    const token = this.generateToken(
+      newUser.id,
+      newUser.role,
+      newUser.tokenVersion,
+    );
 
     return {
       user: this.sanitizeUser(newUser),
@@ -111,7 +123,11 @@ export class AuthService {
   }
 
   async forgotPassword(input: ForgotPasswordInput): Promise<void> {
-    if (!env.PASSWORD_RESET_DELIVERY_URL || !env.PASSWORD_RESET_DELIVERY_KEY || !env.PASSWORD_RESET_URL) {
+    if (
+      !env.PASSWORD_RESET_DELIVERY_URL ||
+      !env.PASSWORD_RESET_DELIVERY_KEY ||
+      !env.PASSWORD_RESET_URL
+    ) {
       throw new ApiError(503, "Password reset is temporarily unavailable");
     }
     const user = await this.repo.findByEmail(input.email);
@@ -122,17 +138,29 @@ export class AuthService {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    const record = await this.repo.createPasswordResetToken(user.id, tokenHash, expiresAt);
+    const record = await this.repo.createPasswordResetToken(
+      user.id,
+      tokenHash,
+      expiresAt,
+    );
     const resetUrl = new URL(env.PASSWORD_RESET_URL);
     resetUrl.searchParams.set("token", token);
     try {
       const response = await fetch(env.PASSWORD_RESET_DELIVERY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.PASSWORD_RESET_DELIVERY_KEY}` },
-        body: JSON.stringify({ to: user.email, subject: "Reset your DeepTools password", text: `Reset your password using this link (valid for 15 minutes): ${resetUrl.toString()}` }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${env.PASSWORD_RESET_DELIVERY_KEY}`,
+        },
+        body: JSON.stringify({
+          to: user.email,
+          subject: "Reset your DeepTools password",
+          text: `Reset your password using this link (valid for 15 minutes): ${resetUrl.toString()}`,
+        }),
         signal: AbortSignal.timeout(10000),
       });
-      if (!response.ok) throw new Error(`Delivery service returned ${response.status}`);
+      if (!response.ok)
+        throw new Error(`Delivery service returned ${response.status}`);
     } catch {
       await this.repo.markTokenAsUsed(record.id);
       throw new ApiError(503, "Password reset is temporarily unavailable");
@@ -167,8 +195,14 @@ export class AuthService {
 
     const newPasswordHash = await this.hashPassword(input.newPassword);
 
-    const updated = await this.repo.consumeResetTokenAndUpdatePassword(record.id, user.id, user.tokenVersion, newPasswordHash);
-    if (!updated) throw ApiError.badRequest("Invalid or expired password reset token");
+    const updated = await this.repo.consumeResetTokenAndUpdatePassword(
+      record.id,
+      user.id,
+      user.tokenVersion,
+      newPasswordHash,
+    );
+    if (!updated)
+      throw ApiError.badRequest("Invalid or expired password reset token");
   }
 }
 

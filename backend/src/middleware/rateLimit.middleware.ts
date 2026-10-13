@@ -9,15 +9,22 @@ class PostgresRateLimitStore implements Store {
   private operations = 0;
   constructor(private readonly scope: string) {}
 
-  init(options: { windowMs: number }) { this.windowMs = options.windowMs; }
+  init(options: { windowMs: number }) {
+    this.windowMs = options.windowMs;
+  }
 
   private hash(key: string) {
-    return crypto.createHash("sha256").update(`${this.scope}:${key}`).digest("hex");
+    return crypto
+      .createHash("sha256")
+      .update(`${this.scope}:${key}`)
+      .digest("hex");
   }
 
   async increment(key: string) {
     const id = this.hash(key);
-    const rows = await prisma.$queryRaw<Array<{ hits: number; reset_at: Date }>>`
+    const rows = await prisma.$queryRaw<
+      Array<{ hits: number; reset_at: Date }>
+    >`
       INSERT INTO rate_limit_buckets (key, hits, reset_at)
       VALUES (${id}, 1, NOW() + (${this.windowMs} * INTERVAL '1 millisecond'))
       ON CONFLICT (key) DO UPDATE SET
@@ -42,9 +49,10 @@ class PostgresRateLimitStore implements Store {
   }
 }
 
-const store = (scope: string): Store => process.env.NODE_ENV === "test"
-  ? new MemoryStore()
-  : new PostgresRateLimitStore(scope);
+const store = (scope: string): Store =>
+  process.env.NODE_ENV === "test"
+    ? new MemoryStore()
+    : new PostgresRateLimitStore(scope);
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,7 +60,11 @@ export const authRateLimiter = rateLimit({
   store: store("auth"),
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { success: false, statusCode: 429, message: "Too many attempts; try again later" },
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many attempts; try again later",
+  },
 });
 
 export const generalRateLimiter = rateLimit({
@@ -61,7 +73,11 @@ export const generalRateLimiter = rateLimit({
   store: store("api"),
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { success: false, statusCode: 429, message: "Too many requests; slow down" },
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many requests; slow down",
+  },
 });
 
 export const webhookRateLimiter = rateLimit({
@@ -70,5 +86,9 @@ export const webhookRateLimiter = rateLimit({
   store: store("webhook"),
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { success: false, statusCode: 429, message: "Too many webhook requests" },
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many webhook requests",
+  },
 });
