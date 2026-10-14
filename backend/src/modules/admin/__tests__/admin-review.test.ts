@@ -19,7 +19,7 @@ jest.mock("../../../config/database", () => ({
 }));
 
 jest.mock("../../../storage/storage.service", () => ({
-  storageService: { stat: jest.fn(), checksum: jest.fn() },
+  storageService: { stat: jest.fn(), checksum: jest.fn(), stream: jest.fn() },
 }));
 
 describe("Admin Upload Review Endpoints (Task B-4)", () => {
@@ -38,6 +38,102 @@ describe("Admin Upload Review Endpoints (Task B-4)", () => {
     (prisma.product.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
     (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/zip" });
     (storageService.checksum as jest.Mock).mockResolvedValue("abc123hash");
+  });
+
+  describe("GET and HEAD /api/v1/admin/uploads/:id/download", () => {
+    const uploadId = "30000000-0000-4000-8000-000000000005";
+    const url = `/api/v1/admin/uploads/${uploadId}/download`;
+
+    it("streams the current pending upload to an admin, not the previously approved file", async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        id: uploadId,
+        name: "Review Asset",
+        status: "PENDING",
+        fileKey: "uploads/current-upload.zip",
+        approvedFileKey: "uploads/old-approved.zip",
+      });
+      (storageService.stream as jest.Mock).mockImplementation(async (_key, res) => res.end("review file"));
+
+      const res = await request(app).get(url).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers["content-disposition"]).toBe('attachment; filename="Review_Asset.zip"');
+      expect(res.headers["content-type"]).toMatch(/application\/octet-stream/);
+      expect(res.headers["cache-control"]).toBe("private, no-store");
+      expect(storageService.stream).toHaveBeenCalledWith("uploads/current-upload.zip", expect.anything());
+      expect(prisma.product.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: uploadId, deletedAt: null },
+      }));
+    });
+
+    it("allows an admin HEAD check without starting a file stream", async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({ id: uploadId, name: "Review Asset", fileKey: "uploads/current-upload.zip" });
+
+      const res = await request(app).head(url).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers["content-disposition"]).toMatch(/attachment/);
+      expect(storageService.stream).not.toHaveBeenCalled();
+    });
+
+    it.each(["PENDING", "APPROVED", "REJECTED"])("streams a %s product to an admin without a buyer license", async (status) => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        id: uploadId, name: "Review Asset", status, fileKey: "uploads/review.pdf",
+      });
+      (storageService.stat as jest.Mock).mockResolvedValue({ size: 2048, mimeType: "application/pdf" });
+      (storageService.stream as jest.Mock).mockImplementation(async (_key, res) => res.end("review file"));
+
+      const res = await request(app).get(`${url}?disposition=inline`).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers["content-disposition"]).toBe('inline; filename="Review_Asset.pdf"');
+      expect(res.headers["content-type"]).toMatch(/^application\/pdf/);
+      expect(storageService.stream).toHaveBeenCalledWith("uploads/review.pdf", expect.anything());
+    });
+
+    it("serves uploaded HTML as plain text during inline preview", async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({ id: uploadId, name: "Example", status: "REJECTED", fileKey: "uploads/example.html" });
+      (storageService.stat as jest.Mock).mockResolvedValue({ size: 128, mimeType: "text/html" });
+      (storageService.stream as jest.Mock).mockImplementation(async (_key, res) => res.end("<script>alert(1)</script>"));
+
+      const res = await request(app).get(`${url}?disposition=inline`).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/^text\/plain/);
+      expect(res.headers["x-content-type-options"]).toBe("nosniff");
+    });
+
+    it("rejects unsupported disposition values", async () => {
+      const res = await request(app).get(`${url}?disposition=preview`).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(422);
+      expect(prisma.product.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("denies non-admin users before accessing the upload", async () => {
+      const res = await request(app).get(url).set("Authorization", `Bearer ${userToken}`);
+
+      expect(res.status).toBe(403);
+      expect(prisma.product.findFirst).not.toHaveBeenCalled();
+      expect(storageService.stream).not.toHaveBeenCalled();
+    });
+
+    it("requires authentication", async () => {
+      const res = await request(app).get(url);
+
+      expect(res.status).toBe(401);
+      expect(prisma.product.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("returns a conflict when the uploaded file is unavailable", async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({ id: uploadId, name: "Review Asset", fileKey: "uploads/missing.zip" });
+      (storageService.stat as jest.Mock).mockRejectedValue(new Error("Missing file"));
+
+      const res = await request(app).get(url).set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(409);
+      expect(storageService.stream).not.toHaveBeenCalled();
+    });
   });
 
   describe("PATCH /api/v1/admin/uploads/:id/approve", () => {

@@ -31,7 +31,8 @@ export function dollarsToCents(dollars: number | string): number {
  * Format bytes into human-readable size (KB, MB, GB)
  */
 export function formatBytes(bytes: number | undefined | null): string {
-  if (!bytes || bytes <= 0) return '0 B'
+  if (bytes == null || !Number.isFinite(bytes)) return '—'
+  if (bytes <= 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -88,26 +89,14 @@ export function getCategoryVisualClass(category: ProductCategory | string): stri
 }
 
 /**
- * Derive file extension pill label from file name or category
+ * Derive the extension from a stored file name. Missing names have no badge.
  */
-export function getFileExtensionPill(fileName?: string | null, category?: string): string {
+export function getFileExtensionPill(fileName?: string | null): string {
   if (fileName) {
     const ext = fileName.split('.').pop()
     if (ext && ext !== fileName) {
       return `.${ext.toLowerCase()}`
     }
   }
-  const norm = normalizeCategory(category)
-  switch (norm) {
-    case 'workflow':
-      return '.n8n'
-    case 'agentic':
-      return '.agent'
-    case 'script':
-      return '.py'
-    case 'code':
-      return '.ts'
-    default:
-      return '.zip'
-  }
+  return ''
 }

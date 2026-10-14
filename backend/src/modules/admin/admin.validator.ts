@@ -37,6 +37,10 @@ export const listAdminUploadsQuerySchema = z.object({
   status: z.nativeEnum(ProductStatus).optional(),
 }).refine(withinPaginationDepth, paginationDepthError);
 
+export const downloadUploadQuerySchema = z.object({
+  disposition: z.enum(["inline", "attachment"]).optional(),
+}).strict();
+
 export type ToggleLicenseInput = z.infer<typeof toggleLicenseSchema>;
 export type RejectUploadInput = z.infer<typeof rejectUploadSchema>;
 export type ListAdminUploadsQuery = z.infer<typeof listAdminUploadsQuerySchema>;

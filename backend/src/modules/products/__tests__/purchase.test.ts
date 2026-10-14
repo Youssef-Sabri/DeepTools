@@ -99,6 +99,28 @@ describe("Product Purchase Endpoints (Task B-6)", () => {
     });
   });
 
+  it("returns the real seller and approved file metadata on the public detail endpoint", async () => {
+    (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+      ...approvedProduct,
+      fileKey: "uploads/unreviewed-replacement.zip",
+      approvedFileKey: "uploads/approved-workflow.json",
+      fileSize: 3798,
+      reviewedAt: new Date("2026-10-08T10:00:00.000Z"),
+    });
+
+    const res = await request(app).get(`/api/v1/products/${approvedProduct.id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({
+      sellerName: mockUser.name,
+      fileSize: 3798,
+      fileExtension: ".json",
+      publishedAt: "2026-10-08T10:00:00.000Z",
+    });
+    expect(res.body.data).not.toHaveProperty("fileKey");
+    expect(res.body.data).not.toHaveProperty("approvedFileKey");
+  });
+
   it("creates only a pending order and no license", async () => {
     (prisma.product.findFirst as jest.Mock).mockResolvedValue(approvedProduct);
     (prisma.license.findFirst as jest.Mock).mockResolvedValue(null);

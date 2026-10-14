@@ -94,6 +94,48 @@ describe("Commission Settings Endpoints (Task B-5)", () => {
     });
   });
 
+  describe("GET /api/v1/settings/commission", () => {
+    it("returns the current stored rate to a signed-in seller", async () => {
+      (prisma.setting.findUnique as jest.Mock).mockResolvedValue({
+        value: "27",
+        updatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .get("/api/v1/settings/commission")
+        .set("Cookie", `dt_session=${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.commissionPercent).toBe(27);
+    });
+
+    it("lets a signed-in seller read the configured rate, including 0%", async () => {
+      (prisma.setting.findUnique as jest.Mock).mockResolvedValue({
+        value: "0",
+        updatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .get("/api/v1/settings/commission")
+        .set("Authorization", `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.commissionPercent).toBe(0);
+    });
+
+    it("requires authentication and does not expose commission updates", async () => {
+      const unauthenticated = await request(app).get("/api/v1/settings/commission");
+      const update = await request(app)
+        .patch("/api/v1/settings/commission")
+        .set("Authorization", `Bearer ${userToken}`)
+        .send({ commissionPercent: 0 });
+
+      expect(unauthenticated.status).toBe(401);
+      expect(update.status).toBe(404);
+      expect(prisma.setting.upsert).not.toHaveBeenCalled();
+    });
+  });
+
   describe("PATCH /api/v1/admin/settings/commission", () => {
     it("updates commission successfully with valid integer 0-100", async () => {
       const now = new Date();

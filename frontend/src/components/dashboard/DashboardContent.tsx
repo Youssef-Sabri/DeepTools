@@ -10,6 +10,7 @@ import {
   Download,
   AlertCircle,
   CheckCircle2,
+  Clock3,
   DollarSign,
   Edit,
   Loader2,
@@ -36,6 +37,62 @@ const categoryOptions: { value: ProductCategory; label: string }[] = [
   { value: 'code', label: 'code (Templates, Schemas)' },
 ]
 
+function orderStatusLabel(status: Order['status'], isAr: boolean): string {
+  if (status === 'COMPLETED') return isAr ? 'مكتمل' : 'Completed'
+  if (status === 'PENDING') return isAr ? 'بانتظار الدفع' : 'Pending Payment'
+  if (status === 'FAILED') return isAr ? 'فشل الدفع' : 'Payment Failed'
+  return isAr ? 'ملغى' : 'Cancelled'
+}
+
+interface PayoutBreakdownProps {
+  priceCents: number
+  commissionPercent: number | null
+  commissionLoading: boolean
+  commissionError: boolean
+  isAr: boolean
+  onRetry: () => void
+}
+
+function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, commissionError, isAr, onRetry }: PayoutBreakdownProps) {
+  // Match the backend splitCommission rule: round commission down to whole cents.
+  const commissionCents = commissionPercent === null ? null : Math.floor(priceCents * commissionPercent / 100)
+  const sellerCents = commissionCents === null ? null : priceCents - commissionCents
+
+  return (
+    <div className="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] space-y-2 text-xs font-mono">
+      <div className="text-[10px] uppercase text-[var(--muted-2)] font-semibold">
+        {isAr ? 'تقدير صافي أرباح البائع' : 'ESTIMATED PAYOUT BREAKDOWN'}
+      </div>
+      <div className="flex justify-between text-[var(--muted)]">
+        <span>{isAr ? 'سعر البيع' : 'Customer Price:'}</span>
+        <span className="text-[var(--text)]">{formatCents(priceCents)} USD ({priceCents} cents)</span>
+      </div>
+      <div className="flex justify-between text-[var(--muted)] gap-3">
+        <span>{isAr ? 'رسوم المنصة' : 'Platform Commission'}{commissionPercent === null ? ':' : ` (${commissionPercent}%):`}</span>
+        <span className="text-[var(--orange)]">{commissionCents === null ? '—' : `-${formatCents(commissionCents)} USD`}</span>
+      </div>
+      <div className="border-t border-[var(--line)] pt-2 flex justify-between font-bold text-[var(--green)]">
+        <span>{isAr ? 'صافي ربحك لكل عملية بيع' : 'Your Net Payout:'}</span>
+        <span>{sellerCents === null ? '—' : `${formatCents(sellerCents)} USD`}</span>
+      </div>
+      {commissionPercent === null && (
+        <div className="text-[var(--muted-2)]" aria-live="polite">
+          {commissionLoading
+            ? (isAr ? 'جارٍ تحميل نسبة العمولة...' : 'Loading commission rate...')
+            : commissionError && (
+              <span>
+                {isAr ? 'تعذر تحميل نسبة العمولة. ' : 'Could not load the commission rate. '}
+                <button type="button" onClick={onRetry} className="text-[var(--blue-bright)] underline underline-offset-2">
+                  {isAr ? 'إعادة المحاولة' : 'Retry'}
+                </button>
+              </span>
+            )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardContent({ locale }: DashboardContentProps) {
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get('tab') as TabType) || 'purchases'
@@ -55,6 +112,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   // Tab 1: Purchases data
   const [purchases, setPurchases] = useState<Order[]>([])
   const [loadingPurchases, setLoadingPurchases] = useState(true)
+  const [purchaseLoadError, setPurchaseLoadError] = useState(false)
   const [purchasePage, setPurchasePage] = useState(1)
   const [purchaseTotalPages, setPurchaseTotalPages] = useState(1)
   const [purchaseTotal, setPurchaseTotal] = useState(0)
@@ -72,10 +130,15 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [commissionPercent, setCommissionPercent] = useState<number | null>(null)
+  const [commissionLoading, setCommissionLoading] = useState(true)
+  const [commissionError, setCommissionError] = useState(false)
+  const [commissionRefreshKey, setCommissionRefreshKey] = useState(0)
 
   // Tab 3: My Uploads data & Edit/Resubmit modal
   const [myUploads, setMyUploads] = useState<Product[]>([])
   const [loadingUploads, setLoadingUploads] = useState(true)
+  const [uploadsLoadError, setUploadsLoadError] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
   const [editName, setEditName] = useState('')
@@ -87,6 +150,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   // Tab 4: Sales data
   const [sales, setSales] = useState<SellerSale[]>([])
   const [loadingSales, setLoadingSales] = useState(true)
+  const [salesLoadError, setSalesLoadError] = useState(false)
   const [salesPage, setSalesPage] = useState(1)
   const [salesTotalPages, setSalesTotalPages] = useState(1)
   const [salesTotal, setSalesTotal] = useState(0)
@@ -128,6 +192,31 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     }
   }, [user, authLoading, router, locale])
 
+  useEffect(() => {
+    if (!user) return
+    let ignore = false
+
+    async function loadCommission() {
+      setCommissionLoading(true)
+      setCommissionError(false)
+      setCommissionPercent(null)
+      try {
+        const data = await fetchApi<{ commissionPercent: number }>('/settings/commission')
+        if (!Number.isInteger(data.commissionPercent) || data.commissionPercent < 0 || data.commissionPercent > 100) {
+          throw new Error('Invalid commission rate')
+        }
+        if (!ignore) setCommissionPercent(data.commissionPercent)
+      } catch {
+        if (!ignore) setCommissionError(true)
+      } finally {
+        if (!ignore) setCommissionLoading(false)
+      }
+    }
+
+    loadCommission()
+    return () => { ignore = true }
+  }, [user?.id, commissionRefreshKey])
+
   // Load Tab 1: Purchases
   useEffect(() => {
     let ignore = false
@@ -135,6 +224,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       try {
         const data = await fetchApi<{ orders: Order[]; total: number; totalPages: number }>('/orders/mine?page=1')
         if (!ignore) {
+          setPurchaseLoadError(false)
           setPurchases(data.orders)
           setPurchaseTotal(data.total)
           setPurchaseTotalPages(data.totalPages)
@@ -143,7 +233,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         }
       } catch (err) {
         console.error('Failed to load purchases:', err)
-        if (!ignore) setLoadingPurchases(false)
+        if (!ignore) { setPurchaseLoadError(true); setLoadingPurchases(false) }
       }
     }
     if (activeTab === 'purchases' && user) {
@@ -161,6 +251,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       try {
         const data = await fetchApi<{ items?: Product[] } | Product[]>('/uploads/mine')
         if (!ignore) {
+          setUploadsLoadError(false)
           if (Array.isArray(data)) {
             setMyUploads(data)
           } else if (data && Array.isArray(data.items)) {
@@ -172,7 +263,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         }
       } catch (err) {
         console.error('Failed to load uploads:', err)
-        if (!ignore) setLoadingUploads(false)
+        if (!ignore) { setUploadsLoadError(true); setLoadingUploads(false) }
       }
     }
     if (activeTab === 'uploads' && user) {
@@ -190,6 +281,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       try {
         const data = await fetchApi<{ sales: SellerSale[]; totalSales: number; totalGrossSales: number; totalSellerEarnings: number; totalPages: number }>('/orders/sales?page=1')
         if (!ignore) {
+          setSalesLoadError(false)
           setSales(data.sales)
           setSalesTotal(data.totalSales)
           setSalesGross(data.totalGrossSales)
@@ -200,7 +292,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         }
       } catch (err) {
         console.error('Failed to load sales:', err)
-        if (!ignore) setLoadingSales(false)
+        if (!ignore) { setSalesLoadError(true); setLoadingSales(false) }
       }
     }
     if (activeTab === 'sales' && user) {
@@ -405,11 +497,6 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     )
   }
 
-  // Commission Calculator Calculation for Upload Studio
-  const priceParsed = parseFloat(uploadPriceDollars) || 0
-  const estimatedPlatformFee = priceParsed * 0.15 // 15% standard commission
-  const estimatedSellerNet = Math.max(0, priceParsed - estimatedPlatformFee)
-
   const navTabs = [
     { id: 'purchases', label: isAr ? 'المشتريات والتنزيلات' : 'My Purchases', icon: ShoppingBag },
     { id: 'upload', label: isAr ? 'نشر أداة جديدة' : 'Upload Studio', icon: Upload },
@@ -479,11 +566,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[var(--text)]">
-                {isAr ? 'الأدوات المشتراة وتراخيص الاستخدام' : 'Purchased Assets & Licenses'}
+                {isAr ? 'الأدوات المشتراة وتراخيص الاستخدام' : 'Orders & Licenses'}
               </h2>
-              <span className="text-xs font-mono text-[var(--muted-2)]">
+              {!loadingPurchases && !purchaseLoadError && <span className="text-xs font-mono text-[var(--muted-2)]">
                 {purchaseTotal} {isAr ? 'عنصر' : 'Items'}
-              </span>
+              </span>}
             </div>
 
             {loadingPurchases ? (
@@ -491,6 +578,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
                 {isAr ? 'جارٍ تحميل المشتريات...' : 'Loading purchases...'}
               </div>
+            ) : purchaseLoadError ? (
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل الطلبات.' : 'Could not load orders.'}</p>
             ) : purchases.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {purchases.map((order) => (
@@ -500,14 +589,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[var(--blue-bright)]">
                           {order.product?.category || 'Asset'}
                         </span>
-                        <span className="text-xs font-mono text-[var(--green)] flex items-center gap-1 font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {order.status === 'COMPLETED' ? (isAr ? 'مرخص' : 'Active') : (isAr ? 'بانتظار الدفع' : 'Pending Payment')}
+                        <span className={`text-xs font-mono flex items-center gap-1 font-semibold ${order.status === 'COMPLETED' ? 'text-[var(--green)]' : order.status === 'PENDING' ? 'text-[var(--orange)]' : 'text-[var(--rose)]'}`}>
+                          {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock3 className="w-3.5 h-3.5" />}
+                          {orderStatusLabel(order.status, isAr)}
                         </span>
                       </div>
 
                       <h3 className="font-bold text-sm text-[var(--text)] line-clamp-1">
-                        {order.product?.name || `Order #${order.id.slice(0, 8).toUpperCase()}`}
+                        {isAr && order.product?.nameAr ? order.product.nameAr : order.productName || order.product?.name || `Order #${order.id.slice(0, 8).toUpperCase()}`}
                       </h3>
 
                       <div className="mt-3 text-xs font-mono text-[var(--muted-2)] space-y-1">
@@ -522,7 +611,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         onClick={() =>
                           handleDownloadFile(
                             order.productId || order.product?.id || '',
-                            `${order.product?.name || 'asset'}.zip`
+                            `${order.productName || order.product?.name || 'asset'}${order.fileExtension || ''}`
                           )
                         }
                         className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center justify-center gap-2 transition-colors"
@@ -538,7 +627,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
                 <ShoppingBag className="w-10 h-10 text-[var(--muted)] mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-[var(--text)]">
-                  {isAr ? 'لم تقم بشراء أي أدوات بعد' : 'No Purchased Assets Found'}
+                  {isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}
                 </h3>
                 <p className="text-xs text-[var(--muted)] mt-1 max-w-sm mx-auto">
                   {isAr
@@ -589,7 +678,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 {/* Drag Drop File Zone */}
                 <div>
                   <label htmlFor="asset-upload-file" className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-2">
-                    {isAr ? 'الملف الرقمي (حد أقصى 50MB)' : 'DIGITAL ASSET FILE (MAX 50MB)'}
+                    {isAr ? 'ملف الأصل الرقمي' : 'DIGITAL ASSET FILE'}
                   </label>
                   <div className="border-2 border-dashed border-[var(--line-bright)] rounded-xl p-6 text-center bg-[var(--surface-2)]/50">
                     <Upload className="w-8 h-8 text-[var(--blue-bright)] mx-auto mb-2" />
@@ -706,25 +795,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   />
                 </div>
 
-                {/* Commission Breakdown Live Calculator */}
-                <div className="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] space-y-2 text-xs font-mono">
-                  <div className="text-[10px] uppercase text-[var(--muted-2)] font-semibold">
-                    {isAr ? 'حاسبة أرباح البائع المقدرة' : 'ESTIMATED PAYOUT BREAKDOWN'}
-                  </div>
-                  <div className="flex justify-between text-[var(--muted)]">
-                    <span>{isAr ? 'سعر البيع' : 'Customer Price:'}</span>
-                    <span className="text-[var(--text)]">${priceParsed.toFixed(2)} USD ({dollarsToCents(uploadPriceDollars)} cents)</span>
-                  </div>
-                  <div className="flex justify-between text-[var(--muted)]">
-                    <span>{isAr ? 'رسوم المنصة (15% تقريباً)' : 'Platform Commission (~15%):'}</span>
-                    <span className="text-[var(--orange)]">-${estimatedPlatformFee.toFixed(2)} USD</span>
-                  </div>
-                  <div className="border-t border-[var(--line)] pt-2 flex justify-between font-bold text-[var(--green)]">
-                    <span>{isAr ? 'صافي ربحك لكل عملية بيع' : 'Your Net Payout:'}</span>
-                    <span>${estimatedSellerNet.toFixed(2)} USD</span>
-                  </div>
-                </div>
-
+                <PayoutBreakdown
+                  priceCents={Math.max(0, dollarsToCents(uploadPriceDollars))}
+                  commissionPercent={commissionPercent}
+                  commissionLoading={commissionLoading}
+                  commissionError={commissionError}
+                  isAr={isAr}
+                  onRetry={() => setCommissionRefreshKey((key) => key + 1)}
+                />
                 <button
                   type="submit"
                   disabled={uploading}
@@ -767,6 +845,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
                 {isAr ? 'جارٍ تحميل الأدوات...' : 'Loading submissions...'}
               </div>
+            ) : uploadsLoadError ? (
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل الأصول المرفوعة.' : 'Could not load your uploads.'}</p>
             ) : myUploads.length > 0 ? (
               <div className="space-y-4">
                 {myUploads.map((prod) => {
@@ -785,9 +865,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[var(--blue-bright)]">
                               {prod.category}
                             </span>
-                            <span className="file-pill">
-                              {getFileExtensionPill(prod.fileKey, prod.category)}
-                            </span>
+                            {prod.fileKey && getFileExtensionPill(prod.fileKey) && <span className="file-pill">{getFileExtensionPill(prod.fileKey)}</span>}
+                            {prod.version && <span className="text-[10px] font-mono text-[var(--muted-2)]">v{prod.version}</span>}
                             <span
                               className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-semibold ${
                                 isApproved
@@ -802,8 +881,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                           </div>
 
                           <h3 className="font-bold text-base text-[var(--text)]">
-                            {prod.name}
+                            {isAr && prod.nameAr ? prod.nameAr : prod.name}
                           </h3>
+                          <p className="text-xs text-[var(--muted)] line-clamp-2">
+                            {isAr && prod.descriptionAr ? prod.descriptionAr : prod.description}
+                          </p>
 
                           <div className="text-xs font-mono text-[var(--muted-2)]">
                             {isAr ? 'السعر:' : 'Price:'} {formatCents(prod.price)} • {formatBytes(prod.fileSize)} • {formatDate(prod.createdAt, locale)}
@@ -861,7 +943,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             </h2>
 
             {/* Sales Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {!loadingSales && !salesLoadError && <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="deeptools-card rounded-xl p-5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] block">
                   {isAr ? 'إجمالي المبيعات' : 'TOTAL SALES'}
@@ -888,7 +970,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   {formatCents(sellerEarnings)}
                 </div>
               </div>
-            </div>
+            </div>}
 
             {/* Sales Table */}
             {loadingSales ? (
@@ -896,6 +978,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
                 {isAr ? 'جارٍ تحميل المبيعات...' : 'Loading sales records...'}
               </div>
+            ) : salesLoadError ? (
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل المبيعات.' : 'Could not load sales.'}</p>
             ) : sales.length > 0 ? (
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
                 <div className="overflow-x-auto">
@@ -1112,6 +1196,15 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
                 />
               </div>
+
+              <PayoutBreakdown
+                priceCents={Math.max(0, dollarsToCents(editPriceDollars))}
+                commissionPercent={commissionPercent}
+                commissionLoading={commissionLoading}
+                commissionError={commissionError}
+                isAr={isAr}
+                onRetry={() => setCommissionRefreshKey((key) => key + 1)}
+              />
 
               <div>
                 <label htmlFor="asset-edit-file" className="block text-xs font-mono text-[var(--muted-2)] mb-1">

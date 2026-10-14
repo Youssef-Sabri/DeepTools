@@ -772,6 +772,29 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: "get",
+  path: "/admin/uploads/{id}/download",
+  tags: ["Admin"],
+  summary: "Stream any active product file for admin review, regardless of status",
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    query: z.object({ disposition: z.enum(["inline", "attachment"]).optional() }),
+  },
+  responses: {
+    200: {
+      description: "Attachment by default; inline preview for safe browser-rendered types. HEAD is supported for access checks.",
+      content: { "application/octet-stream": { schema: z.string().openapi({ type: "string", format: "binary" }) } },
+    },
+    401: { description: "Unauthorized", content: { "application/json": { schema: ApiErrorSchema } } },
+    403: { description: "Admin access required", content: { "application/json": { schema: ApiErrorSchema } } },
+    404: { description: "Upload not found", content: { "application/json": { schema: ApiErrorSchema } } },
+    409: { description: "File is missing or unavailable", content: { "application/json": { schema: ApiErrorSchema } } },
+    422: { description: "Invalid product ID or disposition", content: { "application/json": { schema: ApiErrorSchema } } },
+  },
+});
+
+registry.registerPath({
   method: "patch",
   path: "/admin/uploads/{id}/approve",
   tags: ["Admin"],
@@ -1058,8 +1081,30 @@ registry.registerPath({
 });
 
 // ==========================================
-// 8. Admin Settings Endpoints
+// 8. Settings Endpoints
 // ==========================================
+registry.registerPath({
+  method: "get",
+  path: "/settings/commission",
+  tags: ["Settings"],
+  summary: "Get the current platform commission percentage",
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  responses: {
+    200: {
+      description: "Current commission settings retrieved",
+      content: {
+        "application/json": {
+          schema: envelope(CommissionResponseSchema),
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
 registry.registerPath({
   method: "get",
   path: "/admin/settings/commission",

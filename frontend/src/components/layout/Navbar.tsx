@@ -16,8 +16,6 @@ import {
 import { useAuth } from '@/components/providers/AuthProvider'
 import { OmnisearchModal } from '@/components/marketplace/OmnisearchModal'
 import type { Locale } from '@/dictionaries'
-import type { Product } from '@/lib/types'
-import { fetchApi } from '@/lib/api'
 
 interface NavbarProps {
   locale: Locale
@@ -38,7 +36,6 @@ export default function Navbar({ locale, dict }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [searchProducts, setSearchProducts] = useState<Product[]>([])
 
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -64,15 +61,6 @@ export default function Navbar({ locale, dict }: NavbarProps) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
-
-  useEffect(() => {
-    fetchApi<{ items?: Product[] } | Product[]>(`/products?lang=${locale}&limit=50`)
-      .then((data) => {
-        if (Array.isArray(data)) setSearchProducts(data)
-        else if (data && Array.isArray(data.items)) setSearchProducts(data.items)
-      })
-      .catch(() => {})
-  }, [locale])
 
   const isAdmin = user?.role === 'ADMIN'
 
@@ -405,7 +393,6 @@ export default function Navbar({ locale, dict }: NavbarProps) {
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
         locale={locale}
-        products={searchProducts}
       />
     </>
   )

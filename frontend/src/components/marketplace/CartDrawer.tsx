@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, ShoppingCart, Download, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { Product, Order } from '@/lib/types'
-import { formatCents, getFileExtensionPill } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 
@@ -69,7 +69,11 @@ export function CartDrawer({
     if (!product) return
     setDownloading(true)
     try {
-      await downloadProductFile(product.id, `${product.name}.zip`)
+      const extension = product.fileExtension || ''
+      const fileName = extension && !product.name.toLowerCase().endsWith(extension.toLowerCase())
+        ? `${product.name}${extension}`
+        : product.name
+      await downloadProductFile(product.id, fileName)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Download failed'
       setError(msg)
@@ -139,15 +143,13 @@ export function CartDrawer({
                     <ShieldCheck className="w-7 h-7" />
                   </div>
                   <span className="text-xs font-mono uppercase tracking-wider text-[var(--blue-bright)] font-semibold mb-1">
-                    {isAr ? 'حساب الناشر المعتمد' : 'VERIFIED AUTHOR ACCESS'}
+                    {isAr ? 'وصول الناشر' : 'CREATOR ACCESS'}
                   </span>
                   <h3 className="text-lg font-bold text-[var(--text)]">
                     {isAr ? 'أنت صاحب هذا الأصل الرقمي' : 'You Published This Tool'}
                   </h3>
                   <p className="text-xs text-[var(--muted)] mt-2 max-w-xs leading-relaxed">
-                    {isAr
-                      ? 'بصفتك المطور والناشر، لديك وصول كامل ودائم لملف المصدر دون الحاجة للشراء.'
-                      : 'As the verified author, you hold unlimited access to your source archive without repurchase.'}
+                    {isAr ? 'بصفتك ناشر هذا الأصل، يمكنك تنزيل الملف الذي رفعته.' : "As this asset's creator, you can download the current uploaded file."}
                   </p>
                   <div className="w-full mt-6">
                     <button
@@ -159,7 +161,7 @@ export function CartDrawer({
                       <span>
                         {downloading
                           ? (isAr ? 'جارٍ التحميل...' : 'Downloading...')
-                          : (isAr ? 'تحميل حزمة المصدر' : 'Download Source Package')}
+                          : (isAr ? 'تنزيل ملفك' : 'Download Your File')}
                       </span>
                     </button>
                   </div>
@@ -214,9 +216,7 @@ export function CartDrawer({
                         <h4 className="font-semibold text-sm text-[var(--text)]">
                           {(isAr && product.nameAr) ? product.nameAr : product.name}
                         </h4>
-                        <span className="file-pill mt-2 inline-block">
-                          {getFileExtensionPill(product.fileKey, product.category)}
-                        </span>
+                        {product.fileExtension && <span className="file-pill mt-2 inline-block">{product.fileExtension}</span>}
                       </div>
                       <div className="text-right font-mono font-bold text-base text-[var(--text)]">
                         {formatCents(product.price)}
@@ -229,10 +229,7 @@ export function CartDrawer({
                       <span>{isAr ? 'سعر الأداة' : 'Subtotal'}</span>
                       <span className="font-mono text-[var(--text)]">{formatCents(product.price)}</span>
                     </div>
-                    <div className="flex justify-between text-[var(--muted)]">
-                      <span>{isAr ? 'رسوم الشبكة والمعالجة' : 'Processing Fee'}</span>
-                      <span className="font-mono text-[var(--green)]">{isAr ? 'مجاني ($0.00)' : 'Included ($0.00)'}</span>
-                    </div>
+
                     <div className="border-t border-[var(--line)] pt-3 flex justify-between text-sm font-bold text-[var(--text)]">
                       <span>{isAr ? 'المجموع الإجمالي' : 'Total Due'}</span>
                       <span className="font-mono text-[var(--blue-bright)]">{formatCents(product.price)}</span>
