@@ -79,11 +79,8 @@ export async function fetchApi<T = unknown>(endpoint: string, options: ApiFetchO
   return json as T
 }
 
-/**
- * Triggers an authenticated binary stream download (e.g. GET /api/v1/products/:id/download)
- */
-export async function downloadProductFile(productId: string, fallbackFileName: string = 'product_asset.zip'): Promise<void> {
-  const url = `${API_BASE_URL}/products/${encodeURIComponent(productId)}/download`
+// The browser handles the GET response as a download stream; JavaScript only checks access with HEAD.
+async function downloadFile(url: string, fallbackFileName: string): Promise<void> {
   const response = await fetch(url, { method: 'HEAD', credentials: 'same-origin', cache: 'no-store' })
 
   if (!response.ok) {
@@ -93,8 +90,21 @@ export async function downloadProductFile(productId: string, fallbackFileName: s
 
   const a = document.createElement('a')
   a.href = url
-  a.download = fallbackFileName
+  const serverFileName = response.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1]
+  a.download = serverFileName || fallbackFileName
   document.body.appendChild(a)
   a.click()
   a.remove()
+}
+
+export function downloadProductFile(productId: string, fallbackFileName: string = 'asset'): Promise<void> {
+  return downloadFile(`${API_BASE_URL}/products/${encodeURIComponent(productId)}/download`, fallbackFileName)
+}
+
+export function downloadAdminUploadFile(productId: string, fallbackFileName: string = 'asset-review.zip'): Promise<void> {
+  return downloadFile(`${API_BASE_URL}/admin/uploads/${encodeURIComponent(productId)}/download`, fallbackFileName)
+}
+
+export function adminUploadViewUrl(productId: string): string {
+  return `${API_BASE_URL}/admin/uploads/${encodeURIComponent(productId)}/download?disposition=inline`
 }

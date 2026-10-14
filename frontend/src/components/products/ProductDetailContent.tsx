@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Terminal,
   Download,
   ShoppingCart,
-  ShieldCheck,
-  Copy,
-  Check,
   CheckCircle2,
   Clock,
   HardDrive,
@@ -16,10 +12,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Product, License } from '@/lib/types'
-import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
+import { formatCents, formatBytes, formatDate } from '@/lib/utils'
 import { downloadProductFile, fetchApi } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { TerminalModal } from '@/components/marketplace/TerminalModal'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import type { Dictionary } from '@/dictionaries'
@@ -35,9 +30,6 @@ export default function ProductDetailContent({
   locale,
 }: ProductDetailContentProps) {
   const { user } = useAuth()
-  const [activeCodeTab, setActiveCodeTab] = useState<'json' | 'python' | 'schema'>('json')
-  const [copied, setCopied] = useState(false)
-  const [terminalOpen, setTerminalOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
 
@@ -45,7 +37,7 @@ export default function ProductDetailContent({
   const isOwned = isCreator || hasPurchased
 
   useEffect(() => {
-    if (!user || user.id === product.sellerId) { setHasPurchased(false); return }
+    if (!user || user.id === product.sellerId) return
 
     let ignore = false
     fetchApi<License[]>('/products/my/licenses')
@@ -75,22 +67,16 @@ export default function ProductDetailContent({
 
   const displayName = (isAr && product.nameAr) ? product.nameAr : product.name
   const displayDescription = (isAr && product.descriptionAr) ? product.descriptionAr : product.description
-  const filePill = getFileExtensionPill(product.fileKey, product.category)
-
-  const codeSnippets = {
-    json: `{\n  "$schema": "https://deeptools.dev/schemas/asset.v1.json",\n  "name": "${product.name}",\n  "category": "${product.category}",\n  "version": "${product.version || '1.0.0'}",\n  "nodes": [\n    {\n      "id": "trigger_event",\n      "type": "webhook",\n      "config": { "method": "POST", "auth": "bearer" }\n    },\n    {\n      "id": "transformer",\n      "type": "deeptools_cents_parser",\n      "config": { "input": "payload.cents" }\n    }\n  ]\n}`,
-    python: `from deeptools_sdk import AssetClient\n\nclient = AssetClient(product_id="${product.id}")\nprint(f"Loaded {client.name} v{client.version}")\n\n# Run local test with isolated sandbox\nresponse = client.execute_dry_run({"test": True})\nprint(response.output)`,
-    schema: `{\n  "type": "object",\n  "properties": {\n    "id": { "type": "string", "const": "${product.id}" },\n    "name": { "type": "string" },\n    "centsPrice": { "type": "integer", "const": ${product.price} },\n    "status": { "type": "string", "enum": ["APPROVED"] }\n  }\n}`,
-  }
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(codeSnippets[activeCodeTab])
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const filePill = product.fileExtension
+  const sellerName = product.sellerName?.trim() || (isAr ? 'اسم الناشر غير متاح' : 'Seller unavailable')
+  const assetSize = product.fileSize == null ? (isAr ? 'حجم الملف غير متاح' : 'Size unavailable') : formatBytes(product.fileSize)
+  const badge = (isAr && product.badgeAr ? product.badgeAr : product.badge)?.trim()
 
   const handleDownload = async () => {
-    const fileName = `${product.name}.zip`
+    const extension = product.fileExtension || ''
+    const fileName = extension && !product.name.toLowerCase().endsWith(extension.toLowerCase())
+      ? `${product.name}${extension}`
+      : product.name
     setDownloadState({
       isVisible: true,
       fileName,
@@ -148,12 +134,9 @@ export default function ProductDetailContent({
                 <span className="text-xs font-mono uppercase tracking-wider px-3 py-1 rounded-md bg-[var(--surface-2)] text-[var(--blue-bright)] border border-[var(--line-bright)]">
                   {product.category}
                 </span>
-                <span className="file-pill">
-                  {filePill}
-                </span>
-                <span className="text-xs font-mono text-[var(--muted-2)]">
-                  v{product.version || '1.0.0'}
-                </span>
+                {product.fileExtension && <span className="file-pill">{filePill}</span>}
+                {product.version && <span className="text-xs font-mono text-[var(--muted-2)]">v{product.version}</span>}
+                {badge && <span className="text-xs font-mono text-[var(--green)]">{badge}</span>}
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-extrabold text-[var(--text)] tracking-tight">
@@ -168,11 +151,11 @@ export default function ProductDetailContent({
               <div className="mt-8 pt-6 border-t border-[var(--line)] grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
                 <div>
                   <span className="text-[10px] text-[var(--muted-2)] uppercase block">
-                    {isAr ? 'الناشر المعتمد' : 'Verified Author'}
+                    {isAr ? 'الناشر' : 'Seller'}
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <User className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                    {product.seller?.name || 'DeepTools Engineering'}
+                    {sellerName}
                   </span>
                 </div>
 
@@ -182,7 +165,7 @@ export default function ProductDetailContent({
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <HardDrive className="w-3.5 h-3.5 text-[var(--purple)]" />
-                    {formatBytes(product.fileSize)}
+                    {assetSize}
                   </span>
                 </div>
 
@@ -192,71 +175,12 @@ export default function ProductDetailContent({
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <Clock className="w-3.5 h-3.5 text-[var(--green)]" />
-                    {formatDate(product.createdAt, locale)}
+                    {product.publishedAt ? formatDate(product.publishedAt, locale) : (isAr ? 'تاريخ النشر غير متاح' : 'Publication date unavailable')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Signature Terminal Dry-Run Card */}
-            <div className="terminal-modal overflow-hidden">
-              <div className="terminal-header justify-between">
-                <div className="flex items-center">
-                  <span className="mac-dot mac-dot-red" />
-                  <span className="mac-dot mac-dot-yellow" />
-                  <span className="mac-dot mac-dot-green" />
-                  <span className="text-xs text-[var(--muted)] font-mono ms-3 flex items-center gap-1.5">
-                    <Terminal className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                    inspection://{product.name.toLowerCase().replace(/\s+/g, '-')}.spec
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCopyCode}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] bg-[var(--surface-2)] border border-[var(--line)] transition-colors"
-                  >
-                    {copied ? <Check className="w-3 h-3 text-[var(--green)]" /> : <Copy className="w-3 h-3" />}
-                    <span>{copied ? 'Copied' : 'Copy'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setTerminalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-semibold text-white bg-[var(--blue)] hover:bg-[var(--blue-bright)] transition-colors"
-                  >
-                    <Terminal className="w-3.5 h-3.5" />
-                    <span>{isAr ? 'محاكاة التشغيل (Sandbox)' : 'Launch Sandbox'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Code Tabs */}
-              <div className="px-4 py-2 bg-[var(--surface)] border-b border-[var(--line)] flex items-center gap-2">
-                {(['json', 'python', 'schema'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveCodeTab(tab)}
-                    className={`px-3 py-1 rounded text-xs font-mono uppercase tracking-wider transition-colors ${
-                      activeCodeTab === tab
-                        ? 'bg-[var(--surface-3)] text-[var(--blue-bright)] border border-[var(--blue)]/40 font-semibold'
-                        : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {/* Code viewer */}
-              <div className="p-4 bg-[#070b11] font-mono text-xs leading-relaxed overflow-x-auto max-h-[300px]">
-                {codeSnippets[activeCodeTab].split('\n').map((line, idx) => (
-                  <div key={idx} className="flex hover:bg-[#121927]/60 px-2 py-0.5 rounded">
-                    <span className="code-line-number">{String(idx + 1).padStart(2, '0')}</span>
-                    <span className="text-[#d8e2f0] whitespace-pre">{line}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Sticky Purchase Widget (1 Column) */}
@@ -264,13 +188,13 @@ export default function ProductDetailContent({
             <div className="deeptools-card rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--muted-2)] font-semibold block mb-1">
-                  {isOwned ? (isAr ? 'الترخيص' : 'LICENSE STATUS') : (isAr ? 'سعر الترخيص' : 'LIFETIME ACCESS')}
+                  {isOwned ? (isAr ? 'الوصول' : 'ACCESS') : (isAr ? 'سعر الأصل' : 'ASSET PRICE')}
                 </span>
                 <div className="text-3xl font-extrabold font-mono text-[var(--text)]">
                   {isOwned ? (
                     <span className="text-lg text-[var(--green)] flex items-center gap-2 font-semibold">
                       <CheckCircle2 className="w-5 h-5" />
-                      {isAr ? 'مرخص لك بالكامل' : 'Purchased & Licensed'}
+                      {isCreator ? (isAr ? 'أصلك الرقمي' : 'Your Asset') : (isAr ? 'ترخيص نشط' : 'Licensed')}
                     </span>
                   ) : (
                     formatCents(product.price)
@@ -293,27 +217,15 @@ export default function ProductDetailContent({
                 ) : (
                   <button
                     onClick={() => setCartOpen(true)}
-                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-[0_0_25px_rgba(59,130,246,0.4)]"
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg"
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>{isAr ? 'شراء الترخيص فورياً' : 'Buy Asset License'}</span>
+                    <span>{isAr ? 'شراء ترخيص الأصل' : 'Buy Asset License'}</span>
                   </button>
                 )}
-
-                <button
-                  onClick={() => setTerminalOpen(true)}
-                  className="w-full py-3 px-4 rounded-xl font-semibold text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line-bright)] flex items-center justify-center gap-2 transition-colors"
-                >
-                  <Terminal className="w-4 h-4 text-[var(--blue-bright)]" />
-                  <span>{isAr ? 'اختبار الأداة في الـ Sandbox' : 'Test in Dry-Run Sandbox'}</span>
-                </button>
               </div>
 
               <div className="mt-6 pt-6 border-t border-[var(--line)] space-y-3 text-xs text-[var(--muted)]">
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-[var(--green)] shrink-0" />
-                  <span>{isAr ? 'ترخيص تجاري كامل للاستخدام والدمج' : 'Commercial rights for unlimited production pipelines'}</span>
-                </div>
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-[var(--blue-bright)] shrink-0" />
                   <span>{isAr ? 'تنزيل مباشر فوري من السيرفر' : 'Direct authenticated binary stream download'}</span>
@@ -323,14 +235,6 @@ export default function ProductDetailContent({
           </div>
         </div>
       </div>
-
-      {/* Terminal Sandbox Modal */}
-      <TerminalModal
-        isOpen={terminalOpen}
-        product={product}
-        onClose={() => setTerminalOpen(false)}
-        locale={locale}
-      />
 
       {/* Cart Drawer */}
       <CartDrawer

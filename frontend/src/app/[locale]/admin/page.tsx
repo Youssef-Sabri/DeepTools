@@ -13,14 +13,17 @@ import {
   AlertTriangle,
   Loader2,
   Shield,
+  Download,
+  Eye,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { fetchApi } from '@/lib/api'
+import { fetchApi, downloadAdminUploadFile, adminUploadViewUrl } from '@/lib/api'
 import type { Product, User, MarketplaceInsights, UserInsights } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 
 type AdminTab = 'uploads' | 'users' | 'commission' | 'insights'
+type UploadStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -32,9 +35,14 @@ export default function AdminPage() {
   // Tab 1: Moderation Queue (F-B5)
   const [uploads, setUploads] = useState<Product[]>([])
   const [loadingUploads, setLoadingUploads] = useState(true)
+  const [uploadStatusFilter, setUploadStatusFilter] = useState<UploadStatusFilter>('ALL')
+  const [uploadPage, setUploadPage] = useState(1)
+  const [uploadTotalPages, setUploadTotalPages] = useState(1)
+  const [uploadTotal, setUploadTotal] = useState(0)
   const [rejectModalProduct, setRejectModalProduct] = useState<Product | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   // Tab 2: Users Management (F-A5)
   const [usersList, setUsersList] = useState<User[]>([])
@@ -61,12 +69,21 @@ export default function AdminPage() {
     async function fetchTabData() {
       if (activeTab === 'uploads') {
         try {
-          const data = await fetchApi<{ items?: Product[]; uploads?: Product[] } | Product[]>('/admin/uploads')
+          const params = new URLSearchParams({ page: String(uploadPage), limit: '20' })
+          if (uploadStatusFilter !== 'ALL') params.set('status', uploadStatusFilter)
+          const data = await fetchApi<{ items?: Product[]; uploads?: Product[]; total?: number; totalPages?: number } | Product[]>(`/admin/uploads?${params.toString()}`)
           if (!ignore) {
+            if (!Array.isArray(data) && data.totalPages && uploadPage > data.totalPages) {
+              setLoadingUploads(true)
+              setUploadPage(data.totalPages)
+              return
+            }
             if (Array.isArray(data)) setUploads(data)
             else if (data && Array.isArray(data.items)) setUploads(data.items)
             else if (data && Array.isArray(data.uploads)) setUploads(data.uploads)
             else setUploads([])
+            setUploadTotal(Array.isArray(data) ? data.length : data.total ?? 0)
+            setUploadTotalPages(Array.isArray(data) ? 1 : data.totalPages ?? 1)
             setLoadingUploads(false)
           }
         } catch (err) {
@@ -123,7 +140,21 @@ export default function AdminPage() {
     return () => {
       ignore = true
     }
-  }, [activeTab, isAdmin, roleFilter, userSearch, refreshCount])
+  }, [activeTab, isAdmin, roleFilter, userSearch, refreshCount, uploadPage, uploadStatusFilter])
+
+  // Download the current uploaded file for any product status.
+  const handleDownloadReviewFile = async (item: Product) => {
+    setDownloadingId(item.id)
+    try {
+      const extension = getFileExtensionPill(item.fileKey)
+      const fallbackName = item.name.toLowerCase().endsWith(extension.toLowerCase()) ? item.name : `${item.name}${extension}`
+      await downloadAdminUploadFile(item.id, fallbackName)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Review file download failed')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   // Approve Upload (F-B5)
   const handleApprove = async (id: string) => {
@@ -241,7 +272,7 @@ export default function AdminPage() {
         {/* Tab Selector */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
           {[
-            { id: 'uploads', label: 'Moderation Review Queue', icon: CheckCircle, badge: uploads.filter(u => u.status === 'PENDING').length },
+            { id: 'uploads', label: 'Asset Review', icon: CheckCircle },
             { id: 'users', label: 'User Directory & Roles', icon: Users },
             { id: 'commission', label: 'Platform Commission %', icon: Percent },
             { id: 'insights', label: 'Marketplace Insights', icon: TrendingUp },
@@ -260,11 +291,6 @@ export default function AdminPage() {
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
-                {typeof tab.badge === 'number' && tab.badge > 0 && (
-                  <span className="ms-1 px-1.5 py-0.2 rounded-full bg-[var(--orange)] text-[#080b10] text-[10px] font-bold">
-                    {tab.badge}
-                  </span>
-                )}
               </button>
             )
           })}
@@ -273,24 +299,43 @@ export default function AdminPage() {
         {/* TAB 1: MODERATION REVIEW QUEUE (F-B5) */}
         {activeTab === 'uploads' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-[var(--text)]">
-                Digital Assets Awaiting Decision
+                Digital Assets
               </h2>
-              <button
-                onClick={() => setRefreshCount((c) => c + 1)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--line)]"
-              >
-                Refresh Queue
-              </button>
+              <div className="flex items-center gap-2">
+                <label htmlFor="admin-asset-status" className="text-xs text-[var(--muted)]">Status</label>
+                <select
+                  id="admin-asset-status"
+                  value={uploadStatusFilter}
+                  onChange={(event) => {
+                    setLoadingUploads(true)
+                    setUploadPage(1)
+                    setUploadStatusFilter(event.target.value as UploadStatusFilter)
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]"
+                >
+                  <option value="ALL">All</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+                <button
+                  onClick={() => { setLoadingUploads(true); setRefreshCount((c) => c + 1) }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--line)]"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
 
             {loadingUploads ? (
               <div className="p-12 text-center text-xs text-[var(--muted)]">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                Loading review queue...
+                Loading assets...
               </div>
             ) : uploads.length > 0 ? (
+              <div className="space-y-3">
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
@@ -302,7 +347,7 @@ export default function AdminPage() {
                         <th className="px-4 py-3">Price</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Submitted</th>
-                        <th className="px-4 py-3 text-right">Moderation Actions</th>
+                        <th className="px-4 py-3 text-right">File & Moderation Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--line)]">
@@ -310,9 +355,11 @@ export default function AdminPage() {
                         <tr key={item.id} className="hover:bg-[var(--surface-2)]/40 transition-colors">
                           <td className="px-4 py-3 font-semibold text-[var(--text)]">
                             <div>{item.name}</div>
-                            <span className="file-pill mt-1 inline-block">
-                              {getFileExtensionPill(item.fileKey, item.category)} ({formatBytes(item.fileSize)})
-                            </span>
+                            {item.fileKey && (
+                              <span className="file-pill mt-1 inline-block">
+                                {getFileExtensionPill(item.fileKey)} ({formatBytes(item.fileSize)})
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-mono text-[var(--blue-bright)] uppercase text-[10px]">
                             {item.category}
@@ -338,34 +385,56 @@ export default function AdminPage() {
                             {formatDate(item.createdAt)}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {item.status === 'PENDING' ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleApprove(item.id)}
-                                  disabled={actionLoading === item.id}
-                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center gap-1 transition-colors"
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadReviewFile(item)}
+                                disabled={!item.fileKey || downloadingId !== null || actionLoading === item.id}
+                                title={item.fileKey ? 'Download the uploaded file' : 'No file is available'}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--surface-2)] border border-[var(--line-bright)] text-[var(--blue-bright)] hover:bg-[var(--surface-3)] flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {downloadingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                <span>Download File</span>
+                              </button>
+                              {item.fileKey ? (
+                                <a
+                                  href={adminUploadViewUrl(item.id)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open the uploaded file in a new tab"
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--surface-2)] border border-[var(--line-bright)] text-[var(--blue-bright)] hover:bg-[var(--surface-3)] flex items-center gap-1 transition-colors"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Approve</span>
-                                </button>
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>View in Browser</span>
+                                </a>
+                              ) : (
+                                <span className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted-2)] opacity-50">View in Browser</span>
+                              )}
+                              {item.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    onClick={() => handleApprove(item.id)}
+                                    disabled={actionLoading === item.id}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center gap-1 transition-colors"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Approve</span>
+                                  </button>
 
-                                <button
-                                  onClick={() => {
-                                    setRejectModalProduct(item)
-                                    setRejectReason('')
-                                  }}
-                                  disabled={actionLoading === item.id}
-                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:bg-rose-600 text-white flex items-center gap-1 transition-colors"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  <span>Reject</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-[var(--muted-2)] font-mono italic">
-                                Decided
-                              </span>
-                            )}
+                                  <button
+                                    onClick={() => {
+                                      setRejectModalProduct(item)
+                                      setRejectReason('')
+                                    }}
+                                    disabled={actionLoading === item.id}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:bg-rose-600 text-white flex items-center gap-1 transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>Reject</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -373,12 +442,30 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+              <div className="flex items-center justify-between gap-3 text-xs text-[var(--muted)]">
+                <span>{uploadTotal} assets, page {uploadPage} of {uploadTotalPages}</span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={uploadPage <= 1}
+                    onClick={() => { setLoadingUploads(true); setUploadPage((page) => page - 1) }}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--line)] disabled:opacity-50"
+                  >Previous</button>
+                  <button
+                    type="button"
+                    disabled={uploadPage >= uploadTotalPages}
+                    onClick={() => { setLoadingUploads(true); setUploadPage((page) => page + 1) }}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--line)] disabled:opacity-50"
+                  >Next</button>
+                </div>
+              </div>
+              </div>
             ) : (
               <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
                 <CheckCircle className="w-10 h-10 text-[var(--green)] mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-[var(--text)]">Review Queue Clear</h3>
+                <h3 className="text-sm font-bold text-[var(--text)]">No assets found</h3>
                 <p className="text-xs text-[var(--muted)] mt-1">
-                  All seller uploads have been processed.
+                  Try another status or refresh the list.
                 </p>
               </div>
             )}

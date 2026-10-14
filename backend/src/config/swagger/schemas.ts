@@ -145,7 +145,23 @@ export const ProductSchema = registry.register(
       .string()
       .uuid()
       .openapi({ example: "b2d8e34a-9c71-4621-b3f8-2c286d9a1f2e" }),
-    sellerName: z.string().openapi({ example: "Verified Seller" }),
+    sellerName: z.string().nullable().openapi({ example: "Ada Lovelace" }),
+    fileSize: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullable()
+      .openapi({ example: 2048, description: "Approved asset size in bytes" }),
+    fileExtension: z.string().nullable().openapi({
+      example: ".json",
+      description:
+        "Extension of the approved asset; storage key is not exposed",
+    }),
+    publishedAt: z
+      .string()
+      .datetime()
+      .nullable()
+      .openapi({ example: "2026-10-08T10:00:00.000Z" }),
     createdAt: z
       .string()
       .datetime()
@@ -492,6 +508,8 @@ export const BuyerOrderItemSchema = registry.register(
   z.object({
     id: z.string().uuid(),
     productId: z.string().uuid().nullable(),
+    productName: z.string().nullable(),
+    fileExtension: z.string().nullable(),
     amount: z.number().int().openapi({ example: 4900 }),
     status: z.string().openapi({ example: "COMPLETED" }),
     paymentGateway: z.string().openapi({ example: "simulated" }),

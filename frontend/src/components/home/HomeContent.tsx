@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react'
 import {
   Terminal,
   ArrowRight,
-  Play,
-  Check,
-  Copy,
   Code2,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -14,10 +11,10 @@ import type { Product, License } from '@/lib/types'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
-import { TerminalModal } from '@/components/marketplace/TerminalModal'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import type { Dictionary } from '@/dictionaries'
+import { formatBytes, formatCents, formatDate } from '@/lib/utils'
 
 interface HomeContentProps {
   dict?: Dictionary
@@ -29,16 +26,9 @@ export default function HomeContent({ locale }: HomeContentProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeHeroTab, setActiveHeroTab] = useState<'n8n' | 'agent' | 'script'>('n8n')
-  const [heroCopied, setHeroCopied] = useState(false)
-  const [heroExecuting, setHeroExecuting] = useState(false)
-  const [heroLogs, setHeroLogs] = useState<string[]>([
-    '[INIT] DeepTools v2.4 runtime ready.',
-    '[INFO] Select a workflow tab and trigger execution test.',
-  ])
+  const [homeError, setHomeError] = useState(false)
 
   // Modals & Drawers state
-  const [selectedProductForTerminal, setSelectedProductForTerminal] = useState<Product | null>(null)
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null)
   const [downloadState, setDownloadState] = useState<{
     isVisible: boolean
@@ -69,6 +59,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
         }
       } catch (err) {
         console.error('Failed to load products for home page:', err)
+        if (isMounted) setHomeError(true)
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -80,7 +71,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
   }, [locale])
 
   useEffect(() => {
-    if (!user) { setOwnedProductIds([]); return }
+    if (!user) return
     let ignore = false
     fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
@@ -97,37 +88,10 @@ export default function HomeContent({ locale }: HomeContentProps) {
     }
   }, [user])
 
-  const heroSnippets = {
-    n8n: `{\n  "name": "Stripe-to-Postgres Event Ingestor",\n  "nodes": [\n    { "type": "n8n-nodes-base.stripeTrigger", "event": "charge.succeeded" },\n    { "type": "deeptools.centsToDollarsTransformer", "input": "amount" },\n    { "type": "n8n-nodes-base.postgres", "operation": "upsertOrder" }\n  ]\n}`,
-    agent: `import { AgenticWorker } from "deeptools-agents";\n\nconst agent = new AgenticWorker({\n  model: "gemini-2.5-pro",\n  memory: "redis://127.0.0.1:6379",\n  skills: ["schema_inspection", "database_tuning"]\n});\n\nawait agent.listenToQueue("db.optimization.events");`,
-    script: `#!/usr/bin/env python3\nimport sys, httpx\n\ndef audit_pipeline():\n    print("[+] Scanning webhook endpoints for latency...")\n    resp = httpx.get("http://localhost:4000/api/v1/health")\n    assert resp.status_code == 200\n    print("[+] Latency 14ms // Health OK")\n\nif __name__ == "__main__":\n    audit_pipeline()`,
-  }
-
-  const handleCopyHero = () => {
-    navigator.clipboard.writeText(heroSnippets[activeHeroTab])
-    setHeroCopied(true)
-    setTimeout(() => setHeroCopied(false), 2000)
-  }
-
-  const handleHeroRun = () => {
-    setHeroExecuting(true)
-    setHeroLogs(['[RUN] Spawning isolated sandboxed thread container...'])
-    setTimeout(() => {
-      setHeroLogs((prev) => [...prev, `[LOAD] Ingested node definition: ${activeHeroTab.toUpperCase()}`])
-    }, 350)
-    setTimeout(() => {
-      setHeroLogs((prev) => [
-        ...prev,
-        '[TEST] Executed simulated payload against schema validator.',
-        '[OK] Dry-run passed: Exit code 0, 0 runtime faults.',
-      ])
-      setHeroExecuting(false)
-    }, 900)
-  }
-
   const handleDownload = async (productId: string) => {
     const target = products.find((p) => p.id === productId)
-    const name = `${target?.name || 'asset'}.zip`
+    const extension = target?.fileExtension || ''
+    const name = target?.name ? (extension && !target.name.toLowerCase().endsWith(extension.toLowerCase()) ? `${target.name}${extension}` : target.name) : 'asset'
 
     setDownloadState({
       isVisible: true,
@@ -190,9 +154,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
-            {isAr
-              ? 'سوق متقدم للمطورين لاكتشاف واختبار وشراء أصول الأتمتة الجاهزة للإنتاج. كود أصلي، مفاتيح ترخيص فورية، ومحاكاة تشغيل مسبقة.'
-              : 'Discover, simulate in dry-run sandboxes, and instantly deploy production workflows, scripts, and autonomous AI agent skills.'}
+            {isAr ? 'اكتشف الأصول الرقمية المعتمدة من البائعين، وراجع تفاصيلها قبل الشراء.' : 'Explore approved digital assets from sellers and review their details before purchasing.'}
           </p>
 
           {/* Primary CTA Buttons */}
@@ -215,133 +177,38 @@ export default function HomeContent({ locale }: HomeContentProps) {
           </div>
         </div>
 
-        {/* ===== HERO SIGNATURE: LIVE WORKBENCH TERMINAL ===== */}
-        <div className="max-w-4xl mx-auto terminal-modal overflow-hidden">
-          {/* macOS Header */}
-          <div className="terminal-header justify-between">
-            <div className="flex items-center">
-              <span className="mac-dot mac-dot-red" />
-              <span className="mac-dot mac-dot-yellow" />
-              <span className="mac-dot mac-dot-green" />
-              <span className="text-xs text-[var(--muted)] font-mono ms-3">
-                sandbox://deeptools-runtime.local:8080
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopyHero}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono text-[var(--muted)] hover:text-[var(--text)] bg-[var(--surface-2)] border border-[var(--line)] transition-colors"
-              >
-                {heroCopied ? <Check className="w-3 h-3 text-[var(--green)]" /> : <Copy className="w-3 h-3" />}
-                <span>{heroCopied ? 'Copied' : 'Copy'}</span>
-              </button>
-
-              <button
-                onClick={handleHeroRun}
-                disabled={heroExecuting}
-                className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-mono font-semibold text-white bg-[var(--blue)] hover:bg-[var(--blue-bright)] disabled:opacity-50 transition-colors"
-              >
-                <Play className="w-3 h-3 fill-current" />
-                <span>{heroExecuting ? 'Executing...' : 'Run Dry Test'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Subheader Tabs */}
-          <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--line)] flex items-center gap-2">
-            {[
-              { id: 'n8n', label: 'workflow.json (n8n)' },
-              { id: 'agent', label: 'agent_runner.ts' },
-              { id: 'script', label: 'audit_tool.py' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveHeroTab(tab.id as 'n8n' | 'agent' | 'script')}
-                className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
-                  activeHeroTab === tab.id
-                    ? 'bg-[var(--surface-3)] text-[var(--blue-bright)] border border-[var(--blue)]/40 font-semibold'
-                    : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Code Viewer */}
-          <div className="p-4 bg-[#070b11] font-mono text-xs leading-relaxed overflow-x-auto max-h-[220px]">
-            {heroSnippets[activeHeroTab].split('\n').map((line, idx) => (
-              <div key={idx} className="flex">
-                <span className="code-line-number">{String(idx + 1).padStart(2, '0')}</span>
-                <span className="text-[#d8e2f0] whitespace-pre">{line}</span>
+        {!loading && products[0] && (
+          <div className="max-w-4xl mx-auto deeptools-card rounded-2xl p-6 md:p-8 border border-[var(--line)]">
+            <span className="text-xs font-mono text-[var(--blue-bright)] uppercase">
+              {isAr ? 'أحدث أصل معتمد' : 'Latest approved asset'}
+            </span>
+            <div className="mt-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[var(--text)]">
+                  {isAr && products[0].nameAr ? products[0].nameAr : products[0].name}
+                </h2>
+                <p className="mt-2 text-sm text-[var(--muted)] line-clamp-3">
+                  {isAr && products[0].descriptionAr ? products[0].descriptionAr : products[0].description}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3 text-xs font-mono text-[var(--muted-2)]">
+                  <span>{products[0].category}</span>
+                  {products[0].version && <span>v{products[0].version}</span>}
+                  {products[0].fileExtension && <span>{products[0].fileExtension}</span>}
+                  {products[0].fileSize != null && <span>{formatBytes(products[0].fileSize)}</span>}
+                  {products[0].sellerName && <span>{products[0].sellerName}</span>}
+                  <span>{formatDate(products[0].publishedAt || products[0].createdAt, locale)}</span>
+                </div>
               </div>
-            ))}
-          </div>
-
-          {/* Live Telemetry Bar */}
-          <div className="p-3 bg-[#05070a] border-t border-[var(--line)] font-mono text-[11px]">
-            <div className="text-[10px] uppercase tracking-wider text-[var(--muted-2)] mb-1 font-semibold">
-              SANDBOX STATUS LOGS
-            </div>
-            {heroLogs.map((log, i) => (
-              <div
-                key={i}
-                className={
-                  log.includes('[OK]')
-                    ? 'text-[var(--green)]'
-                    : log.includes('[RUN]')
-                    ? 'text-[var(--blue-bright)]'
-                    : 'text-[var(--muted)]'
-                }
-              >
-                {log}
+              <div className="flex sm:flex-col items-center sm:items-end gap-3 shrink-0">
+                <span className="text-lg font-bold font-mono text-[var(--text)]">{formatCents(products[0].price)}</span>
+                <Link href={`/${locale}/products/${products[0].id}`} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-xs font-semibold">
+                  {isAr ? 'عرض الأصل' : 'View asset'}
+                </Link>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
       </section>
-
-      {/* ===== TRUST INDICATORS ===== */}
-      <section className="py-12 border-y border-[var(--line)] bg-[#0c1017]/50">
-        <div className="container-custom">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--line)]">
-              <div className="text-2xl md:text-3xl font-extrabold font-mono text-[var(--blue-bright)]">
-                100%
-              </div>
-              <div className="text-xs text-[var(--muted)] mt-1 font-mono uppercase tracking-wider">
-                {isAr ? 'كود مفحوص ومختبر' : 'Verified Execution'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--line)]">
-              <div className="text-2xl md:text-3xl font-extrabold font-mono text-[var(--purple)]">
-                50MB
-              </div>
-              <div className="text-xs text-[var(--muted)] mt-1 font-mono uppercase tracking-wider">
-                {isAr ? 'حد التخزين الرقمي' : 'Storage Standard'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--line)]">
-              <div className="text-2xl md:text-3xl font-extrabold font-mono text-[var(--green)]">
-                0-Fee
-              </div>
-              <div className="text-xs text-[var(--muted)] mt-1 font-mono uppercase tracking-wider">
-                {isAr ? 'تنزيلات فورية للمشتري' : 'Instant Buyer Downloads'}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--line)]">
-              <div className="text-2xl md:text-3xl font-extrabold font-mono text-[var(--orange)]">
-                Cents
-              </div>
-              <div className="text-xs text-[var(--muted)] mt-1 font-mono uppercase tracking-wider">
-                {isAr ? 'معيار الحساب بالسنت' : 'Integer Cents Standard'}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ===== FEATURED WORKBENCH ASSETS ===== */}
       <section className="py-20 container-custom">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
@@ -350,7 +217,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
               {isAr ? 'أحدث الإضافات البرمجية' : 'APPROVED ENGINEERING TOOLS'}
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
-              {isAr ? 'أدوات وسيناريوهات جاهزة للإنتاج' : 'Featured Marketplace Assets'}
+              {isAr ? 'أحدث الأصول في السوق' : 'Latest Marketplace Assets'}
             </h2>
           </div>
 
@@ -373,6 +240,10 @@ export default function HomeContent({ locale }: HomeContentProps) {
               />
             ))}
           </div>
+        ) : homeError ? (
+          <p role="alert" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--rose)]">
+            {isAr ? 'تعذر تحميل الأصول حالياً.' : 'Could not load marketplace assets.'}
+          </p>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => {
@@ -386,7 +257,6 @@ export default function HomeContent({ locale }: HomeContentProps) {
                   product={product}
                   locale={locale}
                   isOwned={isOwned}
-                  onDryRun={(p) => setSelectedProductForTerminal(p)}
                   onBuy={(p) => setSelectedProductForCart(p)}
                   onDownload={(id) => handleDownload(id)}
                 />
@@ -408,14 +278,6 @@ export default function HomeContent({ locale }: HomeContentProps) {
           </div>
         )}
       </section>
-
-      {/* Terminal Sandbox Modal */}
-      <TerminalModal
-        isOpen={Boolean(selectedProductForTerminal)}
-        product={selectedProductForTerminal}
-        onClose={() => setSelectedProductForTerminal(null)}
-        locale={locale}
-      />
 
       {/* Slide-out Cart Drawer */}
       <CartDrawer

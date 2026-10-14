@@ -3,12 +3,11 @@
 import Link from 'next/link'
 import { Terminal, Download, ShoppingCart, Sparkles, CheckCircle2, ShieldCheck, Cpu } from 'lucide-react'
 import type { Product } from '@/lib/types'
-import { formatCents, getCategoryVisualClass, getFileExtensionPill, normalizeCategory } from '@/lib/utils'
+import { formatCents, formatBytes, formatDate, getCategoryVisualClass, getFileExtensionPill, normalizeCategory } from '@/lib/utils'
 
 interface ProductCardProps {
   product: Product
   locale: string
-  onDryRun?: (product: Product) => void
   onBuy?: (product: Product) => void
   onDownload?: (productId: string) => void
   isOwned?: boolean
@@ -17,7 +16,6 @@ interface ProductCardProps {
 export function ProductCard({
   product,
   locale,
-  onDryRun,
   onBuy,
   onDownload,
   isOwned = false,
@@ -26,8 +24,10 @@ export function ProductCard({
   const displayName = (isArabic && product.nameAr) ? product.nameAr : product.name
   const displayDescription = (isArabic && product.descriptionAr) ? product.descriptionAr : product.description
   const visualClass = getCategoryVisualClass(product.category)
-  const filePill = getFileExtensionPill(product.fileKey, product.category)
+  const filePill = product.fileExtension || (product.fileKey ? getFileExtensionPill(product.fileKey) : null)
   const normCategory = normalizeCategory(product.category)
+  const sellerName = product.sellerName?.trim() || product.seller?.name?.trim() || null
+  const badge = (isArabic && product.badgeAr ? product.badgeAr : product.badge)?.trim()
 
   const getCategoryGlyph = () => {
     switch (normCategory) {
@@ -44,9 +44,7 @@ export function ProductCard({
     }
   }
 
-  const sellerInitials = product.seller?.name
-    ? product.seller.name.slice(0, 2).toUpperCase()
-    : 'DT'
+  const sellerInitials = sellerName ? sellerName.slice(0, 2).toUpperCase() : '—'
 
   return (
     <div className="deeptools-card rounded-xl overflow-hidden flex flex-col justify-between group">
@@ -64,13 +62,18 @@ export function ProductCard({
               {normCategory}
             </span>
           </div>
+          {badge && (
+            <span className="absolute top-3 end-3 px-2.5 py-1 rounded bg-[#080b10]/70 text-[var(--green)] border border-[var(--line)] text-[10px] font-mono">
+              {badge}
+            </span>
+          )}
 
           {/* Bottom-Right File Extension Pill */}
-          <div className="absolute bottom-3 end-3">
+          {filePill && <div className="absolute bottom-3 end-3">
             <span className="file-pill">
               {filePill}
             </span>
-          </div>
+          </div>}
         </div>
 
         {/* Content Body */}
@@ -80,7 +83,7 @@ export function ProductCard({
               {sellerInitials}
             </div>
             <span className="text-xs text-[var(--muted-2)] font-mono">
-              {product.seller?.name || 'DeepTools Engineering'}
+              {sellerName || (isArabic ? 'الناشر غير متاح' : 'Seller unavailable')}
             </span>
           </div>
 
@@ -93,6 +96,11 @@ export function ProductCard({
           <p className="mt-2 text-xs text-[var(--muted)] line-clamp-2 leading-relaxed">
             {displayDescription}
           </p>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono text-[var(--muted-2)]">
+            {product.version && <span>v{product.version}</span>}
+            {product.fileSize != null && <span>{formatBytes(product.fileSize)}</span>}
+            <span>{formatDate(product.publishedAt || product.createdAt, locale)}</span>
+          </div>
         </div>
       </div>
 
@@ -100,13 +108,13 @@ export function ProductCard({
       <div className="p-5 pt-0 mt-3 flex items-center justify-between border-t border-[var(--line)]/50 pt-4">
         <div>
           <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--muted-2)] block">
-            {isOwned ? (isArabic ? 'مملوكة' : 'Owned') : (isArabic ? 'السعر' : 'Price')}
+            {isOwned ? (isArabic ? 'متاح لك' : 'Accessible') : (isArabic ? 'السعر' : 'Price')}
           </span>
           <span className="text-lg font-bold font-mono text-[var(--text)]">
             {isOwned ? (
               <span className="text-xs text-[var(--green)] flex items-center gap-1 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {isArabic ? 'مرخص لك' : 'Licensed'}
+                {isArabic ? 'متاح لك' : 'Accessible'}
               </span>
             ) : (
               formatCents(product.price)
@@ -115,17 +123,6 @@ export function ProductCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {onDryRun && (
-            <button
-              onClick={() => onDryRun(product)}
-              className="p-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-              title={isArabic ? 'محاكاة التشغيل (Dry Run)' : 'Sandbox Dry-Run'}
-              aria-label="Dry-Run Sandbox"
-            >
-              <Terminal className="w-4 h-4" />
-            </button>
-          )}
-
           {isOwned ? (
             <button
               onClick={() => onDownload && onDownload(product.id)}

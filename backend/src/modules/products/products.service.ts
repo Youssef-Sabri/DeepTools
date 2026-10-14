@@ -40,7 +40,10 @@ export interface PublicProduct {
   displayDescription: string;
   displayBadge: string | null;
   sellerId: string;
-  sellerName: string;
+  sellerName: string | null;
+  fileSize: number | null;
+  fileExtension: string | null;
+  publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,7 +84,11 @@ export class ProductsService {
         isAr && p.descriptionAr ? p.descriptionAr : p.description,
       displayBadge: isAr && p.badgeAr ? p.badgeAr : p.badge,
       sellerId: p.sellerId,
-      sellerName: p.seller?.name || "Verified Seller",
+      sellerName: p.seller?.name ?? null,
+      fileSize: p.fileSize ?? null,
+      fileExtension:
+        path.extname(p.approvedFileKey ?? "").toLowerCase() || null,
+      publishedAt: p.reviewedAt ?? null,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
     };
