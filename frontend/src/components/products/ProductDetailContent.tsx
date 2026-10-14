@@ -248,7 +248,7 @@ export default function ProductDetailContent({
                       {isCreator
                         ? (isAr ? 'أصلك الرقمي (الناشر)' : 'Your Asset (Creator)')
                         : isGuestOwned
-                          ? (isAr ? 'مملوك (جلسة زائر 7 أيام)' : 'Owned (7-day Guest Session)')
+                          ? (isAr ? 'مملوك (ترخيص دائم مدى الحياة)' : 'Owned (Lifetime Commercial License)')
                           : (isAr ? 'مملوك في مكتبتك' : 'Owned in Library')}
                     </span>
                   ) : (
@@ -258,7 +258,7 @@ export default function ProductDetailContent({
                 <span className="text-[11px] text-[var(--muted-2)] font-mono block mt-1">
                   {isOwned
                     ? (isGuestOwned
-                        ? (isAr ? 'جلستك الحالية صالحة لمدة 7 أيام مع تنزيل غير محدود' : 'Active 7-day session with unlimited direct downloads')
+                        ? (isAr ? 'ترخيص تجاري دائم مدى الحياة • رابط الوصول الدائم أرسل لبريدك' : 'Permanent lifetime commercial license • Access link sent to your email')
                         : (isAr ? 'ترخيص تجاري دائم مرتبط بحسابك' : 'Permanent commercial license linked to your account'))
                     : (isAr ? 'دفع لمرة واحدة • بدون اشتراك' : 'Single payment • No recurring charges')}
                 </span>

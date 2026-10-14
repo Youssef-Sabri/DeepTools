@@ -261,8 +261,8 @@ export function CartDrawer({
                     </div>
                     <p className="text-[var(--muted)] leading-relaxed text-[11px]">
                       {isAr
-                        ? `أرسلنا رابط وصول فوري مشفر إلى (${buyerEmail}). جلسة متصفحك مفعلة تلقائياً لمدة 7 أيام.`
-                        : `We sent an encrypted 1-click access link to (${buyerEmail}). Your browser session is also unlocked for 7 days.`}
+                        ? `أرسلنا رابط وصول دائم إلى (${buyerEmail}). تم تفعيل ترخيصك التجاري مدى الحياة، ويمكنك تنزيل الأداة الآن أو في أي وقت عبر رابط بريدك.`
+                        : `We sent a lifetime access link to (${buyerEmail}). Your commercial license is active, and you can download your asset now or access it anytime via your email.`}
                     </p>
                   </div>
 
@@ -383,19 +383,19 @@ export function CartDrawer({
                     }`}
                   >
                     {isGuestOwned
-                      ? (isAr ? 'جلسة زائر نشطة (7 أيام)' : '7-DAY ACTIVE GUEST SESSION')
+                      ? (isAr ? 'ترخيص دائم مدى الحياة' : 'LIFETIME COMMERCIAL LICENSE')
                       : (isAr ? 'ترخيص دائم في مكتبتك' : 'ACTIVE COMMERCIAL LICENSE')}
                   </span>
                   <h3 className="text-lg font-bold text-[var(--text)]">
                     {isGuestOwned
-                      ? (isAr ? 'الأداة متاحة لك كزائر' : 'Accessible in Guest Session')
+                      ? (isAr ? 'الأداة مملوكة لديك' : 'Asset In Your Purchases')
                       : (isAr ? 'الأداة مضافة إلى مكتبتك' : 'Tool In Your Library')}
                   </h3>
                   <p className="text-xs text-[var(--muted)] mt-2 max-w-xs leading-relaxed">
                     {isGuestOwned
                       ? (isAr
-                          ? 'يمكنك تنزيل هذا الأصل مباشرة خلال مدة جلستك الحالية (7 أيام)، أو طلب رابط فوري لبريدك.'
-                          : 'You can download this asset directly throughout your 7-day session, or unlock it anytime via email.')
+                          ? 'أنت تمتلك ترخيصاً تجارياً دائماً لهذا الأصل الرقمي. يمكنك تنزيله الآن مباشرة أو استخدام الرابط الدائم المرسل لبريدك الإلكتروني.'
+                          : 'You hold a permanent lifetime license for this digital asset. You can download it directly or access it anytime via your email link.')
                       : (isAr
                           ? 'لقد قمت بشراء ترخيص تجاري دائم لهذه الأداة وربطه بحسابك.'
                           : 'You already hold an active commercial license for this digital asset.')}
@@ -420,7 +420,7 @@ export function CartDrawer({
                     >
                       {user
                         ? (isAr ? 'الانتقال إلى مكتبتي' : 'Go to My Library')
-                        : (isAr ? 'عرض كافة مشترياتي (جلسة زائر)' : 'View all my guest purchases')}
+                        : (isAr ? 'عرض كافة مشترياتي' : 'View all my purchases')}
                     </Link>
                   </div>
                 </div>
