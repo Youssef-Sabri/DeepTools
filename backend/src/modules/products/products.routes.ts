@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { productsController } from "./products.controller";
-import { authenticate, requireRole } from "../../middleware/auth.middleware";
+import {
+  authenticate,
+  requireRole,
+  optionalAuthenticate,
+} from "../../middleware/auth.middleware";
 import {
   validateBody,
   validateQuery,
@@ -75,16 +79,16 @@ router.post(
   asyncHandler(productsController.purchase),
 );
 
-// Authenticated route to stream purchased file
+// Stream purchased file (dual authorization: session or guest token)
 router.head(
   "/:id/download",
-  authenticate,
+  optionalAuthenticate,
   validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.download),
 );
 router.get(
   "/:id/download",
-  authenticate,
+  optionalAuthenticate,
   validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.download),
 );

@@ -135,56 +135,71 @@ model Product {
 }
 
 model License {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  productId  String    @map("product_id") @db.Uuid
-  licenseKey String    @unique @map("license_key")
-  fileKey    String?   @map("file_key")
-  fileMime   String?   @map("file_mime") @db.VarChar(100)
-  isActive   Boolean   @default(true) @map("is_active")
-  expiresAt  DateTime? @map("expires_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String?   @map("user_id") @db.Uuid
+  productId        String    @map("product_id") @db.Uuid
+  licenseKey       String    @unique @map("license_key")
+  fileKey          String?   @map("file_key")
+  fileMime         String?   @map("file_mime") @db.VarChar(100)
+  buyerEmail       String?   @map("buyer_email") @db.VarChar(255)
+  guestAccessToken String?   @unique @map("guest_access_token")
+  isActive         Boolean   @default(true) @map("is_active")
+  expiresAt        DateTime? @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  // تم التعديل إلى Restrict لحماية التراخيص المدفوعة
-  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // حماية التراخيص المدفوعة
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
-  @@unique([userId, productId])
   @@index([userId])
+  @@index([buyerEmail])
   @@index([productId])
   @@map("licenses")
 }
 
 model Order {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  productId         String?  @map("product_id") @db.Uuid
-  sellerId          String?  @map("seller_id") @db.Uuid
-  productName       String?  @map("product_name")
-  fileKey           String?  @map("file_key")
-  fileMime          String?  @map("file_mime") @db.VarChar(100)
-  pendingKey        String?  @unique @map("pending_key")
-  currency          String   @default("USD") @db.VarChar(3)
+  id                String      @id @default(uuid()) @db.Uuid
+  userId            String?     @map("user_id") @db.Uuid
+  buyerEmail        String?     @map("buyer_email") @db.VarChar(255)
+  buyerName         String?     @map("buyer_name") @db.VarChar(100)
+  productId         String?     @map("product_id") @db.Uuid
+  sellerId          String?     @map("seller_id") @db.Uuid
+  productName       String?     @map("product_name")
+  fileKey           String?     @map("file_key")
+  fileMime          String?     @map("file_mime") @db.VarChar(100)
+  pendingKey        String?     @unique @map("pending_key")
+  currency          String      @default("USD") @db.VarChar(3)
   amount            Int
-  commissionPercent Int      @default(10) @map("commission_percent")
-  commissionAmount  Int      @default(0) @map("commission_amount")
-  sellerAmount      Int      @default(0) @map("seller_amount")
+  commissionPercent Int         @default(10) @map("commission_percent")
+  commissionAmount  Int         @default(0) @map("commission_amount")
+  sellerAmount      Int         @default(0) @map("seller_amount")
   status            OrderStatus @default(PENDING)
-  paymentGateway    String   @default("unconfigured") @map("payment_gateway") @db.VarChar(50)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  paymentGateway    String      @default("unconfigured") @map("payment_gateway") @db.VarChar(50)
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  
-  // SetNull هنا ممتاز، لو المنتج اتحذف الطلب هيفضل موجود كإيصال مالي بس بدون تفاصيل المنتج
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
   product Product? @relation(fields: [productId], references: [id], onDelete: Restrict)
   paymentEvents PaymentEvent[]
 
   @@index([userId])
+  @@index([buyerEmail])
   @@index([productId])
-  @@map("orders")
   @@index([sellerId, status])
+  @@map("orders")
+}
+
+model GuestMagicLinkToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @db.VarChar(255)
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("guest_magic_link_tokens")
 }
 
 model PaymentEvent {

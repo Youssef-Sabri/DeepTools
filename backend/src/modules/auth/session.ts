@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import { env } from "../../config/env";
 
@@ -61,4 +62,59 @@ export function clearSession(res: Response): void {
   };
   res.clearCookie(SESSION_COOKIE, { ...options, httpOnly: true });
   res.clearCookie(CSRF_COOKIE, { ...options, httpOnly: false });
+}
+
+export const GUEST_SESSION_COOKIE = "dt_guest_session";
+
+export function signGuestSession(email: string): string {
+  return jwt.sign({ guestEmail: email.toLowerCase().trim() }, env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+}
+
+export function verifyGuestSession(token: string): { email: string } | null {
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as {
+      guestEmail?: string;
+    };
+    if (!payload.guestEmail) return null;
+    return { email: payload.guestEmail };
+  } catch {
+    return null;
+  }
+}
+
+export function setGuestSession(res: Response, email: string): string {
+  const token = signGuestSession(email);
+  const options = {
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  };
+  res.cookie(GUEST_SESSION_COOKIE, token, options);
+  return token;
+}
+
+export function clearGuestSession(res: Response): void {
+  const options = {
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    httpOnly: true,
+  };
+  res.clearCookie(GUEST_SESSION_COOKIE, options);
+}
+
+export function readGuestEmail(req: Request): string | undefined {
+  const cookie = readCookie(req, GUEST_SESSION_COOKIE);
+  const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : undefined;
+  const token = cookie || bearerToken;
+  if (!token) return undefined;
+  const verified = verifyGuestSession(token);
+  return verified?.email;
 }

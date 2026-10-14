@@ -18,7 +18,7 @@ export class SettingsController {
     const data = await this.service.updateCommission(commissionPercent);
     res.status(200).json({
       success: true,
-      message: "Commission percentage updated successfully",
+      message: req.t("settings.commissionUpdated"),
       data,
     });
   };

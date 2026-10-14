@@ -54,10 +54,8 @@ export default async function LocaleLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme');
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                  }
+                  document.documentElement.classList.remove('dark');
+                  localStorage.setItem('theme', 'light');
                 } catch(e) {}
               })();
             `,

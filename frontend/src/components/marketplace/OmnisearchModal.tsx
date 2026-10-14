@@ -200,7 +200,7 @@ export function OmnisearchModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-slate-900/40 backdrop-blur-sm">
         {/* Backdrop click to dismiss */}
         <div className="fixed inset-0" onClick={handleClose} />
 
@@ -209,10 +209,10 @@ export function OmnisearchModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -16 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="relative w-full max-w-2xl bg-[#0e131b] border border-[var(--line-bright)] rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] overflow-hidden z-10 flex flex-col max-h-[85vh]"
+          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
         >
           {/* 62px Search Input Bar */}
-          <div className="relative flex items-center px-4 h-[62px] border-b border-[var(--line)] bg-[#101622]/90">
+          <div className="relative flex items-center px-4 h-[62px] border-b border-[var(--line)] bg-[var(--surface)]">
             <Search className="w-5 h-5 text-[var(--blue-bright)] ms-2 shrink-0" />
             <input
               ref={inputRef}
@@ -245,7 +245,7 @@ export function OmnisearchModal({
           </div>
 
           {/* Canonical Category Filter Chips */}
-          <div className="px-4 py-3 border-b border-[var(--line)] bg-[#0a0e15] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="px-4 py-3 border-b border-[var(--line)] bg-[var(--surface-2)] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] font-semibold me-2 shrink-0">
               {isAr ? 'التصنيف:' : 'FILTER:'}
             </span>
@@ -438,7 +438,7 @@ export function OmnisearchModal({
           </div>
 
           {/* Command Keyboard Legend Footer */}
-          <div className="p-3 border-t border-[var(--line)] bg-[#090d14] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-[var(--muted-2)]">
+          <div className="p-3 border-t border-[var(--line)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-[var(--muted-2)]">
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
               <span>

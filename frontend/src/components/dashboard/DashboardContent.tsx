@@ -16,9 +16,9 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Order, Product, ProductCategory, SellerSale } from '@/lib/types'
+import type { Order, Product, ProductCategory, SellerSale, Category } from '@/lib/types'
 import { formatCents, dollarsToCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
-import { fetchApi, downloadProductFile } from '@/lib/api'
+import { fetchApi, downloadProductFile, fetchCategories } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import type { Dictionary } from '@/dictionaries'
@@ -119,11 +119,13 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [uploadName, setUploadName] = useState('')
   const [uploadNameAr, setUploadNameAr] = useState('')
   const [uploadDesc, setUploadDesc] = useState('')
+  const [uploadDescAr, setUploadDescAr] = useState('')
   const [uploadCategory, setUploadCategory] = useState<ProductCategory>('workflow')
   const [uploadPriceDollars, setUploadPriceDollars] = useState('29.00')
   const [uploading, setUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [dynamicCategories, setDynamicCategories] = useState<Category[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [commissionPercent, setCommissionPercent] = useState<number | null>(null)
   const [commissionLoading, setCommissionLoading] = useState(true)
@@ -137,7 +139,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
   const [editName, setEditName] = useState('')
+  const [editNameAr, setEditNameAr] = useState('')
   const [editDesc, setEditDesc] = useState('')
+  const [editDescAr, setEditDescAr] = useState('')
   const [editCategory, setEditCategory] = useState<ProductCategory>('workflow')
   const [editPriceDollars, setEditPriceDollars] = useState('')
   const [submittingEdit, setSubmittingEdit] = useState(false)
@@ -238,6 +242,20 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       ignore = true
     }
   }, [activeTab, user])
+
+  useEffect(() => {
+    let ignore = false
+    fetchCategories()
+      .then((cats) => {
+        if (!ignore && Array.isArray(cats) && cats.length > 0) {
+          setDynamicCategories(cats)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   // Load Tab 3: My Uploads
   useEffect(() => {
@@ -364,6 +382,24 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       return
     }
 
+    const arabicRegex = /[\u0600-\u06FF]/
+    if (!uploadName.trim() || uploadName.trim().length < 3) {
+      setUploadError(isAr ? 'يجب أن يحتوي اسم الأداة بالإنجليزية على 3 أحرف على الأقل' : 'English tool name must be at least 3 characters')
+      return
+    }
+    if (!uploadNameAr.trim() || !arabicRegex.test(uploadNameAr)) {
+      setUploadError(isAr ? 'يجب إدخال اسم الأداة بالعربية وبحروف عربية صحيحة' : 'Arabic tool name is required and must contain genuine Arabic characters')
+      return
+    }
+    if (!uploadDesc.trim() || uploadDesc.trim().length < 10) {
+      setUploadError(isAr ? 'يجب أن يحتوي الوصف بالإنجليزية على 10 أحرف على الأقل' : 'English description must be at least 10 characters')
+      return
+    }
+    if (!uploadDescAr.trim() || !arabicRegex.test(uploadDescAr)) {
+      setUploadError(isAr ? 'يجب إدخال الوصف بالعربية وبحروف عربية صحيحة (10 أحرف على الأقل)' : 'Arabic description is required and must contain genuine Arabic characters')
+      return
+    }
+
     setUploading(true)
     setUploadError(null)
     setUploadSuccess(false)
@@ -371,9 +407,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     try {
       const formData = new FormData()
       formData.append('file', uploadFile)
-      formData.append('name', uploadName)
-      if (uploadNameAr) formData.append('nameAr', uploadNameAr)
-      formData.append('description', uploadDesc)
+      formData.append('name', uploadName.trim())
+      formData.append('nameAr', uploadNameAr.trim())
+      formData.append('description', uploadDesc.trim())
+      formData.append('descriptionAr', uploadDescAr.trim())
       formData.append('category', uploadCategory)
       formData.append('price', String(dollarsToCents(uploadPriceDollars)))
 
@@ -387,6 +424,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       setUploadName('')
       setUploadNameAr('')
       setUploadDesc('')
+      setUploadDescAr('')
       setUploadPriceDollars('29.00')
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err: unknown) {
@@ -401,7 +439,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const handleOpenEditModal = (prod: Product) => {
     setEditingProduct(prod)
     setEditName(prod.name)
+    setEditNameAr(prod.nameAr || '')
     setEditDesc(prod.description)
+    setEditDescAr(prod.descriptionAr || '')
     setEditCategory(prod.category)
     setEditPriceDollars((prod.price / 100).toFixed(2))
     setEditFile(null)
@@ -415,8 +455,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
     try {
       const formData = new FormData()
       if (editFile) formData.append('file', editFile)
-      formData.append('name', editName)
-      formData.append('description', editDesc)
+      formData.append('name', editName.trim())
+      if (editNameAr.trim()) formData.append('nameAr', editNameAr.trim())
+      formData.append('description', editDesc.trim())
+      if (editDescAr.trim()) formData.append('descriptionAr', editDescAr.trim())
       formData.append('category', editCategory)
       formData.append('price', String(dollarsToCents(editPriceDollars)))
 
@@ -609,7 +651,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                             `${order.productName || order.product?.name || 'asset'}${order.fileExtension || ''}`
                           )
                         }
-                        className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center justify-center gap-2 transition-colors"
+                        className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>{isAr ? 'تحميل الملف الرقمي' : 'Download Asset File'}</span>
@@ -709,7 +751,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'اسم الأداة (English)' : 'TOOL NAME (EN)'}
+                      {isAr ? 'اسم الأداة (English) *' : 'TOOL NAME (EN) *'}
                     </label>
                     <input
                       type="text"
@@ -723,10 +765,12 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'اسم الأداة (العربية - اختياري)' : 'TOOL NAME (AR - OPTIONAL)'}
+                      {isAr ? 'اسم الأداة (العربية) *' : 'TOOL NAME (AR) *'}
                     </label>
                     <input
                       type="text"
+                      required
+                      dir="rtl"
                       value={uploadNameAr}
                       onChange={(e) => setUploadNameAr(e.target.value)}
                       placeholder="مثال: مزامنة أحداث سترايب مع بوستجرس"
@@ -746,9 +790,17 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       onChange={(e) => setUploadCategory(e.target.value as ProductCategory)}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
                     >
-                      {categoryOptions.map(({ value, label }) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
+                      {dynamicCategories.length > 0 ? (
+                        dynamicCategories.map((cat) => (
+                          <option key={cat.id} value={cat.slug}>
+                            {cat.slug} ({isAr && cat.nameAr ? cat.nameAr : cat.name})
+                          </option>
+                        ))
+                      ) : (
+                        categoryOptions.map(({ value, label }) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))
+                      )}
                     </select>
                   </div>
 
@@ -771,23 +823,36 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   </div>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                    {isAr ? 'الوصف التقني والتعليمات' : 'TECHNICAL DESCRIPTION & USAGE'}
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={uploadDesc}
-                    onChange={(e) => setUploadDesc(e.target.value)}
-                    placeholder={
-                      isAr
-                        ? 'اشرح المتطلبات التقنية، المتغيرات البيئية المطلوبة، وكيفية تشغيل الأداة...'
-                        : 'Explain setup steps, environment variables, nodes included, and execution guide...'
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-sans"
-                  />
+                {/* Description Bilingual */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
+                      {isAr ? 'الوصف التقني (English) *' : 'TECHNICAL DESCRIPTION (EN) *'}
+                    </label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={uploadDesc}
+                      onChange={(e) => setUploadDesc(e.target.value)}
+                      placeholder="Explain setup steps, environment variables, nodes included, and execution guide..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
+                      {isAr ? 'الوصف التقني (العربية) *' : 'TECHNICAL DESCRIPTION (AR) *'}
+                    </label>
+                    <textarea
+                      rows={4}
+                      required
+                      dir="rtl"
+                      value={uploadDescAr}
+                      onChange={(e) => setUploadDescAr(e.target.value)}
+                      placeholder="اشرح خطوات الإعداد، المتغيرات البيئية المطلوبة، والعقد البرمجية المضمنة..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-sans"
+                    />
+                  </div>
                 </div>
 
                 <PayoutBreakdown
@@ -1142,15 +1207,27 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             </h3>
 
             <form onSubmit={handleResubmitUpload} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">NAME</label>
-                <input
-                  type="text"
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">NAME (EN)</label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">NAME (AR)</label>
+                  <input
+                    type="text"
+                    dir="rtl"
+                    value={editNameAr}
+                    onChange={(e) => setEditNameAr(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1163,9 +1240,17 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   onChange={(e) => setEditCategory(e.target.value as ProductCategory)}
                   className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono"
                 >
-                  {categoryOptions.map(({ value, label }) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
+                  {dynamicCategories.length > 0 ? (
+                    dynamicCategories.map((cat) => (
+                      <option key={cat.id} value={cat.slug}>
+                        {cat.slug} ({isAr && cat.nameAr ? cat.nameAr : cat.name})
+                      </option>
+                    ))
+                  ) : (
+                    categoryOptions.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -1181,15 +1266,27 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">DESCRIPTION</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">DESCRIPTION (EN)</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-[var(--muted-2)] mb-1">DESCRIPTION (AR)</label>
+                  <textarea
+                    rows={3}
+                    dir="rtl"
+                    value={editDescAr}
+                    onChange={(e) => setEditDescAr(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)]"
+                  />
+                </div>
               </div>
 
               <PayoutBreakdown

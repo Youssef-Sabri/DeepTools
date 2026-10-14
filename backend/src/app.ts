@@ -9,6 +9,7 @@ import { notFoundHandler } from "./middleware/notFound.middleware";
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./config/swagger/index";
 import { generalRateLimiter } from "./middleware/rateLimit.middleware";
+import { localeMiddleware } from "./middleware/locale.middleware";
 
 import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/users.routes";
@@ -23,8 +24,19 @@ import categoriesRoutes from "./modules/categories/categories.routes";
 export const createApp = (): Application => {
   const app: Application = express();
 
-  // Set security headers to mitigate common web vulnerabilities
-  app.use(helmet());
+  // Set security headers to mitigate common web vulnerabilities while permitting Swagger UI
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "validator.swagger.io"],
+        },
+      },
+    }),
+  );
 
   // Enforce strict CORS allow-list from validated env
   const corsOptions: CorsOptions = {
@@ -43,12 +55,19 @@ export const createApp = (): Application => {
       "Authorization",
       "X-Request-Id",
       "X-CSRF-Token",
+      "Accept-Language",
+      "X-Locale",
+      "X-Language",
+      "Content-Language",
     ],
   };
   app.use(cors(corsOptions));
 
   // Attach unique trace ID to every incoming request
   app.use(requestIdMiddleware);
+
+  // Initialize request language detection and bilingual response context
+  app.use(localeMiddleware);
 
   app.set("trust proxy", env.TRUST_PROXY_HOPS);
   app.use("/api/v1", (req, res, next) =>
@@ -64,27 +83,29 @@ export const createApp = (): Application => {
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
   // 3. Swagger OpenAPI Documentation
-  app.get("/api/docs.json", (_req: Request, res: Response) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerDocument);
+  const swaggerMiddleware = swaggerUi.setup(swaggerDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      docExpansion: "list",
+      tryItOutEnabled: true,
+    },
+    customSiteTitle: "DeepTools API Documentation",
   });
-  app.use(
-    "/api/docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerDocument, {
-      swaggerOptions: {
-        persistAuthorization: true,
-        displayRequestDuration: true,
-        filter: true,
-        docExpansion: "list",
-        tryItOutEnabled: true,
-      },
-      customSiteTitle: "DeepTools API Documentation",
-    }),
-  );
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-  app.get("/docs", (_req: Request, res: Response) => {
+  app.get(
+    ["/api/docs.json", "/api/v1/docs.json"],
+    (_req: Request, res: Response) => {
+      res.setHeader("Content-Type", "application/json");
+      res.send(swaggerDocument);
+    },
+  );
+  app.use("/api/docs", swaggerUi.serve, swaggerMiddleware);
+  app.use("/api/v1/docs", swaggerUi.serve, swaggerMiddleware);
+  app.use("/api-docs", swaggerUi.serve, swaggerMiddleware);
+
+  app.get(["/docs", "/v1/docs"], (_req: Request, res: Response) => {
     res.redirect("/api/docs");
   });
 
@@ -121,7 +142,6 @@ export const createApp = (): Application => {
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/uploads", uploadsRoutes);
   app.use("/api/v1/orders", ordersRoutes);
-  app.use("/api/v1/payments", paymentsRoutes);
 
   // Fallback handlers for unmatched routes and centralized errors
   app.use(notFoundHandler);

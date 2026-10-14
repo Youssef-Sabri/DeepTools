@@ -71,5 +71,6 @@ pids
 # Uploads storage directories (never track uploaded user files)
 /uploads/
 backend/uploads/
-!backend/src/modules/uploads/**
-files/*
+# Specification and rules reference docs (local only - do not push)
+files/
+

@@ -13,7 +13,7 @@ export class UsersController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "User profile retrieved successfully",
+      message: req.t("users.profileRetrieved"),
       data: profile,
     });
   };
@@ -26,7 +26,7 @@ export class UsersController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "Profile updated successfully",
+      message: req.t("users.profileUpdated"),
       data: profile,
     });
   };
@@ -39,7 +39,7 @@ export class UsersController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "Password changed successfully",
+      message: req.t("users.passwordChanged"),
     });
   };
 }

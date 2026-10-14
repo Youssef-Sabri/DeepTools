@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { PrismaClient, Role, ProductStatus, OrderStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import * as dotenv from "dotenv";
@@ -7,10 +9,27 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
+  const existingCategories = await prisma.category.count().catch(() => 0);
+  const existingProducts = await prisma.product.count().catch(() => 0);
+
+  if (
+    existingCategories > 0 &&
+    existingProducts > 0 &&
+    process.env.FORCE_SEED !== "true"
+  ) {
+    console.log(
+      "ℹ️ Database already contains seed data. Skipping initial seeding.",
+    );
+    console.log("   (Set FORCE_SEED=true to force re-seeding).");
+    await prisma.$disconnect();
+    return;
+  }
+
   console.log("🧹 Clearing all existing database records...");
 
   // 1. Clean up existing operational records in correct foreign-key dependency order
   await prisma.paymentEvent.deleteMany().catch(() => {});
+  await prisma.guestMagicLinkToken.deleteMany().catch(() => {});
   await prisma.order.deleteMany();
   await prisma.license.deleteMany();
   await prisma.product.deleteMany();
@@ -387,6 +406,43 @@ async function main() {
       fileMime: "application/zip",
     },
   });
+
+  // 8. Ensure mock physical archive files exist in UPLOAD_DIR so downloads work seamlessly
+  const uploadDir = path.resolve(
+    process.cwd(),
+    process.env.UPLOAD_DIR || "./uploads",
+  );
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const sampleFiles = [
+    "autoheal_n8n_flow.zip",
+    "deepquery_ai_agent.zip",
+    "zerodowntime_migration_cli.zip",
+    "distributed_lock_engine.zip",
+    "multi_cloud_sync_pipeline.zip",
+    "multicloud_sync_pipeline.zip",
+    "sentinel_security_agent.zip",
+    "realtime_cdc_streamer.zip",
+    "llm_guardrails_evaluator.zip",
+    "k8s_cost_anomaly_bot.zip",
+    "vector_embeddings_preprocessor.zip",
+    "postgres_vacuum_orchestrator.zip",
+  ];
+
+  // Standard 22-byte empty valid ZIP archive
+  const emptyZip = Buffer.from([
+    0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ]);
+
+  for (const file of sampleFiles) {
+    const fullPath = path.join(uploadDir, file);
+    if (!fs.existsSync(fullPath)) {
+      fs.writeFileSync(fullPath, emptyZip);
+    }
+  }
 
   console.log("✅ Database refreshed and successfully seeded!");
   console.log("--------------------------------------------------");

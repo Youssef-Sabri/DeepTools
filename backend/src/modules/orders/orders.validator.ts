@@ -13,3 +13,29 @@ export const listOrdersQuerySchema = z
   .refine(withinPaginationDepth, paginationDepthError);
 
 export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
+
+export const guestPurchaseSchema = z.object({
+  productId: z.string().uuid("Invalid product ID format"),
+  buyerEmail: z
+    .string()
+    .email("Invalid buyer email format")
+    .toLowerCase()
+    .trim(),
+  buyerName: z.string().max(100).optional(),
+});
+
+export type GuestPurchaseInput = z.infer<typeof guestPurchaseSchema>;
+
+export const guestRequestAccessSchema = z.object({
+  email: z.string().email("Invalid email format").toLowerCase().trim(),
+});
+
+export type GuestRequestAccessInput = z.infer<typeof guestRequestAccessSchema>;
+
+export const guestVerifyAccessQuerySchema = z.object({
+  token: z.string().min(10, "Invalid access token"),
+});
+
+export type GuestVerifyAccessQuery = z.infer<
+  typeof guestVerifyAccessQuerySchema
+>;

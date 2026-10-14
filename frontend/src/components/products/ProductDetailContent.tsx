@@ -9,6 +9,10 @@ import {
   HardDrive,
   User,
   ArrowLeft,
+  Mail,
+  X,
+  Loader2,
+  Check,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Product, License } from '@/lib/types'
@@ -32,25 +36,68 @@ export default function ProductDetailContent({
   const { user } = useAuth()
   const [cartOpen, setCartOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
+  const [isGuestOwned, setIsGuestOwned] = useState(false)
 
   const isCreator = Boolean(user && user.id === product.sellerId)
   const isOwned = isCreator || hasPurchased
 
   useEffect(() => {
-    if (!user || user.id === product.sellerId) return
-
     let ignore = false
-    fetchApi<License[]>('/products/my/licenses')
-      .then((data) => {
-        if (ignore) return
-        setHasPurchased(data.some((license) => license.productId === product.id && license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date())))
-      })
-      .catch(() => {})
+
+    const checkProductOwnership = () => {
+      if (user) {
+        if (user.id === product.sellerId) return
+        fetchApi<License[]>('/products/my/licenses')
+          .then((data) => {
+            if (ignore) return
+            setIsGuestOwned(false)
+            setHasPurchased(
+              data.some(
+                (license) =>
+                  license.productId === product.id &&
+                  license.isActive &&
+                  (!license.expiresAt || new Date(license.expiresAt) > new Date())
+              )
+            )
+          })
+          .catch(() => {})
+      } else {
+        // Check if current guest session owns this product
+        fetchApi<{ email: string; purchases: Array<{ productId: string }> }>(
+          '/orders/guest/purchases'
+        )
+          .then((data) => {
+            if (ignore) return
+            const owned = data.purchases?.some((p) => p.productId === product.id) ?? false
+            setHasPurchased(owned)
+            setIsGuestOwned(owned)
+          })
+          .catch(() => {
+            if (ignore) return
+            setHasPurchased(false)
+            setIsGuestOwned(false)
+          })
+      }
+    }
+
+    checkProductOwnership()
+
+    const handleSessionUpdate = () => {
+      checkProductOwnership()
+    }
+    window.addEventListener('guest:session_updated', handleSessionUpdate)
 
     return () => {
       ignore = true
+      window.removeEventListener('guest:session_updated', handleSessionUpdate)
     }
   }, [user, product.id, product.sellerId])
+
+  const [lookupOpen, setLookupOpen] = useState(false)
+  const [lookupEmail, setLookupEmail] = useState('')
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [lookupSent, setLookupSent] = useState(false)
+  const [lookupError, setLookupError] = useState<string | null>(null)
   const [downloadState, setDownloadState] = useState<{
     isVisible: boolean
     fileName: string
@@ -65,12 +112,12 @@ export default function ProductDetailContent({
 
   const isAr = locale === 'ar'
 
-  const displayName = (isAr && product.nameAr) ? product.nameAr : product.name
-  const displayDescription = (isAr && product.descriptionAr) ? product.descriptionAr : product.description
+  const displayName = product.displayName || ((isAr && product.nameAr) ? product.nameAr : product.name)
+  const displayDescription = product.displayDescription || ((isAr && product.descriptionAr) ? product.descriptionAr : product.description)
   const filePill = product.fileExtension
   const sellerName = product.sellerName?.trim() || (isAr ? 'اسم الناشر غير متاح' : 'Seller unavailable')
   const assetSize = product.fileSize == null ? (isAr ? 'حجم الملف غير متاح' : 'Size unavailable') : formatBytes(product.fileSize)
-  const badge = (isAr && product.badgeAr ? product.badgeAr : product.badge)?.trim()
+  const badge = (product.displayBadge || (isAr && product.badgeAr ? product.badgeAr : product.badge))?.trim()
 
   const handleDownload = async () => {
     const extension = product.fileExtension || ''
@@ -192,16 +239,28 @@ export default function ProductDetailContent({
                 </span>
                 <div className="text-3xl font-extrabold font-mono text-[var(--text)]">
                   {isOwned ? (
-                    <span className="text-lg text-[var(--green)] flex items-center gap-2 font-semibold">
-                      <CheckCircle2 className="w-5 h-5" />
-                      {isCreator ? (isAr ? 'أصلك الرقمي' : 'Your Asset') : (isAr ? 'ترخيص نشط' : 'Licensed')}
+                    <span
+                      className={`text-lg flex items-center gap-2 font-semibold ${
+                        isGuestOwned ? 'text-emerald-600' : 'text-[var(--blue-bright)]'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      {isCreator
+                        ? (isAr ? 'أصلك الرقمي (الناشر)' : 'Your Asset (Creator)')
+                        : isGuestOwned
+                          ? (isAr ? 'مملوك (جلسة زائر 7 أيام)' : 'Owned (7-day Guest Session)')
+                          : (isAr ? 'مملوك في مكتبتك' : 'Owned in Library')}
                     </span>
                   ) : (
                     formatCents(product.price)
                   )}
                 </div>
                 <span className="text-[11px] text-[var(--muted-2)] font-mono block mt-1">
-                  {isAr ? 'دفع لمرة واحدة • بدون اشتراك' : 'Single payment • No recurring charges'}
+                  {isOwned
+                    ? (isGuestOwned
+                        ? (isAr ? 'جلستك الحالية صالحة لمدة 7 أيام مع تنزيل غير محدود' : 'Active 7-day session with unlimited direct downloads')
+                        : (isAr ? 'ترخيص تجاري دائم مرتبط بحسابك' : 'Permanent commercial license linked to your account'))
+                    : (isAr ? 'دفع لمرة واحدة • بدون اشتراك' : 'Single payment • No recurring charges')}
                 </span>
               </div>
 
@@ -209,7 +268,11 @@ export default function ProductDetailContent({
                 {isOwned ? (
                   <button
                     onClick={handleDownload}
-                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center justify-center gap-2 transition-all shadow-lg"
+                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-md ${
+                      isGuestOwned
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-[var(--blue)] hover:bg-[var(--blue-bright)]'
+                    }`}
                   >
                     <Download className="w-4 h-4" />
                     <span>{isAr ? 'تحميل الأداة الآن' : 'Download Digital Asset'}</span>
@@ -221,6 +284,19 @@ export default function ProductDetailContent({
                   >
                     <ShoppingCart className="w-4 h-4" />
                     <span>{isAr ? 'شراء ترخيص الأصل' : 'Buy Asset License'}</span>
+                  </button>
+                )}
+                {!isOwned && !user && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLookupOpen(true)
+                      setLookupSent(false)
+                      setLookupError(null)
+                    }}
+                    className="text-xs text-[var(--muted-2)] hover:text-[var(--blue-bright)] transition-colors underline font-mono text-center w-full block pt-1.5"
+                  >
+                    {isAr ? 'هل اشتريت هذا الأصل كزائر؟ افتح التحميل الآن' : 'Already bought as guest? Unlock download'}
                   </button>
                 )}
               </div>
@@ -243,8 +319,12 @@ export default function ProductDetailContent({
         onClose={() => setCartOpen(false)}
         locale={locale}
         isOwned={isOwned}
+        isGuestOwned={isGuestOwned}
         onOrderCompleted={() => {
           setHasPurchased(true)
+          if (!user) {
+            setIsGuestOwned(true)
+          }
         }}
       />
 
@@ -257,6 +337,99 @@ export default function ProductDetailContent({
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
         locale={locale}
       />
+
+      {/* Guest Purchases Unlock Modal */}
+      {lookupOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md bg-[var(--surface)] border border-[var(--line-bright)] rounded-2xl p-6 md:p-8 shadow-2xl">
+            <button
+              onClick={() => setLookupOpen(false)}
+              className="absolute top-5 end-5 p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="w-5 h-5 text-[var(--blue-bright)]" />
+              <h3 className="text-lg font-bold text-[var(--text)]">
+                {isAr ? 'الوصول لمشتريات الزائر' : 'Unlock Guest Purchases'}
+              </h3>
+            </div>
+            <p className="text-xs text-[var(--muted)] leading-relaxed mb-6">
+              {isAr
+                ? 'أدخل بريدك الإلكتروني الذي استخدمته أثناء الشراء لإرسال رابط وصول آمن ومباشر.'
+                : 'Enter the email you used during checkout to receive an instant, secure 1-click access link.'}
+            </p>
+
+            {lookupSent ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-[var(--green)]/15 border border-[var(--green)]/30 text-xs text-[var(--green)] font-semibold flex items-center gap-2.5">
+                  <Check className="w-5 h-5 shrink-0" />
+                  <span>
+                    {isAr
+                      ? 'إذا كانت هناك مشتريات مرتبطة بهذا البريد، فقد أرسلنا رابط الوصول إلى صندوق بريدك.'
+                      : 'If purchases exist for this email, we sent a secure access link to your inbox!'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setLookupOpen(false)}
+                  className="w-full py-3 rounded-xl font-bold text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] transition-colors"
+                >
+                  {isAr ? 'إغلاق' : 'Close'}
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!lookupEmail) return
+                  setLookupLoading(true)
+                  setLookupError(null)
+                  try {
+                    await fetchApi('/orders/guest/request-access', {
+                      method: 'POST',
+                      body: JSON.stringify({ email: lookupEmail.trim().toLowerCase() }),
+                    })
+                    setLookupSent(true)
+                  } catch (err: unknown) {
+                    setLookupError(err instanceof Error ? err.message : 'Request failed')
+                  } finally {
+                    setLookupLoading(false)
+                  }
+                }}
+                className="space-y-4"
+              >
+                {lookupError && (
+                  <div className="p-3 rounded-lg bg-[var(--rose)]/10 border border-[var(--rose)]/30 text-xs text-[var(--rose)]">
+                    {lookupError}
+                  </div>
+                )}
+                <div>
+                  <label className="text-[11px] font-mono text-[var(--muted-2)] block mb-1">
+                    {isAr ? 'البريد الإلكتروني' : 'Email Address'}
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={lookupEmail}
+                    onChange={(e) => setLookupEmail(e.target.value)}
+                    placeholder="buyer@example.com"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-[var(--text)] focus:border-[var(--blue-bright)] focus:outline-none font-mono"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={lookupLoading}
+                  className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50"
+                >
+                  {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                  <span>{isAr ? 'إرسال رابط الوصول السريع' : 'Send Instant Access Link'}</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

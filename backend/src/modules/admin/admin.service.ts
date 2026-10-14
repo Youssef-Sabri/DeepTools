@@ -3,8 +3,6 @@ import { Response } from "express";
 import { adminRepository, AdminRepository } from "./admin.repository";
 import { NotFoundError, ConflictError, ApiError } from "../../utils/apiError";
 import { ListAdminUploadsQuery, GetUsersQuery } from "./admin.validator";
-import { prisma } from "../../config/database";
-import { ApiFeatures } from "../../utils/apiFeatures";
 import { ProductStatus } from "@prisma/client";
 import { storageService } from "../../storage/storage.service";
 import { uploadsService } from "../uploads/uploads.service";
@@ -17,52 +15,24 @@ export class AdminService {
   }
 
   async getUsers(query: GetUsersQuery) {
-    const features = new ApiFeatures(query || {})
-      .filter(["role"])
-      .search(["name", "email"])
-      .paginate(10)
-      .sort();
-
-    const prismaArgs = features.get();
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        ...prismaArgs,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          createdAt: true,
-          deletedAt: true,
-        },
-      }),
-      prisma.user.count({ where: prismaArgs.where }),
-    ]);
-
     const page = Number(query?.page) || 1;
     const limit = Number(query?.limit) || 10;
 
+    const { users, total } = await this.repo.findUsersPaginated({
+      page,
+      limit,
+      search: query?.search,
+      role: query?.role,
+    });
+
     return {
       users,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) || 1 },
     };
   }
 
   async getUserById(id: string) {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        deletedAt: true,
-      },
-    });
-
+    const user = await this.repo.findUserDetailsById(id);
     if (!user) throw ApiError.notFound("User not found");
     return user;
   }
@@ -71,20 +41,14 @@ export class AdminService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [totalUsers, newUsers] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    ]);
+    const { totalUsers, newUsers } =
+      await this.repo.countUserInsights(thirtyDaysAgo);
 
     return {
       totalUsers,
       newUsers,
       period: "last_30_days",
     };
-  }
-
-  async toggleLicenseStatus(id: string, isActive: boolean) {
-    return this.repo.updateLicenseStatus(id, isActive);
   }
 
   async findAllUploads(query: ListAdminUploadsQuery) {

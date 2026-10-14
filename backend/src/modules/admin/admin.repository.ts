@@ -1,63 +1,70 @@
 import { prisma } from "../../config/database";
-import { ProductStatus, OrderStatus } from "@prisma/client";
+import { Prisma, Role, ProductStatus, OrderStatus } from "@prisma/client";
 
 export class AdminRepository {
-  async findAllUsers() {
-    return prisma.user.findMany({
+  async findUsersPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: Role;
+  }) {
+    const page = params.page || 1;
+    const limit = params.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.UserWhereInput = {
+      ...(params.role ? { role: params.role } : {}),
+      ...(params.search
+        ? {
+            OR: [
+              { name: { contains: params.search, mode: "insensitive" } },
+              { email: { contains: params.search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          createdAt: true,
+          deletedAt: true,
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+    return { users, total };
+  }
+
+  async findUserDetailsById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
       select: {
         id: true,
-        name: true,
         email: true,
+        name: true,
         role: true,
         createdAt: true,
+        updatedAt: true,
         deletedAt: true,
       },
     });
   }
 
-  async findUserById(id: string) {
-    return prisma.user.findUnique({
-      where: { id },
-    });
-  }
-
-  async deleteUser(id: string) {
-    await prisma.user.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-  }
-
-  async findAllLicenses() {
-    const list = await prisma.license.findMany({
-      include: {
-        user: { select: { name: true, email: true } },
-        product: { select: { name: true, nameAr: true } },
-      },
-    });
-
-    return list.map((lic) => ({
-      id: lic.id,
-      licenseKey: lic.licenseKey,
-      isActive: lic.isActive,
-      expiresAt: lic.expiresAt,
-      createdAt: lic.createdAt,
-      userName: lic.user?.name,
-      userEmail: lic.user?.email,
-      productName: lic.product?.name,
-      productNameAr: lic.product?.nameAr,
-    }));
-  }
-
-  async findLicenseById(id: string) {
-    return prisma.license.findUnique({ where: { id } });
-  }
-
-  async updateLicenseStatus(id: string, isActive: boolean) {
-    return prisma.license.update({
-      where: { id },
-      data: { isActive },
-    });
+  async countUserInsights(since: Date) {
+    const [totalUsers, newUsers] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { createdAt: { gte: since } } }),
+    ]);
+    return { totalUsers, newUsers };
   }
 
   async findAllUploads(params: {

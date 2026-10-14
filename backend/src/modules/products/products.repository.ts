@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database";
 import { Prisma, ProductStatus, OrderStatus } from "@prisma/client";
 import { splitCommission } from "../../utils/commission";
+import { normalizeArabicText } from "../../utils/localization";
 
 export class ProductsRepository {
   async findAll(params?: {
@@ -32,19 +33,23 @@ export class ProductsRepository {
           }
         : {}),
       ...(params?.search
-        ? {
-            OR: [
-              { name: { contains: params.search, mode: "insensitive" } },
-              { nameAr: { contains: params.search, mode: "insensitive" } },
-              { description: { contains: params.search, mode: "insensitive" } },
-              {
-                descriptionAr: {
-                  contains: params.search,
-                  mode: "insensitive",
-                },
-              },
-            ],
-          }
+        ? (() => {
+            const rawSearch = params.search.trim();
+            const normalizedSearch = normalizeArabicText(rawSearch);
+            const searchTerms = Array.from(
+              new Set([rawSearch, normalizedSearch].filter(Boolean)),
+            );
+            const conditions: Prisma.ProductWhereInput[] = [];
+            for (const term of searchTerms) {
+              conditions.push(
+                { name: { contains: term, mode: "insensitive" } },
+                { nameAr: { contains: term, mode: "insensitive" } },
+                { description: { contains: term, mode: "insensitive" } },
+                { descriptionAr: { contains: term, mode: "insensitive" } },
+              );
+            }
+            return { OR: conditions };
+          })()
         : {}),
     };
 
@@ -142,6 +147,29 @@ export class ProductsRepository {
   async findLicense(userId: string, productId: string) {
     return prisma.license.findFirst({
       where: { userId, productId },
+      include: { product: true },
+    });
+  }
+
+  async findLicenseFlexible(params: {
+    productId: string;
+    userId?: string;
+    buyerEmail?: string;
+    guestAccessToken?: string;
+  }) {
+    const conditions: Array<Record<string, unknown>> = [];
+    if (params.userId) conditions.push({ userId: params.userId });
+    if (params.buyerEmail) conditions.push({ buyerEmail: params.buyerEmail });
+    if (params.guestAccessToken)
+      conditions.push({ guestAccessToken: params.guestAccessToken });
+    if (conditions.length === 0) return null;
+
+    return prisma.license.findFirst({
+      where: {
+        productId: params.productId,
+        isActive: true,
+        OR: conditions,
+      },
       include: { product: true },
     });
   }

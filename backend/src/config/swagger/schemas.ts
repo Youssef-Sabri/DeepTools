@@ -14,7 +14,6 @@ import {
   updateProfileSchema,
   changePasswordSchema,
 } from "../../modules/users/users.validator";
-import { toggleLicenseSchema } from "../../modules/admin/admin.validator";
 
 // Response Envelope Helper (Section 4)
 export const envelope = <T extends z.ZodTypeAny>(schema: T) =>
@@ -200,28 +199,16 @@ export const ChangePasswordInputDocs = registry.register(
 );
 
 // 4. Admin Schemas
-export const ToggleLicenseInputDocs = registry.register(
-  "ToggleLicenseInput",
-  toggleLicenseSchema.openapi({
-    description: "License activation status payload",
-  }),
-);
-
-export const LicenseSchema = registry.register(
-  "License",
+export const PaginatedUsersSchema = registry.register(
+  "PaginatedUsers",
   z.object({
-    id: z
-      .string()
-      .uuid()
-      .openapi({ example: "c4e32100-bd01-4f05-8b0d-85a15af96810" }),
-    userId: z.string().uuid(),
-    productId: z.string().uuid(),
-    licenseKey: z.string().openapi({ example: "DPT-ABCD-1234-EFGH" }),
-    isActive: z.boolean().openapi({ example: true }),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-    user: z.object({ name: z.string(), email: z.string() }).optional(),
-    product: z.object({ name: z.string() }).optional(),
+    users: z.array(UserSchema),
+    meta: z.object({
+      total: z.number().int().openapi({ example: 42 }),
+      page: z.number().int().openapi({ example: 1 }),
+      limit: z.number().int().openapi({ example: 10 }),
+      totalPages: z.number().int().openapi({ example: 5 }),
+    }),
   }),
 );
 
@@ -668,4 +655,87 @@ export const CreateCategoryInputSchema = registry.register(
 export const UpdateCategoryInputSchema = registry.register(
   "UpdateCategoryInput",
   CreateCategoryInputSchema.partial(),
+);
+
+// 12. Guest Checkout & Returning Access Schemas
+export const GuestPurchaseInputSchema = registry.register(
+  "GuestPurchaseInput",
+  z.object({
+    productId: z
+      .string()
+      .uuid()
+      .openapi({ example: "10000000-0000-4000-8000-000000000001" }),
+    buyerEmail: z.string().email().openapi({ example: "guest@example.com" }),
+    buyerName: z
+      .string()
+      .max(100)
+      .optional()
+      .openapi({ example: "Guest Buyer" }),
+  }),
+);
+
+export const GuestPurchaseResponseSchema = registry.register(
+  "GuestPurchaseResponse",
+  z.object({
+    success: z.boolean().openapi({ example: true }),
+    statusCode: z.number().int().openapi({ example: 201 }),
+    message: z
+      .string()
+      .openapi({ example: "Guest purchase completed successfully" }),
+    data: z.object({
+      order: z.object({
+        id: z.string().uuid(),
+        amount: z.number().int(),
+        status: z.string(),
+        productName: z.string().nullable(),
+        createdAt: z.string().datetime(),
+      }),
+      license: z.object({
+        id: z.string().uuid(),
+        licenseKey: z.string(),
+      }),
+      downloadToken: z.string(),
+      downloadUrl: z.string(),
+    }),
+  }),
+);
+
+export const GuestRequestAccessInputSchema = registry.register(
+  "GuestRequestAccessInput",
+  z.object({
+    email: z.string().email().openapi({ example: "guest@example.com" }),
+  }),
+);
+
+export const GuestRequestAccessResponseSchema = registry.register(
+  "GuestRequestAccessResponse",
+  z.object({
+    success: z.boolean().openapi({ example: true }),
+    message: z.string().openapi({
+      example:
+        "If there are purchases associated with this email, we have sent a secure access link to your inbox.",
+    }),
+  }),
+);
+
+export const GuestPurchasesResponseSchema = registry.register(
+  "GuestPurchasesResponse",
+  z.object({
+    success: z.boolean().openapi({ example: true }),
+    data: z.object({
+      email: z.string().email(),
+      purchases: z.array(
+        z.object({
+          id: z.string().uuid(),
+          productId: z.string().uuid(),
+          productName: z.string(),
+          productNameAr: z.string().nullable(),
+          category: z.string().nullable().optional(),
+          licenseKey: z.string(),
+          createdAt: z.string().datetime(),
+          downloadUrl: z.string(),
+        }),
+      ),
+    }),
+  }),
 );

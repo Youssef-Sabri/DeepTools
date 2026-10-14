@@ -62,14 +62,6 @@ export class AuthRepository {
     });
   }
 
-  // Update user hashed password
-  async updateUserPassword(userId: string, passwordHash: string) {
-    return prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash, tokenVersion: { increment: 1 } },
-    });
-  }
-
   async consumeResetTokenAndUpdatePassword(
     tokenId: string,
     userId: string,
@@ -98,6 +90,45 @@ export class AuthRepository {
       });
       return true;
     });
+  }
+
+  async linkGuestOrdersAndLicenses(
+    email: string,
+    userId: string,
+  ): Promise<void> {
+    const normalizedEmail = email.toLowerCase().trim();
+    if (typeof prisma.$transaction === "function") {
+      await prisma.$transaction(async (tx) => {
+        await tx.order.updateMany({
+          where: {
+            buyerEmail: normalizedEmail,
+            userId: null,
+          },
+          data: { userId },
+        });
+
+        await tx.license.updateMany({
+          where: {
+            buyerEmail: normalizedEmail,
+            userId: null,
+          },
+          data: { userId },
+        });
+      });
+    } else {
+      if (typeof prisma.order?.updateMany === "function") {
+        await prisma.order.updateMany({
+          where: { buyerEmail: normalizedEmail, userId: null },
+          data: { userId },
+        });
+      }
+      if (typeof prisma.license?.updateMany === "function") {
+        await prisma.license.updateMany({
+          where: { buyerEmail: normalizedEmail, userId: null },
+          data: { userId },
+        });
+      }
+    }
   }
 }
 

@@ -15,14 +15,26 @@ import {
   Shield,
   Download,
   Eye,
+  Layers,
+  Plus,
+  Trash2,
+  Edit2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { fetchApi, downloadAdminUploadFile, adminUploadViewUrl } from '@/lib/api'
-import type { Product, User, MarketplaceInsights, UserInsights } from '@/lib/types'
+import {
+  fetchApi,
+  downloadAdminUploadFile,
+  adminUploadViewUrl,
+  fetchCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
+} from '@/lib/api'
+import type { Product, User, MarketplaceInsights, UserInsights, Category } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 
-type AdminTab = 'uploads' | 'users' | 'commission' | 'insights'
+type AdminTab = 'uploads' | 'users' | 'commission' | 'insights' | 'categories'
 type UploadStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export default function AdminPage() {
@@ -59,6 +71,23 @@ export default function AdminPage() {
   // Tab 4: Marketplace Insights (F-B7)
   const [insights, setInsights] = useState<MarketplaceInsights | null>(null)
   const [loadingInsights, setLoadingInsights] = useState(true)
+
+  // Tab 5: Dynamic Categories (F2-C4)
+  const [categoriesList, setCategoriesList] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [categoryModal, setCategoryModal] = useState<{ mode: 'create' | 'edit'; category?: Category } | null>(null)
+  const [categoryForm, setCategoryForm] = useState({
+    slug: '',
+    name: '',
+    nameAr: '',
+    description: '',
+    descriptionAr: '',
+    icon: '',
+    displayOrder: 0,
+    isActive: true,
+  })
+  const [categoryActionLoading, setCategoryActionLoading] = useState(false)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
 
   const isAdmin = user?.role === 'ADMIN'
 
@@ -131,6 +160,18 @@ export default function AdminPage() {
         } catch (err) {
           console.error(err)
           if (!ignore) setLoadingInsights(false)
+        }
+      } else if (activeTab === 'categories') {
+        try {
+          setLoadingCategories(true)
+          const data = await fetchCategories()
+          if (!ignore) {
+            setCategoriesList(data)
+            setLoadingCategories(false)
+          }
+        } catch (err) {
+          console.error(err)
+          if (!ignore) setLoadingCategories(false)
         }
       }
     }
@@ -213,6 +254,88 @@ export default function AdminPage() {
     }
   }
 
+  // Categories Management Handlers (F2-C4)
+  const handleOpenCreateCategory = () => {
+    setCategoryError(null)
+    setCategoryForm({
+      slug: '',
+      name: '',
+      nameAr: '',
+      description: '',
+      descriptionAr: '',
+      icon: '',
+      displayOrder: 0,
+      isActive: true,
+    })
+    setCategoryModal({ mode: 'create' })
+  }
+
+  const handleOpenEditCategory = (cat: Category) => {
+    setCategoryError(null)
+    setCategoryForm({
+      slug: cat.slug,
+      name: cat.name,
+      nameAr: cat.nameAr || '',
+      description: cat.description || '',
+      descriptionAr: cat.descriptionAr || '',
+      icon: cat.icon || '',
+      displayOrder: cat.displayOrder ?? 0,
+      isActive: cat.isActive ?? true,
+    })
+    setCategoryModal({ mode: 'edit', category: cat })
+  }
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!categoryModal) return
+    setCategoryActionLoading(true)
+    setCategoryError(null)
+
+    try {
+      if (categoryModal.mode === 'create') {
+        await createAdminCategory({
+          slug: categoryForm.slug.trim().toLowerCase(),
+          name: categoryForm.name.trim(),
+          nameAr: categoryForm.nameAr.trim(),
+          description: categoryForm.description.trim() || undefined,
+          descriptionAr: categoryForm.descriptionAr.trim() || undefined,
+          icon: categoryForm.icon.trim() || undefined,
+          displayOrder: Number(categoryForm.displayOrder) || 0,
+        })
+      } else if (categoryModal.category) {
+        await updateAdminCategory(categoryModal.category.id, {
+          name: categoryForm.name.trim(),
+          nameAr: categoryForm.nameAr.trim(),
+          description: categoryForm.description.trim() || undefined,
+          descriptionAr: categoryForm.descriptionAr.trim() || undefined,
+          icon: categoryForm.icon.trim() || undefined,
+          displayOrder: Number(categoryForm.displayOrder) || 0,
+          isActive: categoryForm.isActive,
+        })
+      }
+
+      setCategoryModal(null)
+      const updated = await fetchCategories()
+      setCategoriesList(updated)
+    } catch (err: unknown) {
+      setCategoryError(err instanceof Error ? err.message : 'Category operation failed')
+    } finally {
+      setCategoryActionLoading(false)
+    }
+  }
+
+  const handleDeleteCategory = async (cat: Category) => {
+    if (!confirm(`Are you sure you want to delete category "${cat.name}"?`)) return
+    try {
+      await deleteAdminCategory(cat.id)
+      const updated = await fetchCategories()
+      setCategoriesList(updated)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Delete failed'
+      alert(msg)
+    }
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
@@ -274,6 +397,7 @@ export default function AdminPage() {
           {[
             { id: 'uploads', label: 'Asset Review', icon: CheckCircle },
             { id: 'users', label: 'User Directory & Roles', icon: Users },
+            { id: 'categories', label: 'Categories Management', icon: Layers },
             { id: 'commission', label: 'Platform Commission %', icon: Percent },
             { id: 'insights', label: 'Marketplace Insights', icon: TrendingUp },
           ].map((tab) => {
@@ -415,7 +539,7 @@ export default function AdminPage() {
                                   <button
                                     onClick={() => handleApprove(item.id)}
                                     disabled={actionLoading === item.id}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] flex items-center gap-1 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors"
                                   >
                                     <Check className="w-3.5 h-3.5" />
                                     <span>Approve</span>
@@ -751,6 +875,119 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* TAB 5: CATEGORIES MANAGEMENT (F2-C4) */}
+        {activeTab === 'categories' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--text)]">Categories Management</h2>
+                <p className="text-xs text-[var(--muted)] mt-1">
+                  Dynamic database taxonomies powering marketplace chips, search filters, and seller submission forms.
+                </p>
+              </div>
+
+              <button
+                onClick={handleOpenCreateCategory}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center gap-1.5 shadow-sm transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Category</span>
+              </button>
+            </div>
+
+            {loadingCategories ? (
+              <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
+                <Loader2 className="w-8 h-8 text-[var(--blue-bright)] animate-spin mx-auto mb-2" />
+                <p className="text-xs text-[var(--muted)]">Loading categories from database...</p>
+              </div>
+            ) : categoriesList.length === 0 ? (
+              <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
+                <Layers className="w-10 h-10 text-[var(--muted-2)] mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-[var(--text)]">No Categories Configured</h3>
+                <p className="text-xs text-[var(--muted)] mt-1 mb-4">Create your first marketplace category to organize tools.</p>
+                <button
+                  onClick={handleOpenCreateCategory}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--blue)] text-white"
+                >
+                  Create Category
+                </button>
+              </div>
+            ) : (
+              <div className="deeptools-card rounded-2xl overflow-hidden border border-[var(--line)]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-start text-xs font-mono">
+                    <thead className="bg-[var(--surface-2)] border-b border-[var(--line)] text-[var(--muted-2)] text-[11px] uppercase tracking-wider">
+                      <tr>
+                        <th className="px-4 py-3 text-start">Slug</th>
+                        <th className="px-4 py-3 text-start">Title (EN)</th>
+                        <th className="px-4 py-3 text-start">Title (AR)</th>
+                        <th className="px-4 py-3 text-center">Order</th>
+                        <th className="px-4 py-3 text-center">Products</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                        <th className="px-4 py-3 text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--line)]">
+                      {categoriesList.map((cat) => (
+                        <tr key={cat.id} className="hover:bg-[var(--surface-2)]/50 transition-colors">
+                          <td className="px-4 py-3.5">
+                            <span className="px-2.5 py-1 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[var(--text)] font-mono text-[11px]">
+                              {cat.slug}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 font-sans font-semibold text-[var(--text)]">
+                            {cat.name}
+                          </td>
+                          <td className="px-4 py-3.5 font-sans text-[var(--muted)]" dir="rtl">
+                            {cat.nameAr || '—'}
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-[var(--muted-2)]">
+                            {cat.displayOrder ?? 0}
+                          </td>
+                          <td className="px-4 py-3.5 text-center">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--blue)]/10 text-[var(--blue-bright)] border border-[var(--blue)]/20">
+                              {cat.productCount ?? 0}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-center">
+                            {cat.isActive !== false ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                Inactive
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-end">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditCategory(cat)}
+                                className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                                title="Edit Category"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                title="Delete Category"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mandatory Reject Reason Modal (F-B5) */}
@@ -790,6 +1027,192 @@ export default function AdminPage() {
                   className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:bg-rose-600 text-white transition-colors"
                 >
                   Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Create/Edit Modal (F2-C4) */}
+      {categoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-[var(--surface)] rounded-2xl p-6 border border-[var(--line)] shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--line)]">
+              <h3 className="text-base font-bold text-[var(--text)] flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[var(--blue-bright)]" />
+                <span>
+                  {categoryModal.mode === 'create'
+                    ? 'Create Marketplace Category'
+                    : `Edit Category: ${categoryModal.category?.name}`}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCategoryModal(null)}
+                className="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {categoryError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{categoryError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                  Category Slug <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={categoryModal.mode === 'edit'}
+                  value={categoryForm.slug}
+                  onChange={(e) =>
+                    setCategoryForm((prev) => ({
+                      ...prev,
+                      slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                    }))
+                  }
+                  placeholder="e.g. voice-agents or rag-tools"
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono focus:outline-none focus:border-[var(--blue)] disabled:opacity-60"
+                />
+                <p className="text-[11px] text-[var(--muted-2)] mt-1">
+                  Unique URL path identifier. Lowercase letters, numbers, and hyphens only.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    English Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Voice Agents"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    Arabic Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    dir="rtl"
+                    value={categoryForm.nameAr}
+                    onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameAr: e.target.value }))}
+                    placeholder="مثال: وكلاء الصوت الذكية"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    English Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Short description for SEO and category page..."
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    Arabic Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    dir="rtl"
+                    value={categoryForm.descriptionAr}
+                    onChange={(e) => setCategoryForm((prev) => ({ ...prev, descriptionAr: e.target.value }))}
+                    placeholder="وصف مختصر للتصنيف..."
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    Lucide Icon
+                  </label>
+                  <input
+                    type="text"
+                    value={categoryForm.icon}
+                    onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
+                    placeholder="e.g. Cpu, Layers, Bot"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    value={categoryForm.displayOrder}
+                    onChange={(e) =>
+                      setCategoryForm((prev) => ({ ...prev, displayOrder: parseInt(e.target.value, 10) || 0 }))
+                    }
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                  />
+                </div>
+                <div className="pt-4">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={categoryForm.isActive}
+                      onChange={(e) => setCategoryForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                      className="w-4 h-4 rounded border-[var(--line)] text-[var(--blue)] focus:ring-[var(--blue)]"
+                    />
+                    <span className="text-xs font-semibold text-[var(--text)]">Active in Store</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--line)]">
+                <button
+                  type="button"
+                  onClick={() => setCategoryModal(null)}
+                  className="px-4 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={categoryActionLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-blue-600 text-white transition-colors disabled:opacity-60"
+                >
+                  {categoryActionLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : categoryModal.mode === 'create' ? (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create Category</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Update Category</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

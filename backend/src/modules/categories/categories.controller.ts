@@ -8,12 +8,7 @@ export class CategoriesController {
   ) {}
 
   listCategories = asyncHandler(async (req: Request, res: Response) => {
-    const langQuery = req.query.lang as string | undefined;
-    const acceptLang = req.headers["accept-language"]
-      ?.split(",")[0]
-      ?.slice(0, 2);
-    const lang = langQuery || acceptLang || "en";
-
+    const lang = req.language || "en";
     const categories = await this.service.listCategories(lang);
 
     res.status(200).json({
@@ -24,7 +19,7 @@ export class CategoriesController {
 
   getCategoryById = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const category = await this.service.getCategoryById(id);
+    const category = await this.service.getCategoryById(id, req.language);
 
     res.status(200).json({
       success: true,
@@ -38,7 +33,7 @@ export class CategoriesController {
     res.status(201).json({
       success: true,
       statusCode: 201,
-      message: "Category created successfully",
+      message: req.t("categories.created"),
       data: category,
     });
   });
@@ -49,7 +44,7 @@ export class CategoriesController {
 
     res.status(200).json({
       success: true,
-      message: "Category updated successfully",
+      message: req.t("categories.updated"),
       data: category,
     });
   });
@@ -60,7 +55,7 @@ export class CategoriesController {
 
     res.status(200).json({
       success: true,
-      message: "Category deleted successfully",
+      message: req.t("categories.deleted"),
     });
   });
 }

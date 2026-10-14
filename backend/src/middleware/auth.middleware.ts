@@ -105,3 +105,41 @@ export const authorize = (allowedRoles: string[] | string) => {
 };
 
 export const requireRole = authorize;
+
+// Optional authentication middleware: attaches req.user if a valid token is present, but never blocks guests
+export const optionalAuthenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  const cookieToken = readCookie(req, SESSION_COOKIE);
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : undefined;
+  const token = cookieToken || bearerToken;
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    if (
+      typeof decoded.sub === "string" &&
+      Number.isInteger(decoded.tokenVersion)
+    ) {
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.sub },
+        select: { id: true, role: true, deletedAt: true, tokenVersion: true },
+      });
+      if (
+        user &&
+        !user.deletedAt &&
+        user.tokenVersion === decoded.tokenVersion
+      ) {
+        req.user = { id: user.id, role: user.role };
+      }
+    }
+  } catch {
+    // Silently continue for guests with expired or invalid tokens
+  }
+  next();
+};

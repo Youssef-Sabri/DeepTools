@@ -6,20 +6,21 @@ import {
   UpdateProductInput,
   listPublicProductsQuerySchema,
 } from "./products.validator";
+import { readGuestEmail } from "../auth/session";
 
 export class ProductsController {
   constructor(private readonly service: ProductsService = productsService) {}
 
   getAll = async (req: Request, res: Response): Promise<void> => {
     const query = listPublicProductsQuerySchema.parse(req.query);
-    const result = await this.service.findAll(query);
+    const lang = query.lang || req.language || "en";
+    const result = await this.service.findAll({ ...query, lang });
     res.status(200).json({ success: true, data: result });
   };
 
   getOne = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const lang =
-      (req.query.lang as string) || (req.headers["accept-language"] as string);
+    const lang = (req.query.lang as string) || req.language || "en";
     const product = await this.service.findOne(
       id,
       lang,
@@ -61,8 +62,19 @@ export class ProductsController {
 
   download = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const userId = req.user!.id;
-    await this.service.downloadProduct(userId, id, res, req.method === "HEAD");
+    const userId = req.user?.id;
+    const guestEmail = readGuestEmail(req);
+    const downloadToken =
+      (req.query.token as string) ||
+      (req.header("X-Guest-Token") as string) ||
+      undefined;
+
+    await this.service.downloadProduct(
+      { userId, guestEmail, downloadToken },
+      id,
+      res,
+      req.method === "HEAD",
+    );
   };
 
   getMyLicenses = async (req: Request, res: Response): Promise<void> => {

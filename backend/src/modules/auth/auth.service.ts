@@ -87,6 +87,9 @@ export class AuthService {
       role: Role.USER,
     });
 
+    // Automatically link previous guest purchases under this email to the new registered account
+    await this.repo.linkGuestOrdersAndLicenses(newUser.email, newUser.id);
+
     const token = this.generateToken(
       newUser.id,
       newUser.role,

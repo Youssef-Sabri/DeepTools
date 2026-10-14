@@ -4,7 +4,7 @@ services:
     container_name: deeptools-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: dataforge_db
     ports:
       - "127.0.0.1:5439:5432"
@@ -19,15 +19,14 @@ services:
 
 
   studio:
-    profiles: ["tools"]
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: deeptools-studio
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/dataforge_db
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/dataforge_db
     ports:
-      - "127.0.0.1:5555:5555"
+      - "5555:5555"
     command: ["npx", "prisma", "studio", "--port", "5555", "--browser", "none", "--hostname", "0.0.0.0"]
     depends_on:
       postgres:
@@ -43,7 +42,7 @@ services:
       - ./backend/.env
     environment:
       - PORT=4000
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/dataforge_db
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/dataforge_db
       - UPLOAD_DIR=/app/uploads
     ports:
       - "4000:4000"

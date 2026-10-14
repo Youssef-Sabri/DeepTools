@@ -52,12 +52,13 @@ npm run dev:frontend
 
 ## 🌐 Application URLs
 
-| Service | URL |
-| :--- | :--- |
-| **Web Frontend** | [http://localhost:3000](http://localhost:3000) |
-| **REST API** | [http://localhost:4000/api/v1](http://localhost:4000/api/v1) |
-| **Swagger UI** | [http://localhost:4000/api/docs](http://localhost:4000/api/docs) |
-| **OpenAPI JSON** | [http://localhost:4000/api/docs.json](http://localhost:4000/api/docs.json) |
+| Service | URL | Description |
+| :--- | :--- | :--- |
+| **Web Frontend** | [http://localhost:3000](http://localhost:3000) | Next.js 16 daylight engineering UI (bilingual EN & AR) |
+| **REST API** | [http://localhost:4000/api/v1](http://localhost:4000/api/v1) | Express REST API endpoints |
+| **Swagger UI** | [http://localhost:4000/api/docs](http://localhost:4000/api/docs) | Interactive OpenAPI 3.0 documentation |
+| **OpenAPI JSON** | [http://localhost:4000/api/docs.json](http://localhost:4000/api/docs.json) | Raw OpenAPI 3.0 specification |
+| **Prisma Studio** | [http://localhost:5555](http://localhost:5555) | PostgreSQL visual database administration GUI |
 
 ---
 

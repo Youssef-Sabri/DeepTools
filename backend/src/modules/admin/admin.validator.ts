@@ -6,10 +6,6 @@ import {
   withinPaginationDepth,
 } from "../../middleware/requestBounds";
 
-export const toggleLicenseSchema = z.object({
-  isActive: z.boolean(),
-});
-
 export const getUsersQuerySchema = z
   .object({
     page: paginationFields.page,
@@ -51,7 +47,6 @@ export const downloadUploadQuerySchema = z
   })
   .strict();
 
-export type ToggleLicenseInput = z.infer<typeof toggleLicenseSchema>;
 export type RejectUploadInput = z.infer<typeof rejectUploadSchema>;
 export type ListAdminUploadsQuery = z.infer<typeof listAdminUploadsQuerySchema>;
 export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;
