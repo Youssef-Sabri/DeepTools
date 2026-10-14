@@ -20,9 +20,16 @@ import {
 } from "./products.validator";
 import { Product, ProductStatus, Role } from "@prisma/client";
 import { env } from "../../config/env";
+import { resolveLocalizedField } from "../../utils/localization";
 
 export type ProductWithSeller = Product & {
   seller?: { id: string; name: string } | null;
+  categoryRel?: {
+    id: string;
+    slug: string;
+    name: string;
+    nameAr: string;
+  } | null;
 };
 
 export interface PublicProduct {
@@ -32,6 +39,14 @@ export interface PublicProduct {
   description: string;
   descriptionAr: string | null;
   category: string;
+  categoryId?: string | null;
+  categoryDetails?: {
+    id: string;
+    slug: string;
+    name: string;
+    nameAr: string;
+    displayName: string;
+  } | null;
   price: number;
   version: string;
   badge: string | null;
@@ -67,22 +82,38 @@ export class ProductsService {
     p: ProductWithSeller,
     lang?: string,
   ): PublicProduct {
-    const isAr = lang?.toLowerCase().startsWith("ar");
     return {
       id: p.id,
       name: p.name,
       nameAr: p.nameAr,
       description: p.description,
       descriptionAr: p.descriptionAr,
-      category: p.category,
+      category: p.categoryRel?.slug ?? p.category ?? "",
+      categoryId: p.categoryId ?? p.categoryRel?.id ?? null,
+      categoryDetails: p.categoryRel
+        ? {
+            id: p.categoryRel.id,
+            slug: p.categoryRel.slug,
+            name: p.categoryRel.name,
+            nameAr: p.categoryRel.nameAr,
+            displayName: resolveLocalizedField(
+              p.categoryRel.name,
+              p.categoryRel.nameAr,
+              lang,
+            ),
+          }
+        : null,
       price: p.price,
       version: p.version,
       badge: p.badge,
       badgeAr: p.badgeAr,
-      displayName: isAr && p.nameAr ? p.nameAr : p.name,
-      displayDescription:
-        isAr && p.descriptionAr ? p.descriptionAr : p.description,
-      displayBadge: isAr && p.badgeAr ? p.badgeAr : p.badge,
+      displayName: resolveLocalizedField(p.name, p.nameAr, lang),
+      displayDescription: resolveLocalizedField(
+        p.description,
+        p.descriptionAr,
+        lang,
+      ),
+      displayBadge: resolveLocalizedField(p.badge, p.badgeAr, lang) || null,
       sellerId: p.sellerId,
       sellerName: p.seller?.name ?? null,
       fileSize: p.fileSize ?? null,

@@ -59,6 +59,7 @@ export class UploadsService {
         description: input.description,
         descriptionAr: input.descriptionAr ?? null,
         category: input.category,
+        categoryId: input.categoryId ?? null,
         price: input.price,
         version: input.version || "1.0.0",
         status: ProductStatus.PENDING,

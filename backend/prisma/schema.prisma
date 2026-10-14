@@ -68,6 +68,25 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Category {
+  id            String    @id @default(uuid()) @db.Uuid
+  slug          String    @unique @db.VarChar(50)
+  name          String    @db.VarChar(100)
+  nameAr        String    @map("name_ar") @db.VarChar(100)
+  description   String?
+  descriptionAr String?   @map("description_ar")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  products      Product[]
+
+  @@index([slug])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "categories_name_trgm_idx")
+  @@index([nameAr(ops: raw("gin_trgm_ops"))], type: Gin, map: "categories_name_ar_trgm_idx")
+  @@map("categories")
+}
+
 model Product {
   id            String    @id @default(uuid()) @db.Uuid
   sellerId      String    @map("seller_id") @db.Uuid
@@ -75,7 +94,8 @@ model Product {
   nameAr        String?   @map("name_ar")
   description   String
   descriptionAr String?   @map("description_ar")
-  category      String    @db.VarChar(50)
+  category      String?   @db.VarChar(50)
+  categoryId    String?   @map("category_id") @db.Uuid
   price         Int
   version       String    @default("1.0.0") @db.VarChar(20)
   status        ProductStatus @default(PENDING) // تم التعديل لاستخدام Enum
@@ -98,13 +118,15 @@ model Product {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // تم التعديل إلى Restrict لحماية المنتجات من الحذف العشوائي إذا تم حذف البائع
-  seller   User      @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Restrict)
-  licenses License[]
-  orders   Order[]
+  seller        User      @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Restrict)
+  categoryRel   Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  licenses      License[]
+  orders        Order[]
 
   @@index([sellerId])
   @@index([status])
   @@index([category])
+  @@index([categoryId])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
   @@index([nameAr(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_ar_trgm_idx")
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_description_trgm_idx")
