@@ -229,6 +229,10 @@ export class UploadsService {
     return { message: "Upload deleted successfully" };
   }
 
+  async isFileReferenced(key: string): Promise<boolean> {
+    return this.repo.isFileReferenced(key);
+  }
+
   private async deleteUnreferencedFile(key: string) {
     if (await this.repo.isFileReferenced(key)) return;
     await this.storage
