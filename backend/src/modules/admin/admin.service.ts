@@ -7,7 +7,7 @@ import { prisma } from "../../config/database";
 import { ApiFeatures } from "../../utils/apiFeatures";
 import { ProductStatus } from "@prisma/client";
 import { storageService } from "../../storage/storage.service";
-import { uploadsRepository } from "../uploads/uploads.repository";
+import { uploadsService } from "../uploads/uploads.service";
 
 export class AdminService {
   private repo: AdminRepository;
@@ -203,9 +203,7 @@ export class AdminService {
     if (!updated) throw new ConflictError("Product changed during review");
     if (upload.approvedFileKey && upload.approvedFileKey !== upload.fileKey) {
       try {
-        if (
-          !(await uploadsRepository.isFileReferenced(upload.approvedFileKey))
-        ) {
+        if (!(await uploadsService.isFileReferenced(upload.approvedFileKey))) {
           await storageService.delete(upload.approvedFileKey);
         }
       } catch (error) {

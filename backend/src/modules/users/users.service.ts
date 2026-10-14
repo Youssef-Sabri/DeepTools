@@ -1,58 +1,31 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "../../config/database";
+import { UsersRepository, usersRepository } from "./users.repository";
 import { ApiError } from "../../utils/apiError";
 import { env } from "../../config/env";
 import { UpdateProfileInput, ChangePasswordInput } from "./users.validator";
 
 export class UsersService {
-  async getUserProfile(userId: string) {
-    const user = await prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+  constructor(private readonly repo: UsersRepository = usersRepository) {}
 
+  async getUserProfile(userId: string) {
+    const user = await this.repo.findActiveProfile(userId);
     if (!user) {
       throw ApiError.notFound("User not found or account deactivated");
     }
-
     return user;
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput) {
-    const userExists = await prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
-    });
-
+    const userExists = await this.repo.findActiveById(userId);
     if (!userExists) {
       throw ApiError.notFound("User not found or account deactivated");
     }
 
-    return prisma.user.update({
-      where: { id: userId },
-      data: { name: input.name },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    return this.repo.updateProfile(userId, input.name);
   }
 
   async changePassword(userId: string, input: ChangePasswordInput) {
-    const user = await prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
-    });
-
+    const user = await this.repo.findActiveById(userId);
     if (!user) throw ApiError.notFound("User not found or account deactivated");
 
     const isMatch = await bcrypt.compare(
@@ -73,15 +46,12 @@ export class UsersService {
     const saltRounds = Number(env.BCRYPT_SALT_ROUNDS);
     const newPasswordHash = await bcrypt.hash(input.newPassword, saltRounds);
 
-    const updated = await prisma.user.updateMany({
-      where: {
-        id: userId,
-        deletedAt: null,
-        passwordHash: user.passwordHash,
-        tokenVersion: user.tokenVersion,
-      },
-      data: { passwordHash: newPasswordHash, tokenVersion: { increment: 1 } },
-    });
+    const updated = await this.repo.updatePasswordOptimistic(
+      userId,
+      user.passwordHash,
+      user.tokenVersion,
+      newPasswordHash,
+    );
     if (updated.count !== 1)
       throw ApiError.conflict(
         "Password changed; retry with current credentials",
