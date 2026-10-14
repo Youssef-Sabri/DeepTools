@@ -13,11 +13,9 @@ import {
 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import type { Product, License } from '@/lib/types'
-import { normalizeCategory } from '@/lib/utils'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
-import { TerminalModal } from '@/components/marketplace/TerminalModal'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import type { Dictionary } from '@/dictionaries'
@@ -44,7 +42,6 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   const [sortBy, setSortBy] = useState<'newest' | 'priceAsc' | 'priceDesc'>('newest')
 
   // Modals & Drawers state
-  const [selectedProductForTerminal, setSelectedProductForTerminal] = useState<Product | null>(null)
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null)
   const [downloadState, setDownloadState] = useState<{
     isVisible: boolean
@@ -69,7 +66,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
         setCatalogError(null)
         const query = new URLSearchParams({ lang: locale, limit: '50', page: '1', sort: sortBy })
         if (activeCategory !== 'all') query.set('category', activeCategory)
-        if (searchQuery.trim()) query.set('search', searchQuery.trim())
+        if (searchQuery.trim()) query.set('search', searchQuery.trim().slice(0, 100))
         const data = await fetchApi<{ items: Product[]; totalPages: number }>(`/products?${query}`)
         if (!isMounted) return
         setProducts(data.items)
@@ -97,7 +94,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
     try {
       const query = new URLSearchParams({ lang: locale, limit: '50', page: String(page + 1), sort: sortBy })
       if (activeCategory !== 'all') query.set('category', activeCategory)
-      if (searchQuery.trim()) query.set('search', searchQuery.trim())
+      if (searchQuery.trim()) query.set('search', searchQuery.trim().slice(0, 100))
       const data = await fetchApi<{ items: Product[]; totalPages: number }>(`/products?${query}`)
       setProducts((previous) => [...previous, ...data.items])
       setPage((previous) => previous + 1)
@@ -133,27 +130,13 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
     { id: 'code', label: 'Code Base', icon: ShieldCheck },
   ]
 
-  const filteredProducts = products.filter((prod) => {
-    const norm = normalizeCategory(prod.category)
-    const matchesCategory = activeCategory === 'all' || norm === activeCategory || prod.category === activeCategory
-    const q = searchQuery.toLowerCase().trim()
-    const matchesSearch =
-      !q ||
-      prod.name.toLowerCase().includes(q) ||
-      (prod.nameAr && prod.nameAr.toLowerCase().includes(q)) ||
-      prod.description.toLowerCase().includes(q)
-    return matchesCategory && matchesSearch
-  })
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'priceAsc') return a.price - b.price
-    if (sortBy === 'priceDesc') return b.price - a.price
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
+  // The API applies search, category, and sort before pagination.
+  const sortedProducts = products
 
   const handleDownload = async (productId: string) => {
     const target = products.find((p) => p.id === productId)
-    const name = `${target?.name || 'asset'}.zip`
+    const extension = target?.fileExtension || ''
+    const name = target?.name ? (extension && !target.name.toLowerCase().endsWith(extension.toLowerCase()) ? `${target.name}${extension}` : target.name) : 'asset'
 
     setDownloadState({
       isVisible: true,
@@ -204,9 +187,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
             {isAr ? 'أدوات وسيناريوهات الأتمتة' : 'Developer Asset Catalog'}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-[var(--muted)] leading-relaxed">
-            {isAr
-              ? 'تصفح سيناريوهات العمل، نصوص Python، مهارات وكلاء الذكاء الاصطناعي، والقوالب البرمجية الجاهزة للاستخدام الفوري.'
-              : 'Browse production-ready workflows, scripts, and autonomous agent skills with dry-run verification.'}
+            {isAr ? 'تصفح الأدوات الرقمية المعتمدة واقرأ تفاصيل كل أصل قبل الشراء.' : 'Browse approved workflows, scripts, and code assets with details supplied by their sellers.'}
           </p>
         </div>
 
@@ -295,7 +276,6 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
                   product={product}
                   locale={locale}
                   isOwned={isOwned}
-                  onDryRun={(p) => setSelectedProductForTerminal(p)}
                   onBuy={(p) => setSelectedProductForCart(p)}
                   onDownload={(id) => handleDownload(id)}
                 />
@@ -322,14 +302,6 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
           </button>
         )}
       </div>
-
-      {/* Terminal Sandbox Modal */}
-      <TerminalModal
-        isOpen={Boolean(selectedProductForTerminal)}
-        product={selectedProductForTerminal}
-        onClose={() => setSelectedProductForTerminal(null)}
-        locale={locale}
-      />
 
       {/* Slide-out Cart Drawer */}
       <CartDrawer

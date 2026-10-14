@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -19,7 +19,6 @@ import type { Product } from '@/lib/types'
 import {
   formatCents,
   normalizeCategory,
-  getFileExtensionPill,
   getCategoryVisualClass,
 } from '@/lib/utils'
 import { fetchApi } from '@/lib/api'
@@ -28,102 +27,72 @@ interface OmnisearchModalProps {
   isOpen: boolean
   onClose: () => void
   locale: string
-  products?: Product[]
 }
 
 export function OmnisearchModal({
   isOpen,
   onClose,
   locale,
-  products = [],
 }: OmnisearchModalProps) {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
-  const [fetchedProducts, setFetchedProducts] = useState<Product[] | null>(null)
+  const [results, setResults] = useState<Product[]>([])
+  const [resultTotal, setResultTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [searchError, setSearchError] = useState(false)
 
   const router = useRouter()
   const isAr = locale === 'ar'
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Use props products if available, otherwise fallback to fetched
-  const allProducts = useMemo(() => {
-    return products.length > 0 ? products : (fetchedProducts || [])
-  }, [products, fetchedProducts])
-  const loading = products.length === 0 && fetchedProducts === null && isOpen
-
-  // Self-fetch if products array is empty
+  // Search the database so the modal is not limited to whichever products a page preloaded.
   useEffect(() => {
-    if (!isOpen || products.length > 0) return
-
+    if (!isOpen) return
     let ignore = false
-    fetchApi<{ items?: Product[] } | Product[]>(`/products?lang=${locale}&limit=50`)
-      .then((data) => {
-        if (ignore) return
-        if (Array.isArray(data)) setFetchedProducts(data)
-        else if (data && Array.isArray(data.items)) setFetchedProducts(data.items)
-        else setFetchedProducts([])
-      })
-      .catch(() => {
-        if (!ignore) setFetchedProducts([])
-      })
-
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      setSearchError(false)
+      const params = new URLSearchParams({ lang: locale, limit: '50' })
+      if (query.trim()) params.set('search', query.trim().slice(0, 100))
+      if (activeCategory !== 'all') params.set('category', activeCategory)
+      try {
+        const data = await fetchApi<{ items: Product[]; total: number }>(`/products?${params}`)
+        if (!ignore) {
+          setResults(data.items)
+          setResultTotal(data.total)
+        }
+      } catch {
+        if (!ignore) {
+          setResults([])
+          setResultTotal(0)
+          setSearchError(true)
+        }
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }, query ? 250 : 0)
     return () => {
       ignore = true
+      clearTimeout(timer)
     }
-  }, [isOpen, products.length, locale])
+  }, [isOpen, locale, query, activeCategory])
 
-  // Category counts
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      all: allProducts.length,
-      workflow: 0,
-      agentic: 0,
-      script: 0,
-      code: 0,
-    }
-    allProducts.forEach((p) => {
-      const norm = normalizeCategory(p.category)
-      if (counts[norm] !== undefined) {
-        counts[norm] += 1
-      }
-    })
-    return counts
-  }, [allProducts])
-
-  const categoryChips = useMemo(() => [
-    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers, count: categoryCounts.all },
-    { id: 'workflow', label: 'Workflows', icon: Sparkles, count: categoryCounts.workflow, color: 'text-[#62a0ff]' },
-    { id: 'agentic', label: 'AI Agents', icon: Cpu, count: categoryCounts.agentic, color: 'text-[#bb86fc]' },
-    { id: 'script', label: 'Scripts', icon: Terminal, count: categoryCounts.script, color: 'text-[#35d69f]' },
-    { id: 'code', label: 'Code Base', icon: ShieldCheck, count: categoryCounts.code, color: 'text-[#f59e50]' },
-  ], [isAr, categoryCounts])
-
-  // Filter products by category and search query
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim()
-    return allProducts.filter((p) => {
-      const normCat = normalizeCategory(p.category)
-      const matchesCategory = activeCategory === 'all' || normCat === activeCategory
-
-      if (!q) return matchesCategory
-
-      const matchesSearch =
-        p.name.toLowerCase().includes(q) ||
-        (p.nameAr && p.nameAr.toLowerCase().includes(q)) ||
-        p.description.toLowerCase().includes(q) ||
-        (p.descriptionAr && p.descriptionAr.toLowerCase().includes(q)) ||
-        normCat.includes(q) ||
-        (p.fileKey && p.fileKey.toLowerCase().includes(q))
-
-      return matchesCategory && matchesSearch
-    })
-  }, [allProducts, query, activeCategory])
-
+  const categoryChips = [
+    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers },
+    { id: 'workflow', label: 'Workflows', icon: Sparkles },
+    { id: 'agentic', label: 'AI Agents', icon: Cpu },
+    { id: 'script', label: 'Scripts', icon: Terminal },
+    { id: 'code', label: 'Code Base', icon: ShieldCheck },
+  ]
+  const filtered = results
   const safeSelectedIndex = selectedIndex >= filtered.length ? 0 : selectedIndex
 
   const handleClose = useCallback(() => {
+    setResults([])
+    setResultTotal(0)
+    setLoading(true)
     setQuery('')
     setActiveCategory('all')
     setSelectedIndex(0)
@@ -131,11 +100,13 @@ export function OmnisearchModal({
   }, [onClose])
 
   const handleQueryChange = (val: string) => {
+    setLoading(true)
     setQuery(val)
     setSelectedIndex(0)
   }
 
   const handleCategoryChange = (catId: string) => {
+    setLoading(true)
     setActiveCategory(catId)
     setSelectedIndex(0)
   }
@@ -293,13 +264,6 @@ export function OmnisearchModal({
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{cat.label}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-[var(--surface-3)] text-[var(--muted-2)]'
-                    }`}
-                  >
-                    {cat.count}
-                  </span>
                 </button>
               )
             })}
@@ -331,9 +295,7 @@ export function OmnisearchModal({
                 {/* Group Heading */}
                 <div className="px-3 py-2 flex items-center justify-between text-[11px] font-mono text-[var(--muted-2)] uppercase tracking-wider">
                   <span>
-                    {query.trim()
-                      ? (isAr ? `نتائج البحث المطابقة (${filtered.length})` : `MATCHING RESULTS (${filtered.length})`)
-                      : (isAr ? 'الأدوات المقترحة والمميزة' : 'FEATURED & RECOMMENDED TOOLS')}
+                    {isAr ? `نتائج البحث (${resultTotal})` : `ASSETS (${resultTotal})`}
                   </span>
                   <span className="text-[10px] lowercase text-[var(--muted-2)] font-mono">
                     {isAr ? 'استخدم الأسهم للتنقل' : 'use ↑↓ to navigate'}
@@ -344,7 +306,7 @@ export function OmnisearchModal({
                   const isSelected = index === safeSelectedIndex
                   const displayName = isAr && prod.nameAr ? prod.nameAr : prod.name
                   const displayDesc = isAr && prod.descriptionAr ? prod.descriptionAr : prod.description
-                  const filePill = getFileExtensionPill(prod.fileKey, prod.category)
+                  const filePill = prod.fileExtension
                   const visualClass = getCategoryVisualClass(prod.category)
                   const normCat = normalizeCategory(prod.category)
 
@@ -378,9 +340,12 @@ export function OmnisearchModal({
                             >
                               {displayName}
                             </h4>
-                            <span className="text-[10px] font-mono text-[var(--muted-2)] shrink-0">
-                              v{prod.version || '1.0.0'}
-                            </span>
+                            {prod.version && <span className="text-[10px] font-mono text-[var(--muted-2)] shrink-0">v{prod.version}</span>}
+                            {(isAr && prod.badgeAr ? prod.badgeAr : prod.badge) && (
+                              <span className="text-[10px] font-mono text-[var(--green)] shrink-0">
+                                {isAr && prod.badgeAr ? prod.badgeAr : prod.badge}
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs text-[var(--muted)] truncate mt-0.5 leading-normal max-w-md">
@@ -388,15 +353,13 @@ export function OmnisearchModal({
                           </p>
 
                           <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
-                            <span className="file-pill text-[9px] py-0 px-1.5">
-                              {filePill}
-                            </span>
+                            {filePill && <span className="file-pill text-[9px] py-0 px-1.5">{filePill}</span>}
                             <span className="uppercase text-[var(--muted-2)]">
                               {normCat}
                             </span>
                             <span className="text-[var(--line-bright)]">•</span>
                             <span className="text-[var(--muted-2)] truncate max-w-[140px]">
-                              {prod.seller?.name || 'DeepTools Engineering'}
+                              {prod.sellerName || (isAr ? 'الناشر غير متاح' : 'Seller unavailable')}
                             </span>
                           </div>
                         </div>
@@ -421,8 +384,12 @@ export function OmnisearchModal({
                   )
                 })}
               </div>
+            ) : searchError ? (
+              <div role="alert" className="p-8 text-center text-sm text-[var(--rose)]">
+                {isAr ? 'تعذر تحميل نتائج البحث.' : 'Could not load search results.'}
+              </div>
             ) : (
-              /* Professional Search Miss / Empty State */
+              /* Search Miss / Empty State */
               <div className="py-12 px-4 text-center flex flex-col items-center justify-center">
                 <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--line-bright)] flex items-center justify-center mb-3 text-[var(--muted)]">
                   <Terminal className="w-6 h-6 text-[var(--blue-bright)]" />
@@ -475,7 +442,7 @@ export function OmnisearchModal({
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
               <span>
-                {filtered.length} {isAr ? 'أداة رقمية مفهرسة' : 'engineering assets indexed'}
+                {resultTotal} {isAr ? 'أصل مطابق' : 'matching assets'}
               </span>
             </div>
 

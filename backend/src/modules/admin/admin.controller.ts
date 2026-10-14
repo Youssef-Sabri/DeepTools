@@ -51,6 +51,12 @@ export class AdminController {
     res.status(200).json({ success: true, data: upload });
   };
 
+  downloadUpload = async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const disposition = req.query.disposition === "inline" ? "inline" : "attachment";
+    await this.service.downloadUpload(id, res, req.method === "HEAD", disposition);
+  };
+
   approveUpload = async (req: Request, res: Response): Promise<void> => {
     const adminId = req.user!.id;
     const id = req.params.id as string;

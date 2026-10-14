@@ -11,6 +11,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import {
   rejectUploadSchema,
   listAdminUploadsQuerySchema,
+  downloadUploadQuerySchema,
   getUsersQuerySchema,
 } from "./admin.validator";
 import settingsRoutes from "../settings/settings.routes";
@@ -41,6 +42,8 @@ router.get(
   asyncHandler(adminController.getUploads),
 );
 router.get("/uploads/:id", validateParams(uuidIdParamsSchema), asyncHandler(adminController.getUploadById));
+router.head("/uploads/:id/download", validateParams(uuidIdParamsSchema), validateQuery(downloadUploadQuerySchema), asyncHandler(adminController.downloadUpload));
+router.get("/uploads/:id/download", validateParams(uuidIdParamsSchema), validateQuery(downloadUploadQuerySchema), asyncHandler(adminController.downloadUpload));
 router.patch(
   "/uploads/:id/approve",
   validateParams(uuidIdParamsSchema),
