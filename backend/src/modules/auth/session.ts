@@ -68,7 +68,7 @@ export const GUEST_SESSION_COOKIE = "dt_guest_session";
 
 export function signGuestSession(email: string): string {
   return jwt.sign({ guestEmail: email.toLowerCase().trim() }, env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "1h",
   });
 }
 
@@ -91,7 +91,7 @@ export function setGuestSession(res: Response, email: string): string {
     sameSite: "lax" as const,
     path: "/",
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    maxAge: 60 * 60 * 1000, // 1 hour in milliseconds
   };
   res.cookie(GUEST_SESSION_COOKIE, token, options);
   return token;

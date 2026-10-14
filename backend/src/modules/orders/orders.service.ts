@@ -175,7 +175,8 @@ export class OrdersService {
         .createHash("sha256")
         .update(rawToken)
         .digest("hex");
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      // Permanent lifetime access link (never expires)
+      const expiresAt = new Date("9999-12-31T23:59:59.999Z");
 
       await this.ordersRepo.createMagicLinkToken(
         normalizedEmail,
@@ -208,16 +209,18 @@ export class OrdersService {
       .digest("hex");
     const record = await this.ordersRepo.findMagicLinkToken(tokenHash);
 
-    if (!record || record.isUsed || record.expiresAt < new Date()) {
+    if (!record || record.expiresAt < new Date()) {
       throw ApiError.unauthorized(
         "Access link is invalid or has expired. Please request a new one.",
       );
     }
 
-    await this.ordersRepo.markMagicLinkTokenUsed(record.id);
+    if (!record.isUsed) {
+      await this.ordersRepo.markMagicLinkTokenUsed(record.id);
+    }
 
     const licenses = await this.ordersRepo.findLicensesByEmail(record.email);
-    const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const sessionExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     return {
       email: record.email,
