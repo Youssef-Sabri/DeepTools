@@ -1,20 +1,13 @@
 import Link from 'next/link'
 import { Terminal, Shield, Cpu, Sparkles } from 'lucide-react'
-import type { Locale } from '@/dictionaries'
+import type { Locale, Dictionary } from '@/dictionaries'
 
 interface FooterProps {
   locale: Locale
-  dict: {
-    nav: {
-      home: string
-      products: string
-      dashboard?: string
-    }
-  }
+  dict: Dictionary
 }
 
 export default function Footer({ locale, dict }: FooterProps) {
-  const isAr = locale === 'ar'
 
   return (
     <footer className="border-t border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] text-xs mt-20">
@@ -31,15 +24,13 @@ export default function Footer({ locale, dict }: FooterProps) {
               </span>
             </div>
             <p className="max-w-md text-[var(--muted-2)] leading-relaxed">
-              {isAr
-                ? 'منصة هندسية مخصصة لمهندسي الأتمتة والمطورين. سيناريوهات n8n وMake، نصوص Python، مهارات وكلاء الذكاء الاصطناعي، وقوالب برمجية موثوقة.'
-                : 'The developer marketplace for automation engineers. Production-ready workflows, scripts, agentic skills, and robust digital tools.'}
+              {dict.footer.theDeveloperMarketplaceForAutomationEngi}
             </p>
 
             <div className="flex items-center gap-2 pt-2">
               <div className="w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
               <span className="text-[11px] font-mono text-[var(--green)]">
-                {isAr ? 'النظام التشغيلي يعمل بكفاءة: 14ms' : 'SYSTEM OPERATIONAL // LATENCY 14MS'}
+                {dict.footer.systemOperationalLatency14ms}
               </span>
             </div>
           </div>
@@ -47,7 +38,7 @@ export default function Footer({ locale, dict }: FooterProps) {
           {/* Quick Categories */}
           <div>
             <h4 className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] font-semibold mb-3">
-              {isAr ? 'الأقسام المعتمدة' : 'CANONICAL CATEGORIES'}
+              {dict.footer.canonicalCategories}
             </h4>
             <ul className="space-y-2">
               <li>
@@ -92,7 +83,7 @@ export default function Footer({ locale, dict }: FooterProps) {
           {/* Platform Console */}
           <div>
             <h4 className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] font-semibold mb-3">
-              {isAr ? 'لوحة المطورين' : 'DEVELOPER CONSOLE'}
+              {dict.footer.developerConsole}
             </h4>
             <ul className="space-y-2">
               <li>
@@ -102,17 +93,17 @@ export default function Footer({ locale, dict }: FooterProps) {
               </li>
               <li>
                 <Link href={`/${locale}/dashboard?tab=upload`} className="hover:text-[var(--text)] transition-colors">
-                  {isAr ? 'نشر أداة برمجية' : 'Submit Tool'}
+                  {dict.footer.submitTool}
                 </Link>
               </li>
               <li>
                 <Link href={`/${locale}/dashboard?tab=purchases`} className="hover:text-[var(--text)] transition-colors">
-                  {isAr ? 'مكتبة مشترياتي' : 'Purchased Tools'}
+                  {dict.footer.purchasedTools}
                 </Link>
               </li>
               <li>
                 <Link href={`/${locale}/dashboard?tab=sales`} className="hover:text-[var(--text)] transition-colors">
-                  {isAr ? 'أرباح ومبيعات البائع' : 'Seller Payouts'}
+                  {dict.footer.sellerPayouts}
                 </Link>
               </li>
               <li>
@@ -120,7 +111,7 @@ export default function Footer({ locale, dict }: FooterProps) {
                   href={`/${locale}/guest/purchases`}
                   className="hover:text-[var(--blue-bright)] text-[var(--blue-bright)]/90 transition-colors flex items-center gap-1 font-medium"
                 >
-                  <span>{isAr ? 'الوصول لمشتريات الزائر' : 'Guest Purchases Lookup'}</span>
+                  <span>{dict.footer.guestPurchasesLookup}</span>
                 </Link>
               </li>
             </ul>
@@ -130,7 +121,7 @@ export default function Footer({ locale, dict }: FooterProps) {
         {/* Bottom bar */}
         <div className="border-t border-[var(--line)] mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-[var(--muted-2)]">
           <div>
-            © {new Date().getFullYear()} DeepTools. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+            © {new Date().getFullYear()} DeepTools. {dict.footer.allRightsReserved}
           </div>
           <div className="flex items-center gap-4">
             <span>Integer Cents Pricing Standard ($49.00 = 4900)</span>

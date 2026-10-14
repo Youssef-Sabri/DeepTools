@@ -13,7 +13,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!hasLocale(locale)) notFound()
-  const dict = await getDictionary(locale as Locale)
   return (
     <Suspense
       fallback={
@@ -25,7 +24,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </div>
       }
     >
-      <DashboardContent dict={dict} locale={locale} />
+      <DashboardContent locale={locale} />
     </Suspense>
   )
 }

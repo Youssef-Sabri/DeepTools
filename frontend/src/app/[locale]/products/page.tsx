@@ -16,7 +16,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function ProductsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!hasLocale(locale)) notFound()
-  const dict = await getDictionary(locale as Locale)
   return (
     <Suspense
       fallback={
@@ -28,7 +27,7 @@ export default async function ProductsPage({ params }: { params: Promise<{ local
         </div>
       }
     >
-      <ProductsContent dict={dict} locale={locale} />
+      <ProductsContent locale={locale} />
     </Suspense>
   )
 }

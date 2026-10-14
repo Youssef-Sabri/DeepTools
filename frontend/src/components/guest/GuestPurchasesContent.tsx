@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface GuestPurchaseItem {
   id: string
@@ -42,6 +43,7 @@ interface GuestPurchasesContentProps {
 }
 
 export default function GuestPurchasesContent({ locale }: GuestPurchasesContentProps) {
+  const dict = useDictionary()
   const searchParams = useSearchParams()
   const tokenParam = searchParams.get('token')
 
@@ -60,6 +62,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const isAr = locale === 'ar'
+  const accessLinkInvalid = dict.guest.accessLinkInvalid
 
   useEffect(() => {
     let ignore = false
@@ -90,11 +93,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
         if (!ignore) {
           setData(null)
           if (tokenParam) {
-            setError(
-              isAr
-                ? 'رابط الوصول غير صالح أو انتهت صلاحيته. يرجى طلب رابط جديد بالأسفل.'
-                : 'Access link is invalid or has expired. Please request a new link below.'
-            )
+            setError(accessLinkInvalid)
           }
         }
       } finally {
@@ -109,7 +108,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
     return () => {
       ignore = true
     }
-  }, [tokenParam, locale, isAr])
+  }, [tokenParam, locale, isAr, accessLinkInvalid])
 
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key)
@@ -122,7 +121,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
     try {
       await downloadProductFile(item.productId, item.productName)
     } catch {
-      alert(isAr ? 'فشل التنزيل. يرجى المحاولة مرة أخرى.' : 'Download failed. Please try again.')
+      alert(dict.guest.downloadFailedPleaseTryAgain)
     } finally {
       setDownloadingId(null)
     }
@@ -158,7 +157,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
           <div className="py-24 flex flex-col items-center justify-center text-center">
             <Loader2 className="w-8 h-8 text-[var(--blue-bright)] animate-spin mb-4" />
             <p className="text-sm font-mono text-[var(--muted)]">
-              {isAr ? 'جارٍ التحقق من جلسة المشتريات الآمنة...' : 'Verifying secure purchase session...'}
+              {dict.guest.verifyingSecurePurchaseSession}
             </p>
           </div>
         )}
@@ -172,19 +171,17 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                 <div className="flex flex-wrap items-center gap-2.5 mb-2">
                   <span className="px-3 py-1 rounded-md text-xs font-mono font-bold bg-[var(--green)]/15 text-[var(--green)] border border-[var(--green)]/30 flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    {isAr ? 'وصول موثق • مشتريات دائمة مدى الحياة' : 'Verified Access • Lifetime Purchases'}
+                    {dict.guest.verifiedAccessLifetimePurchases}
                   </span>
                   <span className="text-xs font-mono text-[var(--muted-2)]">
                     {data.email}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                  {isAr ? 'مكتبة مشترياتك الرقمية' : 'Your Digital Tool Library'}
+                  {dict.guest.yourDigitalToolLibrary}
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--muted)] mt-1.5">
-                  {isAr
-                    ? 'مشترياتك وتراخيصك التجارية دائمة مدى الحياة. يمكنك تنزيل أدواتك ونسخ مفاتيح التراخيص في أي وقت.'
-                    : 'Your purchases and commercial licenses are permanent with lifetime access and direct downloads.'}
+                  {dict.guest.permanentNote}
                 </p>
               </div>
 
@@ -192,18 +189,16 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
               <div className="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line-bright)] max-w-sm shrink-0 space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--blue-bright)]">
                   <Sparkles className="w-4 h-4" />
-                  <span>{isAr ? 'حفظ المشتريات بشكل دائم' : 'Permanent Account Claim'}</span>
+                  <span>{dict.guest.permanentAccountClaim}</span>
                 </div>
                 <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-                  {isAr
-                    ? 'سجل حساباً بنفس البريد لحفظ هذه التراخيص إلى الأبد في حسابك.'
-                    : 'Register with this email to permanently secure these purchases in your cloud account.'}
+                  {dict.guest.registerCta}
                 </p>
                 <Link
                   href={`/${locale}/auth/register?email=${encodeURIComponent(data.email)}`}
                   className="w-full py-2 px-3 rounded-lg text-xs font-bold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-1.5 transition-colors shadow-md mt-2"
                 >
-                  <span>{isAr ? 'ترقية لحساب كامل مجاناً' : 'Upgrade to Full Account'}</span>
+                  <span>{dict.guest.upgradeToFullAccount}</span>
                   <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                 </Link>
               </div>
@@ -214,7 +209,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <h2 className="text-lg font-bold text-[var(--text)] font-mono uppercase tracking-wider">
-                    {isAr ? 'التراخيص المتاحة للتنزيل' : 'Purchased Assets'} ({data.purchases.length})
+                    {dict.guest.purchasedAssets} ({data.purchases.length})
                   </h2>
                 </div>
 
@@ -250,7 +245,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                           {/* License Key Pill */}
                           <div className="flex items-center gap-3 pt-1">
                             <span className="text-[11px] font-mono text-[var(--muted-2)] uppercase">
-                              {isAr ? 'الترخيص:' : 'License:'}
+                              {dict.guest.license}
                             </span>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--surface-2)] border border-[var(--line)]">
                               <Key className="w-3 h-3 text-[var(--blue-bright)]" />
@@ -260,7 +255,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                               <button
                                 onClick={() => handleCopyKey(item.licenseKey)}
                                 className="ms-1.5 text-xs text-[var(--muted)] hover:text-white transition-colors"
-                                title={isAr ? 'نسخ المفتاح' : 'Copy Key'}
+                                title={dict.guest.copyKey}
                               >
                                 {copiedKey === item.licenseKey ? (
                                   <Check className="w-3.5 h-3.5 text-[var(--green)]" />
@@ -286,8 +281,8 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                             )}
                             <span>
                               {downloadingId === item.productId
-                                ? (isAr ? 'جارٍ التنزيل...' : 'Downloading...')
-                                : (isAr ? 'تنزيل الملف' : 'Download Binary')}
+                                ? (dict.guest.downloading)
+                                : (dict.guest.downloadBinary)}
                             </span>
                           </button>
                         </div>
@@ -299,13 +294,13 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
             ) : (
               <div className="deeptools-card rounded-2xl p-12 text-center space-y-3">
                 <p className="text-sm text-[var(--muted)]">
-                  {isAr ? 'لا توجد مشتريات نشطة حالياً لهذا البريد.' : 'No active purchases found for this email.'}
+                  {dict.guest.noActivePurchasesFoundForThisEmail}
                 </p>
                 <Link
                   href={`/${locale}/products`}
                   className="inline-flex items-center gap-2 text-xs font-mono text-[var(--blue-bright)] hover:underline"
                 >
-                  <span>{isAr ? 'تصفح الكتالوج' : 'Browse Marketplace Catalog'}</span>
+                  <span>{dict.guest.browseMarketplaceCatalog}</span>
                   <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                 </Link>
               </div>
@@ -321,12 +316,10 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                 <Mail className="w-6 h-6" />
               </div>
               <h1 className="text-2xl font-bold text-[var(--text)]">
-                {isAr ? 'الوصول إلى مشتريات الزائر' : 'Look Up Guest Purchases'}
+                {dict.guest.lookUpGuestPurchases}
               </h1>
               <p className="text-xs text-[var(--muted)] leading-relaxed">
-                {isAr
-                  ? 'إذا قمت بشراء أداة رقمية بدون حساب، أدخل بريدك الإلكتروني وسنرسل لك رابط وصول آمن ومباشر لصندوق بريدك.'
-                  : 'If you purchased a digital tool as a guest without an account, enter your email below to receive an instant secure 1-click access link.'}
+                {dict.guest.lookupPitch}
               </p>
             </div>
 
@@ -342,15 +335,11 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                 <div className="p-4 rounded-xl bg-[var(--green)]/15 border border-[var(--green)]/30 text-xs text-[var(--green)] font-semibold flex items-center gap-2.5">
                   <Check className="w-5 h-5 shrink-0" />
                   <span>
-                    {isAr
-                      ? 'إذا كانت هناك مشتريات مرتبطة بهذا البريد، فقد أرسلنا رابط الوصول إلى صندوق بريدك.'
-                      : 'If purchases exist for this email, we have sent a secure access link to your inbox!'}
+                    {dict.guest.linkSentGeneric}
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-[var(--muted-2)] text-center">
-                  {isAr
-                    ? 'في بيئة التطوير المحلية، تم تسجيل الرابط أيضاً مباشرة في موجه أوامر السيرفر (Terminal Console).'
-                    : 'In local dev, the clickable link is also logged in your server terminal console.'}
+                  {dict.guest.devNote}
                 </p>
               </div>
             ) : (
@@ -363,7 +352,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
 
                 <div>
                   <label className="text-[11px] font-mono text-[var(--muted-2)] block mb-1.5 uppercase tracking-wider">
-                    {isAr ? 'البريد الإلكتروني المستخدم للشراء' : 'Purchase Email Address'}
+                    {dict.guest.purchaseEmailAddress}
                   </label>
                   <input
                     type="email"
@@ -381,7 +370,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                   className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-[0_0_25px_rgba(59,130,246,0.4)] disabled:opacity-50"
                 >
                   {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  <span>{isAr ? 'إرسال رابط الوصول إلى بريدي' : 'Email Me My Access Link'}</span>
+                  <span>{dict.common.emailMeMyAccessLink}</span>
                 </button>
               </form>
             )}

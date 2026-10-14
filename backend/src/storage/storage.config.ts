@@ -52,8 +52,6 @@ export const ALLOWED_MIME_TYPES = [
   "text/css",
 ] as const;
 
-export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
-
 /**
  * Explicitly prohibited dangerous executable / system binary extensions.
  */

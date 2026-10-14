@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import { normalizeArabicText } from "../../utils/localization";
 import { Category } from "@prisma/client";
 
 export interface CategoryWithProductCount extends Category {
@@ -10,10 +11,17 @@ export interface CategoryWithProductCount extends Category {
 export class CategoriesRepository {
   async findAll(options?: {
     includeDeleted?: boolean;
+    includeInactive?: boolean;
   }): Promise<CategoryWithProductCount[]> {
     return prisma.category.findMany({
-      where: options?.includeDeleted ? {} : { deletedAt: null },
-      orderBy: { createdAt: "asc" },
+      where: {
+        ...(options?.includeDeleted ? {} : { deletedAt: null }),
+        // Public catalog listings must not surface categories an admin has
+        // deactivated; the admin console passes includeInactive to see them all.
+        ...(options?.includeInactive ? {} : { isActive: true }),
+      },
+      // Admin-defined ordering first, then a stable name tiebreaker.
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       include: {
         _count: {
           select: {
@@ -47,14 +55,22 @@ export class CategoriesRepository {
     nameAr: string;
     description?: string;
     descriptionAr?: string;
+    icon?: string | null;
+    displayOrder?: number;
+    isActive?: boolean;
   }): Promise<Category> {
     return prisma.category.create({
       data: {
         slug: data.slug,
         name: data.name,
         nameAr: data.nameAr,
+        // Normalized projection for resilient Arabic search (BACKEND_RULES 16.3).
+        nameArNorm: normalizeArabicText(data.nameAr),
         description: data.description,
         descriptionAr: data.descriptionAr,
+        icon: data.icon ?? null,
+        displayOrder: data.displayOrder ?? 0,
+        isActive: data.isActive ?? true,
       },
     });
   }
@@ -67,11 +83,20 @@ export class CategoriesRepository {
       nameAr?: string;
       description?: string | null;
       descriptionAr?: string | null;
+      icon?: string | null;
+      displayOrder?: number;
+      isActive?: boolean;
     },
   ): Promise<Category> {
     return prisma.category.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        // Keep the search projection in sync whenever the Arabic name changes.
+        ...(data.nameAr !== undefined
+          ? { nameArNorm: normalizeArabicText(data.nameAr) }
+          : {}),
+      },
     });
   }
 

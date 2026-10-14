@@ -24,13 +24,25 @@ describe("Localization Utilities", () => {
   describe("normalizeArabicText", () => {
     it("unifies Alef variants, Taa Marbuta, Alef Maqsura, Tatweel, and zero-width characters", () => {
       const input = "إِنْتَاجُـ أَدَوَاتٍ ذَكِيَّةٍ لِلْمُسْتَشْفَى\u200C";
-      // Alef variants normalized to ا
-      // Taa Marbuta ة -> ه
-      // Alef Maqsura ى -> ي
-      // Tatweel stripped
-      // Zero width stripped
+      // alef, taa marbuta, alef maqsura, tatweel and zero-width are all folded
       const normalized = normalizeArabicText(input);
       expect(normalized).toBe("انتاج ادوات ذكيه للمستشفي");
+    });
+
+    // These mappings are what make a normalized query match the stored row
+    // (via the *_ar_norm shadow columns).
+    it("maps taa marbuta to haa and alef maqsura to yaa", () => {
+      expect(normalizeArabicText("أنظمة")).toBe("انظمه");
+      expect(normalizeArabicText("المثلى")).toBe("المثلي");
+    });
+
+    it("is idempotent, so re-normalizing a projection is a no-op", () => {
+      const once = normalizeArabicText("إِنْتَاجُ أَدَوَاتٍ ذَكِيَّة");
+      expect(normalizeArabicText(once)).toBe(once);
+    });
+
+    it("strips zero-width joiners, non-joiners and BOM", () => {
+      expect(normalizeArabicText("ت\u200Dغ\u200Cي\uFEFFرات")).toBe("تغيرات");
     });
   });
 

@@ -4,6 +4,7 @@ import { Inter, Cairo } from 'next/font/google'
 import { getDictionary, hasLocale, isRtl, locales, type Locale } from '@/dictionaries'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import { DictionaryProvider } from '@/components/providers/DictionaryProvider'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
@@ -63,11 +64,13 @@ export default async function LocaleLayout({
         />
         <ThemeProvider>
           <AuthProvider>
-            <Navbar locale={validLocale} dict={dict} />
-            <main id="main-content" className="flex-1 pt-18 md:pt-20">
-              {children}
-            </main>
-            <Footer locale={validLocale} dict={dict} />
+            <DictionaryProvider dict={dict}>
+              <Navbar locale={validLocale} dict={dict} />
+              <main id="main-content" className="flex-1 pt-18 md:pt-20">
+                {children}
+              </main>
+              <Footer locale={validLocale} dict={dict} />
+            </DictionaryProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

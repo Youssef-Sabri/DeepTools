@@ -18,6 +18,9 @@ export interface FormattedCategory {
   description: string | null;
   descriptionAr: string | null;
   displayDescription: string | null;
+  icon: string | null;
+  displayOrder: number;
+  isActive: boolean;
   productCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -36,8 +39,11 @@ export class CategoriesService {
     private readonly repo: CategoriesRepository = categoriesRepository,
   ) {}
 
-  async listCategories(lang: string = "en"): Promise<FormattedCategory[]> {
-    const categories = await this.repo.findAll();
+  async listCategories(
+    lang: string = "en",
+    includeInactive = false,
+  ): Promise<FormattedCategory[]> {
+    const categories = await this.repo.findAll({ includeInactive });
 
     return categories.map((cat) => ({
       id: cat.id,
@@ -52,6 +58,9 @@ export class CategoriesService {
         cat.descriptionAr,
         lang,
       ),
+      icon: cat.icon,
+      displayOrder: cat.displayOrder,
+      isActive: cat.isActive,
       productCount: cat._count?.products ?? 0,
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
@@ -80,6 +89,9 @@ export class CategoriesService {
         cat.descriptionAr,
         lang,
       ),
+      icon: cat.icon,
+      displayOrder: cat.displayOrder,
+      isActive: cat.isActive,
       productCount: await this.repo.countActiveProducts(cat.id, cat.slug),
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
@@ -106,6 +118,8 @@ export class CategoriesService {
       nameAr: input.nameAr,
       description: input.description,
       descriptionAr: input.descriptionAr,
+      icon: input.icon,
+      displayOrder: input.displayOrder,
     });
   }
 
@@ -134,6 +148,11 @@ export class CategoriesService {
       ...(input.descriptionAr !== undefined
         ? { descriptionAr: input.descriptionAr }
         : {}),
+      ...(input.icon !== undefined ? { icon: input.icon } : {}),
+      ...(input.displayOrder !== undefined
+        ? { displayOrder: input.displayOrder }
+        : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
     });
   }
 

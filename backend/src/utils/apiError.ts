@@ -43,12 +43,6 @@ export class ApiError extends Error {
   }
 }
 
-export class BadRequestError extends ApiError {
-  constructor(message = "Bad Request", errors: unknown[] = []) {
-    super(400, message, errors);
-  }
-}
-
 export class UnauthorizedError extends ApiError {
   constructor(message = "Unauthorized") {
     super(401, message);
@@ -76,12 +70,6 @@ export class ConflictError extends ApiError {
 export class ValidationError extends ApiError {
   constructor(message = "Validation failed", errors: unknown[] = []) {
     super(422, message, errors);
-  }
-}
-
-export class TooManyRequestsError extends ApiError {
-  constructor(message = "Too Many Requests") {
-    super(429, message);
   }
 }
 

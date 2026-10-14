@@ -33,6 +33,7 @@ import {
 } from '@/lib/api'
 import type { Product, User, MarketplaceInsights, UserInsights, Category } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
+import { SectionLoader } from '@/components/ui/SectionLoader'
 
 type AdminTab = 'uploads' | 'users' | 'commission' | 'insights' | 'categories'
 type UploadStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -454,10 +455,7 @@ export default function AdminPage() {
             </div>
 
             {loadingUploads ? (
-              <div className="p-12 text-center text-xs text-[var(--muted)]">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                Loading assets...
-              </div>
+              <SectionLoader label={"Loading assets..."} />
             ) : uploads.length > 0 ? (
               <div className="space-y-3">
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
@@ -654,10 +652,7 @@ export default function AdminPage() {
 
             {/* Users Table */}
             {loadingUsers ? (
-              <div className="p-12 text-center text-xs text-[var(--muted)]">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                Loading users directory...
-              </div>
+              <SectionLoader label={"Loading users directory..."} />
             ) : usersList.length > 0 ? (
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
                 <table className="w-full text-xs text-left">
@@ -781,10 +776,7 @@ export default function AdminPage() {
             </h2>
 
             {loadingInsights ? (
-              <div className="p-12 text-center text-xs text-[var(--muted)]">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                Loading platform telemetry...
-              </div>
+              <SectionLoader label={"Loading platform telemetry..."} />
             ) : insights ? (
               <div className="space-y-6">
                 {/* 4-Metric Summary Grid */}

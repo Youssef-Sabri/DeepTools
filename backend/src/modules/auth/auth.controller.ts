@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { authService, AuthService } from "./auth.service";
-import { clearSession, setSession } from "./session";
+import { clearGuestSession, clearSession, setSession } from "./session";
 import {
   RegisterInput,
   LoginInput,
@@ -16,6 +16,12 @@ export class AuthController {
     const input = req.body as RegisterInput;
     const result = await this.service.register(input);
     setSession(res, result.token);
+
+    // FRONTEND_RULES.md 5.3: registration seamlessly upgrades the guest session
+    // to a permanent account, so the guest cookie is cleared. Leaving it in
+    // place would keep a guest-scoped session alive for its remaining lifetime
+    // even though its purchases are now owned by the authenticated account.
+    clearGuestSession(res);
 
     res.status(201).json({
       success: true,
@@ -41,6 +47,9 @@ export class AuthController {
 
   logout = (_req: Request, res: Response): void => {
     clearSession(res);
+    // End the guest session too, so signing out does not silently leave a
+    // separate 1-hour guest-scoped session active in the same browser.
+    clearGuestSession(res);
     res.status(204).end();
   };
 

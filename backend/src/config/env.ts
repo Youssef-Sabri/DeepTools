@@ -59,19 +59,35 @@ const envSchema = z
     UPLOAD_DIR: z.string().default("./uploads"),
     MAX_FILE_SIZE_MB: z.coerce.number().default(50),
     COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(10),
+
+    // Opt-in only; false by default so a misconfiguration cannot leak internals.
+    EXPOSE_ERROR_DETAILS: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((val) => val === "true"),
   })
   .superRefine((value, context) => {
-    if (value.NODE_ENV !== "production") return;
+    // Known-bad secrets are rejected in EVERY environment: these literals are
+    // public, so any deployment using them lets anyone mint a token for a
+    // known user id.
+    const FORBIDDEN_SECRETS = [
+      "super-secret-jwt-key-change-this-in-production",
+      "replace-with-at-least-32-random-characters",
+    ];
     if (
-      value.JWT_SECRET.startsWith("replace-") ||
-      value.JWT_SECRET === "super-secret-jwt-key-change-this-in-production"
+      FORBIDDEN_SECRETS.includes(value.JWT_SECRET) ||
+      value.JWT_SECRET.toLowerCase().startsWith("replace-")
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["JWT_SECRET"],
-        message: "Use a random production JWT secret",
+        message:
+          "JWT_SECRET is a known placeholder. Generate a random 32+ character secret.",
       });
     }
+
+    if (value.NODE_ENV !== "production") return;
+
     try {
       const password = new URL(value.DATABASE_URL).password;
       if (
@@ -90,6 +106,15 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ["DATABASE_URL"],
         message: "Invalid database URL",
+      });
+    }
+
+    // Internal error disclosure is a development-only affordance.
+    if (value.EXPOSE_ERROR_DETAILS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["EXPOSE_ERROR_DETAILS"],
+        message: "EXPOSE_ERROR_DETAILS must be false in production",
       });
     }
   });

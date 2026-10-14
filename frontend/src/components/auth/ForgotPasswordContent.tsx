@@ -5,20 +5,18 @@ import { motion } from 'framer-motion'
 import { Mail, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { fetchApi } from '@/lib/api'
-import type { Dictionary } from '@/dictionaries'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface ForgotPasswordContentProps {
-  dict?: Dictionary
   locale: string
 }
 
 export default function ForgotPasswordContent({ locale }: ForgotPasswordContentProps) {
+  const dict = useDictionary()
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
-  const isAr = locale === 'ar'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +31,7 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
       })
       setSuccess(
         res.message ||
-        (isAr ? 'تم إرسال رابط استعادة كلمة المرور إذا كان البريد مسجلاً لدينا.' : 'If the email exists, a password reset link has been dispatched.')
+        (dict.auth.forgotPassword.linkDispatched)
       )
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong'
@@ -56,15 +54,13 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
         <div className="text-center mb-8">
           <Link href={`/${locale}/auth/login`} className="inline-flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--text)] mb-4">
             <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
-            <span>{isAr ? 'العودة لتسجيل الدخول' : 'Back to Sign In'}</span>
+            <span>{dict.auth.forgotPassword.backToSignIn}</span>
           </Link>
           <h1 className="text-2xl font-bold text-[var(--text)]">
-            {isAr ? 'استعادة كلمة المرور' : 'Recover Account Password'}
+            {dict.auth.forgotPassword.recoverAccountPassword}
           </h1>
           <p className="text-xs text-[var(--muted)] mt-1.5">
-            {isAr
-              ? 'أدخل بريدك الإلكتروني المسجل وسنرسل لك رابط إعادة تعيين كلمة المرور.'
-              : 'Enter your verified email to receive an authorized reset link.'}
+            {dict.auth.forgotPassword.emailHint}
           </p>
         </div>
 
@@ -84,7 +80,7 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {isAr ? 'البريد الإلكتروني' : 'EMAIL ADDRESS'}
+              {dict.auth.forgotPassword.emailAddress}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -107,7 +103,7 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <span>{isAr ? 'إرسال رابط الاستعادة' : 'Send Reset Link'}</span>
+              <span>{dict.auth.forgotPassword.submit}</span>
             )}
           </button>
         </form>

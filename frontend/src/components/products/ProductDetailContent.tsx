@@ -21,18 +21,18 @@ import { downloadProductFile, fetchApi } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
-import type { Dictionary } from '@/dictionaries'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface ProductDetailContentProps {
   product: Product
   locale: string
-  dict?: Dictionary
 }
 
 export default function ProductDetailContent({
   product,
   locale,
 }: ProductDetailContentProps) {
+  const dict = useDictionary()
   const { user } = useAuth()
   const [cartOpen, setCartOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
@@ -115,8 +115,8 @@ export default function ProductDetailContent({
   const displayName = product.displayName || ((isAr && product.nameAr) ? product.nameAr : product.name)
   const displayDescription = product.displayDescription || ((isAr && product.descriptionAr) ? product.descriptionAr : product.description)
   const filePill = product.fileExtension
-  const sellerName = product.sellerName?.trim() || (isAr ? 'اسم الناشر غير متاح' : 'Seller unavailable')
-  const assetSize = product.fileSize == null ? (isAr ? 'حجم الملف غير متاح' : 'Size unavailable') : formatBytes(product.fileSize)
+  const sellerName = product.sellerName?.trim() || (dict.common.sellerUnavailable)
+  const assetSize = product.fileSize == null ? (dict.product.sizeUnavailable) : formatBytes(product.fileSize)
   const badge = (product.displayBadge || (isAr && product.badgeAr ? product.badgeAr : product.badge))?.trim()
 
   const handleDownload = async () => {
@@ -150,7 +150,7 @@ export default function ProductDetailContent({
       }, 4000)
     } catch {
       setDownloadState((prev) => ({ ...prev, isVisible: false }))
-      alert(isAr ? 'فشل التنزيل. تأكد من أنك تمتلك هذا الأصل الرقمي.' : 'Download failed. Ensure you have purchased this asset.')
+      alert(dict.product.downloadFailed)
     }
   }
 
@@ -168,7 +168,7 @@ export default function ProductDetailContent({
             className="inline-flex items-center gap-2 text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
-            <span>{isAr ? 'العودة إلى الكتالوج' : 'Back to Marketplace'}</span>
+            <span>{dict.product.backToMarketplace}</span>
           </Link>
         </div>
 
@@ -198,7 +198,7 @@ export default function ProductDetailContent({
               <div className="mt-8 pt-6 border-t border-[var(--line)] grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
                 <div>
                   <span className="text-[10px] text-[var(--muted-2)] uppercase block">
-                    {isAr ? 'الناشر' : 'Seller'}
+                    {dict.product.seller}
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <User className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
@@ -208,7 +208,7 @@ export default function ProductDetailContent({
 
                 <div>
                   <span className="text-[10px] text-[var(--muted-2)] uppercase block">
-                    {isAr ? 'حجم الملف الرقمي' : 'Asset Size'}
+                    {dict.product.assetSize}
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <HardDrive className="w-3.5 h-3.5 text-[var(--purple)]" />
@@ -218,11 +218,11 @@ export default function ProductDetailContent({
 
                 <div>
                   <span className="text-[10px] text-[var(--muted-2)] uppercase block">
-                    {isAr ? 'تاريخ النشر' : 'Published Date'}
+                    {dict.product.publishedDate}
                   </span>
                   <span className="text-[var(--text)] font-semibold flex items-center gap-1.5 mt-1">
                     <Clock className="w-3.5 h-3.5 text-[var(--green)]" />
-                    {product.publishedAt ? formatDate(product.publishedAt, locale) : (isAr ? 'تاريخ النشر غير متاح' : 'Publication date unavailable')}
+                    {product.publishedAt ? formatDate(product.publishedAt, locale) : (dict.product.publicationDateUnavailable)}
                   </span>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export default function ProductDetailContent({
             <div className="deeptools-card rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--muted-2)] font-semibold block mb-1">
-                  {isOwned ? (isAr ? 'الوصول' : 'ACCESS') : (isAr ? 'سعر الأصل' : 'ASSET PRICE')}
+                  {isOwned ? (dict.product.access) : (dict.product.assetPrice)}
                 </span>
                 <div className="text-3xl font-extrabold font-mono text-[var(--text)]">
                   {isOwned ? (
@@ -246,10 +246,10 @@ export default function ProductDetailContent({
                     >
                       <CheckCircle2 className="w-5 h-5 shrink-0" />
                       {isCreator
-                        ? (isAr ? 'أصلك الرقمي (الناشر)' : 'Your Asset (Creator)')
+                        ? (dict.product.yourAssetCreator)
                         : isGuestOwned
-                          ? (isAr ? 'مملوك (ترخيص دائم مدى الحياة)' : 'Owned (Lifetime Commercial License)')
-                          : (isAr ? 'مملوك في مكتبتك' : 'Owned in Library')}
+                          ? (dict.product.ownedLifetime)
+                          : (dict.product.ownedInLibrary)}
                     </span>
                   ) : (
                     formatCents(product.price)
@@ -258,9 +258,9 @@ export default function ProductDetailContent({
                 <span className="text-[11px] text-[var(--muted-2)] font-mono block mt-1">
                   {isOwned
                     ? (isGuestOwned
-                        ? (isAr ? 'ترخيص تجاري دائم مدى الحياة • رابط الوصول الدائم أرسل لبريدك' : 'Permanent lifetime commercial license • Access link sent to your email')
-                        : (isAr ? 'ترخيص تجاري دائم مرتبط بحسابك' : 'Permanent commercial license linked to your account'))
-                    : (isAr ? 'دفع لمرة واحدة • بدون اشتراك' : 'Single payment • No recurring charges')}
+                        ? (dict.product.guestLicenseNote)
+                        : (dict.product.accountLicenseNote))
+                    : (dict.product.singlePaymentNoRecurringCharges)}
                 </span>
               </div>
 
@@ -275,7 +275,7 @@ export default function ProductDetailContent({
                     }`}
                   >
                     <Download className="w-4 h-4" />
-                    <span>{isAr ? 'تحميل الأداة الآن' : 'Download Digital Asset'}</span>
+                    <span>{dict.product.downloadDigitalAsset}</span>
                   </button>
                 ) : (
                   <button
@@ -283,7 +283,7 @@ export default function ProductDetailContent({
                     className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg"
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>{isAr ? 'شراء ترخيص الأصل' : 'Buy Asset License'}</span>
+                    <span>{dict.product.buyAssetLicense}</span>
                   </button>
                 )}
                 {!isOwned && !user && (
@@ -296,7 +296,7 @@ export default function ProductDetailContent({
                     }}
                     className="text-xs text-[var(--muted-2)] hover:text-[var(--blue-bright)] transition-colors underline font-mono text-center w-full block pt-1.5"
                   >
-                    {isAr ? 'هل اشتريت هذا الأصل كزائر؟ افتح التحميل الآن' : 'Already bought as guest? Unlock download'}
+                    {dict.product.alreadyBoughtAsGuestUnlockDownload}
                   </button>
                 )}
               </div>
@@ -304,7 +304,7 @@ export default function ProductDetailContent({
               <div className="mt-6 pt-6 border-t border-[var(--line)] space-y-3 text-xs text-[var(--muted)]">
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-[var(--blue-bright)] shrink-0" />
-                  <span>{isAr ? 'تنزيل مباشر فوري من السيرفر' : 'Direct authenticated binary stream download'}</span>
+                  <span>{dict.product.streamNote}</span>
                 </div>
               </div>
             </div>
@@ -332,10 +332,8 @@ export default function ProductDetailContent({
       <DownloadOverlay
         isVisible={downloadState.isVisible}
         fileName={downloadState.fileName}
-        progress={downloadState.progress}
         isComplete={downloadState.isComplete}
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
-        locale={locale}
       />
 
       {/* Guest Purchases Unlock Modal */}
@@ -352,13 +350,11 @@ export default function ProductDetailContent({
             <div className="flex items-center gap-2 mb-2">
               <Mail className="w-5 h-5 text-[var(--blue-bright)]" />
               <h3 className="text-lg font-bold text-[var(--text)]">
-                {isAr ? 'الوصول لمشتريات الزائر' : 'Unlock Guest Purchases'}
+                {dict.product.unlockGuestPurchases}
               </h3>
             </div>
             <p className="text-xs text-[var(--muted)] leading-relaxed mb-6">
-              {isAr
-                ? 'أدخل بريدك الإلكتروني الذي استخدمته أثناء الشراء لإرسال رابط وصول آمن ومباشر.'
-                : 'Enter the email you used during checkout to receive an instant, secure 1-click access link.'}
+              {dict.product.lookupEmailHint}
             </p>
 
             {lookupSent ? (
@@ -366,16 +362,14 @@ export default function ProductDetailContent({
                 <div className="p-4 rounded-xl bg-[var(--green)]/15 border border-[var(--green)]/30 text-xs text-[var(--green)] font-semibold flex items-center gap-2.5">
                   <Check className="w-5 h-5 shrink-0" />
                   <span>
-                    {isAr
-                      ? 'إذا كانت هناك مشتريات مرتبطة بهذا البريد، فقد أرسلنا رابط الوصول إلى صندوق بريدك.'
-                      : 'If purchases exist for this email, we sent a secure access link to your inbox!'}
+                    {dict.product.linkSentNote}
                   </span>
                 </div>
                 <button
                   onClick={() => setLookupOpen(false)}
                   className="w-full py-3 rounded-xl font-bold text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] transition-colors"
                 >
-                  {isAr ? 'إغلاق' : 'Close'}
+                  {dict.common.close}
                 </button>
               </div>
             ) : (
@@ -406,7 +400,7 @@ export default function ProductDetailContent({
                 )}
                 <div>
                   <label className="text-[11px] font-mono text-[var(--muted-2)] block mb-1">
-                    {isAr ? 'البريد الإلكتروني' : 'Email Address'}
+                    {dict.common.emailAddress}
                   </label>
                   <input
                     type="email"
@@ -423,7 +417,7 @@ export default function ProductDetailContent({
                   className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50"
                 >
                   {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  <span>{isAr ? 'إرسال رابط الوصول السريع' : 'Send Instant Access Link'}</span>
+                  <span>{dict.product.sendInstantAccessLink}</span>
                 </button>
               </form>
             )}

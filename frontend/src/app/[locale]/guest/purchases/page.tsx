@@ -1,17 +1,15 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import { hasLocale } from '@/dictionaries'
+import { getDictionary, hasLocale } from '@/dictionaries'
 import GuestPurchasesContent from '@/components/guest/GuestPurchasesContent'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!hasLocale(locale)) return {}
-  const isAr = locale === 'ar'
+  const dict = await getDictionary(locale)
   return {
-    title: isAr ? 'مشتريات الزائر | DeepTools' : 'Guest Purchases & Downloads | DeepTools',
-    description: isAr
-      ? 'الوصول الآمن وتنزيل الأصول الرقمية المشتراة كزائر عبر DeepTools.'
-      : 'Securely access and download your purchased digital assets via DeepTools.',
+    title: dict.metadata.guestPurchasesTitle,
+    description: dict.metadata.guestPurchasesDescription,
   }
 }
 

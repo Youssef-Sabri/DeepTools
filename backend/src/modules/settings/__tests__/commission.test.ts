@@ -109,7 +109,7 @@ describe("Commission Settings Endpoints (Task B-5)", () => {
 
       const res = await request(app)
         .get("/api/v1/settings/commission")
-        .set("Cookie", `dt_session=${userToken}`);
+        .set("Cookie", `dt_auth=${userToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.data.commissionPercent).toBe(27);

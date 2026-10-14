@@ -1,12 +1,10 @@
-/**
- * DeepTools Backend Internationalization & Bilingual Message Catalog
- * Provides authentic English and Arabic translations for API responses,
- * error messages, and operational events.
- */
+// English and Arabic messages for API responses and error strings.
 
-export type SupportedLanguage = "en" | "ar";
+// Type is derived from the array so the runtime list cannot drift from it.
+export const SUPPORTED_LANGUAGES = ["en", "ar"] as const;
 
-export const SUPPORTED_LANGUAGES: SupportedLanguage[] = ["en", "ar"];
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
 export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
 
 export const messages = {
@@ -194,10 +192,7 @@ export const messages = {
 
 export type TranslationKey = keyof typeof messages.en;
 
-/**
- * Translates a key or phrase into the specified language with optional parameter interpolation.
- * If translation is missing or language is unsupported, gracefully falls back to English.
- */
+/** Translates a key into the given language, falling back to English. */
 export function t(
   key: string,
   lang: string = DEFAULT_LANGUAGE,

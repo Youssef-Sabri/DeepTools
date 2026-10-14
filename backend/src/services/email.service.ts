@@ -70,7 +70,8 @@ export class EmailService {
       const info = await transporter.sendMail({
         from: '"DeepTools Support" <noreply@deeptools.ai>',
         to: email,
-        subject: "Your DeepTools Lifetime Purchases Access Link | رابط الوصول الدائم لمشترياتك",
+        subject:
+          "Your DeepTools Lifetime Purchases Access Link | رابط الوصول الدائم لمشترياتك",
         text: `Hello,\n\nClick the link below to access your DeepTools digital purchases, lifetime licenses, and downloads:\n\n${magicLinkUrl}\n\nYour purchases are permanent. You can use this link to access and download your files anytime.\n\n---\nمرحباً،\n\nاضغط على الرابط التالي للوصول إلى مشترياتك وتراخيصك الدائمة وتنزيل ملفاتك في أي وقت:\n\n${magicLinkUrl}\n\nمشترياتك وتراخيصك دائمة مدى الحياة. يمكنك استخدام هذا الرابط للوصول والتحميل دائماً.`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #1e293b; border-radius: 12px; background: #0b0f19; color: #f8fafc;">

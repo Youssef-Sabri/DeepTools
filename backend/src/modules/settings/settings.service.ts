@@ -61,9 +61,13 @@ export class SettingsService {
     };
   }
 
+  /** @param changedBy Admin actor, recorded so the audit trail is attributable. */
   async updateCommission(
     commissionPercent: number,
+    changedBy?: { id: string; email?: string },
   ): Promise<CommissionSettingResponse> {
+    const previousPercent = await this.getCommissionPercent();
+
     const setting = await this.settingsRepo.upsert(
       SETTING_KEYS.COMMISSION_PERCENT,
       commissionPercent.toString(),
@@ -73,7 +77,15 @@ export class SettingsService {
       JSON.stringify({
         level: "info",
         event: "MARKETPLACE_COMMISSION_UPDATED",
+        // Who made the change
+        actorId: changedBy?.id ?? null,
+        actorEmail: changedBy?.email ?? null,
+        // What it was before, so drift is reconstructable
+        previousPercent,
         commissionPercent,
+        // Past orders are never recalculated (BACKEND_RULES 7.5); record the
+        // effective boundary for downstream reconciliation.
+        effectiveFrom: setting.updatedAt.toISOString(),
         updatedAt: setting.updatedAt.toISOString(),
       }),
     );

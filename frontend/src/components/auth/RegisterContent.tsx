@@ -30,21 +30,20 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
 
   const { register } = useAuth()
   const router = useRouter()
-  const isAr = locale === 'ar'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setPasswordError(null)
 
-    const validationError = getPasswordValidationError(password, isAr)
+    const validationError = getPasswordValidationError(password, dict)
     if (validationError) {
       setPasswordError(validationError)
       return
     }
 
     if (password !== confirmPassword) {
-      setError(isAr ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match')
+      setError(dict.auth.register.passwordsDoNotMatch)
       return
     }
 
@@ -54,7 +53,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
       await register({ name, email, password })
       router.push(`/${locale}/dashboard`)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (isAr ? 'فشل إنشاء الحساب' : 'Registration failed')
+      const msg = err instanceof Error ? err.message : (dict.auth.register.registrationFailed)
       setError(msg)
     } finally {
       setSubmitting(false)
@@ -96,12 +95,10 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
             <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-[var(--blue-bright)]" />
             <div>
               <p className="font-semibold text-[var(--text)]">
-                {isAr ? 'ربط مشتريات الزائر تلقائياً' : 'Automatic Purchase Linking'}
+                {dict.auth.register.automaticPurchaseLinking}
               </p>
               <p className="text-[11px] text-[var(--muted)] mt-0.5 leading-relaxed">
-                {isAr
-                  ? 'عند إتمام التسجيل بهذا البريد، ستُنقل جميع ملفاتك وتراخيصك السابقة كزائر تلقائياً وبأمان إلى لوحة التحكم الخاصة بك.'
-                  : 'Registering with this email will automatically and permanently link all your previous guest downloads and licenses to your account dashboard.'}
+                {dict.auth.register.registeringWithThisEmailWillAutomaticall}
               </p>
             </div>
           </div>
@@ -127,7 +124,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
 
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {dict.auth.register.email}
+              {dict.common.emailAddress}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -144,7 +141,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
 
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {dict.auth.register.password}
+              {dict.common.password}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -177,7 +174,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
 
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {dict.auth.register.confirmPassword}
+              {dict.common.confirmPassword}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -200,7 +197,7 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>{dict.auth.register.submit}</span>
+                <span>{dict.auth.register.title}</span>
                 <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </>
             )}

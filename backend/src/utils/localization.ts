@@ -1,12 +1,7 @@
-/**
- * DeepTools Localization & Bilingual Architecture Utilities
- * Provides authentic Unicode script validation, Arabic text normalization,
- * and zero-blank localized response fallbacks.
- */
+// Script validation, Arabic normalization and zero-blank localized fallbacks.
 
-// Matches Arabic Unicode blocks: Arabic (\u0600-\u06FF), Arabic Supplement (\u0750-\u077F),
-// Arabic Extended-A (\u08A0-\u08FF), Arabic-Indic digits (٠-٩), Eastern Arabic-Indic digits (۰-۹),
-// and Arabic punctuation (، ؛ ؟)
+// Arabic, Arabic Supplement, Arabic Extended-A, Arabic-Indic and Eastern
+// digits, plus Arabic punctuation.
 export const ARABIC_TEXT_REGEX =
   /^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF0-9\s.,!?'"()\-:;/_+؛،؟]+$/;
 
@@ -18,23 +13,14 @@ export const HAS_ARABIC_LETTER_REGEX =
   /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
 export const HAS_LATIN_LETTER_REGEX = /[a-zA-Z]/;
 
-/**
- * Strips Arabic Tashkeel (diacritics/harakat)
- * (Fatha, Damma, Kasra, Tanween, Sukun, Shadda: U+064B to U+0652)
- */
+/** Strips Arabic Tashkeel / harakat (U+064B..U+0652). */
 export function stripArabicTashkeel(text: string): string {
   if (!text) return "";
   return text.replace(/[\u064B-\u0652]/g, "");
 }
 
-/**
- * Normalizes Arabic letters for resilient search matching:
- * - Unifies Alef variants (أ, إ, آ, ٱ) -> ا
- * - Normalizes Taa Marbuta (ة) -> ه
- * - Normalizes Alef Maqsura (ى) -> ي
- * - Strips Tatweel/Kashida (ـ: U+0640)
- * - Strips zero-width characters (U+200B to U+200D, U+FEFF)
- */
+/** Normalizes Arabic for search: alef variants -> ا, taa marbuta -> ه,
+ *  alef maqsura -> ي; strips tatweel and zero-width characters. */
 export function normalizeArabicText(text: string): string {
   if (!text) return "";
   return stripArabicTashkeel(text)
@@ -46,10 +32,7 @@ export function normalizeArabicText(text: string): string {
     .trim();
 }
 
-/**
- * Resolves localized text with guaranteed zero-blank fallback.
- * If the requested language string is missing or empty, gracefully falls back to the other.
- */
+/** Resolves localized text, falling back to the other language when blank. */
 export function resolveLocalizedField(
   en: string | null | undefined,
   ar: string | null | undefined,

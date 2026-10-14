@@ -2,14 +2,13 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { Download, CheckCircle2, X } from 'lucide-react'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface DownloadOverlayProps {
   isVisible: boolean
   fileName: string
-  progress: number // kept for callers; the browser manages transfer progress
   isComplete: boolean
   onClose: () => void
-  locale?: string
 }
 
 export function DownloadOverlay({
@@ -17,11 +16,9 @@ export function DownloadOverlay({
   fileName,
   isComplete,
   onClose,
-  locale = 'en',
 }: DownloadOverlayProps) {
+  const dict = useDictionary()
   if (!isVisible) return null
-
-  const isAr = locale === 'ar'
 
   return (
     <AnimatePresence>
@@ -42,8 +39,8 @@ export function DownloadOverlay({
               <div className="text-xs font-semibold text-[var(--text)] line-clamp-1">{fileName}</div>
               <div className="text-[10px] font-mono text-[var(--muted-2)]">
                 {isComplete
-                  ? (isAr ? 'بدأ التنزيل في متصفحك' : 'Download started in your browser')
-                  : (isAr ? 'جارٍ تجهيز التنزيل...' : 'Preparing download...')}
+                  ? (dict.download.downloadStartedInYourBrowser)
+                  : (dict.download.preparingDownload)}
               </div>
             </div>
           </div>

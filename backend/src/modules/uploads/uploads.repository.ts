@@ -6,8 +6,10 @@ export class UploadsRepository {
     sellerId: string;
     name: string;
     nameAr?: string | null;
+    nameArNorm?: string | null;
     description: string;
     descriptionAr?: string | null;
+    descriptionArNorm?: string | null;
     category?: string | null;
     categoryId?: string | null;
     price: number;
@@ -72,8 +74,10 @@ export class UploadsRepository {
     data: Partial<{
       name: string;
       nameAr?: string | null;
+      nameArNorm?: string | null;
       description: string;
       descriptionAr?: string | null;
+      descriptionArNorm?: string | null;
       category?: string;
       categoryId?: string | null;
       price: number;

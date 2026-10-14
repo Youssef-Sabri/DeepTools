@@ -16,6 +16,21 @@ export const uploadCategoryEnum = z.string().min(1, "Category is required");
 
 export const uploadStatusEnum = z.nativeEnum(ProductStatus);
 
+// Money is an integer in the smallest currency unit and is stored in a
+// Postgres INTEGER column, so the upper bound must be enforced here. Without
+// it an out-of-range value passes `z.number().int()` (Number.isInteger(1e21)
+// is true) and then fails at the database with an opaque 500.
+export const MAX_PRICE_CENTS = 2_147_483_647;
+
+const priceInCents = z.preprocess(
+  (val) => (typeof val === "string" ? Number(val) : val),
+  z
+    .number({ message: "Price is required" })
+    .int("Price must be an integer in cents")
+    .nonnegative("Price must be greater than or equal to 0")
+    .max(MAX_PRICE_CENTS, "Price exceeds the maximum supported amount"),
+);
+
 export const createUploadSchema = z.object({
   name: z
     .string()
@@ -71,13 +86,7 @@ export const createUploadSchema = z.object({
     }),
   category: uploadCategoryEnum,
   categoryId: z.string().uuid("Invalid categoryId format").optional(),
-  price: z.preprocess(
-    (val) => (typeof val === "string" ? Number(val) : val),
-    z
-      .number({ message: "Price is required" })
-      .int("Price must be an integer in cents")
-      .nonnegative("Price must be greater than or equal to 0"),
-  ),
+  price: priceInCents,
   version: z.string().default("1.0.0").optional(),
 });
 

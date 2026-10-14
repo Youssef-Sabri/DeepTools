@@ -44,13 +44,18 @@ CREATE TABLE "categories" (
     "slug" VARCHAR(50) NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "name_ar" VARCHAR(100) NOT NULL,
+    "name_ar_norm" TEXT,
     "description" TEXT,
     "description_ar" TEXT,
+    "icon" VARCHAR(60),
+    "display_order" INTEGER NOT NULL DEFAULT 0,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
 
-    CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "categories_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "categories_display_order_check" CHECK ("display_order" >= 0)
 );
 
 -- CreateTable
@@ -59,8 +64,10 @@ CREATE TABLE "products" (
     "seller_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "name_ar" TEXT,
+    "name_ar_norm" TEXT,
     "description" TEXT NOT NULL,
     "description_ar" TEXT,
+    "description_ar_norm" TEXT,
     "category" VARCHAR(50),
     "category_id" UUID,
     "price" INTEGER NOT NULL,
@@ -123,7 +130,8 @@ CREATE TABLE "orders" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "orders_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "orders_commission_split_check" CHECK (commission_amount + seller_amount = amount)
 );
 
 -- CreateTable
@@ -197,6 +205,12 @@ CREATE INDEX "categories_name_trgm_idx" ON "categories" USING GIN ("name" gin_tr
 CREATE INDEX "categories_name_ar_trgm_idx" ON "categories" USING GIN ("name_ar" gin_trgm_ops);
 
 -- CreateIndex
+CREATE INDEX "categories_name_ar_norm_trgm_idx" ON "categories" USING GIN ("name_ar_norm" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "categories_is_active_display_order_idx" ON "categories"("is_active", "display_order");
+
+-- CreateIndex
 CREATE INDEX "products_seller_id_idx" ON "products"("seller_id");
 
 -- CreateIndex
@@ -215,10 +229,16 @@ CREATE INDEX "products_name_trgm_idx" ON "products" USING GIN ("name" gin_trgm_o
 CREATE INDEX "products_name_ar_trgm_idx" ON "products" USING GIN ("name_ar" gin_trgm_ops);
 
 -- CreateIndex
+CREATE INDEX "products_name_ar_norm_trgm_idx" ON "products" USING GIN ("name_ar_norm" gin_trgm_ops);
+
+-- CreateIndex
 CREATE INDEX "products_description_trgm_idx" ON "products" USING GIN ("description" gin_trgm_ops);
 
 -- CreateIndex
 CREATE INDEX "products_description_ar_trgm_idx" ON "products" USING GIN ("description_ar" gin_trgm_ops);
+
+-- CreateIndex
+CREATE INDEX "products_description_ar_norm_trgm_idx" ON "products" USING GIN ("description_ar_norm" gin_trgm_ops);
 
 -- CreateIndex
 CREATE UNIQUE INDEX "licenses_license_key_key" ON "licenses"("license_key");
@@ -234,6 +254,12 @@ CREATE INDEX "licenses_buyer_email_idx" ON "licenses"("buyer_email");
 
 -- CreateIndex
 CREATE INDEX "licenses_product_id_idx" ON "licenses"("product_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "licenses_buyer_email_product_active_key" ON "licenses" (lower("buyer_email"), "product_id") WHERE "buyer_email" IS NOT NULL AND "is_active" = true;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "licenses_user_product_active_key" ON "licenses" ("user_id", "product_id") WHERE "user_id" IS NOT NULL AND "is_active" = true;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "orders_pending_key_key" ON "orders"("pending_key");

@@ -1,5 +1,6 @@
 import path from "path";
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 import { OrdersRepository, ordersRepository } from "./orders.repository";
 import { ListOrdersQuery, GuestPurchaseInput } from "./orders.validator";
 import { settingsService } from "../settings/settings.service";
@@ -90,6 +91,8 @@ export class OrdersService {
   }
 
   async purchaseAsGuest(input: GuestPurchaseInput, currentUserId?: string) {
+    const buyerEmail = input.buyerEmail.toLowerCase().trim();
+
     const product = await this.ordersRepo.findApprovedProduct(input.productId);
     if (!product) {
       throw ApiError.badRequest(
@@ -101,10 +104,10 @@ export class OrdersService {
       throw ApiError.forbidden("You cannot purchase your own product");
     }
 
-    // Check duplicate purchase
+    // Duplicate purchase guard
     const existingLicense = await this.ordersRepo.findExistingLicense(
       input.productId,
-      input.buyerEmail,
+      buyerEmail,
     );
     if (existingLicense) {
       throw ApiError.conflict(
@@ -122,8 +125,8 @@ export class OrdersService {
     const rawLicenseHex = crypto.randomBytes(8).toString("hex").toUpperCase();
     const licenseKey = `DT-${rawLicenseHex.slice(0, 4)}-${rawLicenseHex.slice(4, 8)}-${rawLicenseHex.slice(8, 12)}-${rawLicenseHex.slice(12, 16)}`;
 
-    const { order, license } = await this.ordersRepo.createGuestOrderAndLicense(
-      {
+    const { order, license } = await this.ordersRepo
+      .createGuestOrderAndLicense({
         productId: product.id,
         productName: product.name,
         sellerId: product.sellerId,
@@ -133,17 +136,27 @@ export class OrdersService {
         commissionPercent,
         commissionAmount,
         sellerAmount,
-        buyerEmail: input.buyerEmail,
+        buyerEmail,
         buyerName: input.buyerName,
         licenseKey,
         guestAccessToken,
-      },
-    );
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          throw ApiError.conflict(
+            "This email has already purchased this item. Please use the Purchases Lookup page to access your file.",
+          );
+        }
+        throw error;
+      });
 
     const downloadUrl = `/api/v1/products/${product.id}/download?token=${guestAccessToken}`;
 
     // Automatically dispatch a secure magic access link to buyer's email
-    this.requestGuestAccess(input.buyerEmail).catch((err) => {
+    this.requestGuestAccess(buyerEmail).catch((err) => {
       console.warn("Could not dispatch guest purchase email:", err);
     });
 
@@ -215,6 +228,9 @@ export class OrdersService {
       );
     }
 
+    // `isUsed` is recorded but NOT enforced: guest links stay reusable
+    // indefinitely (BACKEND_RULES.md 5.13). Contrast passwordResetToken,
+    // where it is enforced as single-use.
     if (!record.isUsed) {
       await this.ordersRepo.markMagicLinkTokenUsed(record.id);
     }

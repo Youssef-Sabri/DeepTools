@@ -204,4 +204,51 @@ describe("Mandatory Bilingual Uploads (Phase 2)", () => {
     expect(res.status).toBe(422);
     expect(res.body.success).toBe(false);
   });
+
+  it("rejects a price above the Postgres INTEGER range with 422, not 500", async () => {
+    // Regression guard: price had no upper bound, so 2147483648 (Int4 max + 1)
+    // passed z.number().int() -- Number.isInteger(1e21) is true -- and then blew
+    // up at the database, producing a 500 that also leaked the raw Prisma error.
+    const res = await request(app)
+      .post("/api/v1/uploads")
+      .set("Authorization", `Bearer ${userToken}`)
+      .field("name", "Valid English Name")
+      .field("nameAr", "اسم عربي صحيح")
+      .field("description", "Valid English description for testing")
+      .field("descriptionAr", "وصف عربي صحيح وكامل للمنتج")
+      .field("category", "workflow")
+      .field("price", 2147483648)
+      .attach("file", fakeZip, "workflow.zip");
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).not.toMatch(/prisma/i);
+  });
+
+  it("accepts a price exactly at the maximum supported integer cents", async () => {
+    (prisma.product.create as jest.Mock).mockResolvedValue({
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Max Price",
+      nameAr: "اسم عربي",
+      description: "Valid English description for testing",
+      descriptionAr: "وصف عربي صحيح",
+      category: "workflow",
+      price: 2147483647,
+      status: "PENDING",
+      createdAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post("/api/v1/uploads")
+      .set("Authorization", `Bearer ${userToken}`)
+      .field("name", "Valid English Name")
+      .field("nameAr", "اسم عربي صحيح")
+      .field("description", "Valid English description for testing")
+      .field("descriptionAr", "وصف عربي صحيح وكامل للمنتج")
+      .field("category", "workflow")
+      .field("price", 2147483647)
+      .attach("file", fakeZip, "workflow.zip");
+
+    expect(res.status).toBe(201);
+  });
 });

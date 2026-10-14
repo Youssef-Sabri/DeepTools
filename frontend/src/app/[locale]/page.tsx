@@ -21,7 +21,5 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params
   if (!hasLocale(locale)) notFound()
 
-  const dict = await getDictionary(locale as Locale)
-
-  return <HomeContent dict={dict} locale={locale} />
+  return <HomeContent locale={locale} />
 }

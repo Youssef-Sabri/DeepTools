@@ -12,6 +12,7 @@ import {
   ForbiddenError,
   ConflictError,
 } from "../../utils/apiError";
+import { normalizeArabicText } from "../../utils/localization";
 import { Product, ProductStatus } from "@prisma/client";
 
 export interface PaginatedResult<T> {
@@ -56,8 +57,14 @@ export class UploadsService {
         sellerId,
         name: input.name,
         nameAr: input.nameAr ?? null,
+        // Normalized projections power resilient Arabic search (BACKEND_RULES
+        // 16.3): a query normalized to ه/ي must match the indexed raw text.
+        nameArNorm: input.nameAr ? normalizeArabicText(input.nameAr) : null,
         description: input.description,
         descriptionAr: input.descriptionAr ?? null,
+        descriptionArNorm: input.descriptionAr
+          ? normalizeArabicText(input.descriptionAr)
+          : null,
         category: input.category,
         categoryId: input.categoryId ?? null,
         price: input.price,
@@ -167,10 +174,18 @@ export class UploadsService {
     try {
       updated = await this.repo.update(id, sellerId, existing.updatedAt, {
         ...(input.name ? { name: input.name } : {}),
-        ...(input.nameAr !== undefined ? { nameAr: input.nameAr } : {}),
+        ...(input.nameAr !== undefined
+          ? {
+              nameAr: input.nameAr,
+              nameArNorm: normalizeArabicText(input.nameAr),
+            }
+          : {}),
         ...(input.description ? { description: input.description } : {}),
         ...(input.descriptionAr !== undefined
-          ? { descriptionAr: input.descriptionAr }
+          ? {
+              descriptionAr: input.descriptionAr,
+              descriptionArNorm: normalizeArabicText(input.descriptionAr),
+            }
           : {}),
         ...(input.category !== undefined ? { category: input.category } : {}),
         ...(input.price !== undefined ? { price: input.price } : {}),
