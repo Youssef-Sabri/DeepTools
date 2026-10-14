@@ -172,7 +172,7 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                 <div className="flex flex-wrap items-center gap-2.5 mb-2">
                   <span className="px-3 py-1 rounded-md text-xs font-mono font-bold bg-[var(--green)]/15 text-[var(--green)] border border-[var(--green)]/30 flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    {isAr ? 'جلسة مشتريات زائر نشطة (7 أيام)' : 'Active 7-Day Guest Session'}
+                    {isAr ? 'وصول موثق • مشتريات دائمة مدى الحياة' : 'Verified Access • Lifetime Purchases'}
                   </span>
                   <span className="text-xs font-mono text-[var(--muted-2)]">
                     {data.email}
@@ -183,8 +183,8 @@ export default function GuestPurchasesContent({ locale }: GuestPurchasesContentP
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--muted)] mt-1.5">
                   {isAr
-                    ? 'يمكنك تنزيل أدواتك ونسخ مفاتيح التراخيص مباشرة على هذا المتصفح.'
-                    : 'Download your digital assets and copy active licenses directly from this browser.'}
+                    ? 'مشترياتك وتراخيصك التجارية دائمة مدى الحياة. يمكنك تنزيل أدواتك ونسخ مفاتيح التراخيص في أي وقت.'
+                    : 'Your purchases and commercial licenses are permanent with lifetime access and direct downloads.'}
                 </p>
               </div>
 

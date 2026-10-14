@@ -78,7 +78,7 @@ export function ProductCard({
             >
               <CheckCircle2 className="w-3 h-3 shrink-0" />
               {isGuestOwned
-                ? (isArabic ? 'مملوك (جلسة 7 أيام)' : 'Owned (7-day Guest)')
+                ? (isArabic ? 'مملوك (ترخيص دائم)' : 'Owned (Lifetime)')
                 : (isArabic ? 'مملوك في مكتبتك' : 'Owned in Library')}
             </span>
           ) : badge ? (
@@ -137,9 +137,7 @@ export function ProductCard({
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                {isGuestOwned
-                  ? (isArabic ? 'جلسة 7 أيام' : '7-Day Guest')
-                  : (isArabic ? 'ترخيص دائم' : 'Lifetime License')}
+                {isArabic ? 'ترخيص دائم مدى الحياة' : 'Lifetime License'}
               </span>
             ) : (
               formatCents(product.price)
@@ -153,7 +151,7 @@ export function ProductCard({
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                onDownload && onDownload(product.id)
+                onDownload?.(product.id)
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors shadow-xs ${
                 isGuestOwned
@@ -169,7 +167,7 @@ export function ProductCard({
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                onBuy && onBuy(product)
+                onBuy?.(product)
               }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors shadow-sm"
             >

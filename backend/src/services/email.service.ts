@@ -70,18 +70,18 @@ export class EmailService {
       const info = await transporter.sendMail({
         from: '"DeepTools Support" <noreply@deeptools.ai>',
         to: email,
-        subject: "Your DeepTools Purchases Access Link | رابط الوصول لمشترياتك",
-        text: `Hello,\n\nClick the link below to access your DeepTools digital purchases and downloads:\n\n${magicLinkUrl}\n\nThis link is valid for 1 hour.\n\n---\nمرحباً،\n\nاضغط على الرابط التالي للوصول إلى مشترياتك وتنزيل ملفاتك الرقمية:\n\n${magicLinkUrl}\n\nهذا الرابط صالح لمدة ساعة واحدة.`,
+        subject: "Your DeepTools Lifetime Purchases Access Link | رابط الوصول الدائم لمشترياتك",
+        text: `Hello,\n\nClick the link below to access your DeepTools digital purchases, lifetime licenses, and downloads:\n\n${magicLinkUrl}\n\nYour purchases are permanent. You can use this link to access and download your files anytime.\n\n---\nمرحباً،\n\nاضغط على الرابط التالي للوصول إلى مشترياتك وتراخيصك الدائمة وتنزيل ملفاتك في أي وقت:\n\n${magicLinkUrl}\n\nمشترياتك وتراخيصك دائمة مدى الحياة. يمكنك استخدام هذا الرابط للوصول والتحميل دائماً.`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #1e293b; border-radius: 12px; background: #0b0f19; color: #f8fafc;">
-            <h2 style="color: #38bdf8; margin-top: 0;">DeepTools Secure Purchase Access</h2>
-            <p style="color: #94a3b8; font-size: 15px;">Click the button below to securely unlock and access all your purchased tools and licenses for 7 days:</p>
+            <h2 style="color: #38bdf8; margin-top: 0;">DeepTools Lifetime Purchase Access</h2>
+            <p style="color: #94a3b8; font-size: 15px;">Click the button below to access all your purchased tools and lifetime licenses anytime:</p>
             <div style="margin: 28px 0;">
               <a href="${magicLinkUrl}" style="background: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                Access My Purchases / الوصول إلى مشترياتي
+                Access My Lifetime Purchases / الوصول إلى مشترياتي الدائمة
               </a>
             </div>
-            <p style="color: #64748b; font-size: 12px;">This link will expire in 1 hour. If you did not request this link, you can safely ignore this email.</p>
+            <p style="color: #64748b; font-size: 12px;">Your licenses are permanent with lifetime download rights. If you ever need a new access link in the future, you can request one anytime from DeepTools using your email.</p>
           </div>
         `,
       });
