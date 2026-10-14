@@ -29,7 +29,9 @@ export interface Product {
   displayDescription?: string
   displayBadge?: string | null
   sellerId: string
-  sellerName?: string
+  sellerName?: string | null
+  fileExtension?: string | null
+  publishedAt?: string | null
   seller?: {
     id: string
     name: string
@@ -59,6 +61,8 @@ export interface Order {
   id: string
   userId?: string
   productId?: string | null
+  productName?: string | null
+  fileExtension?: string | null
   amount: number // integer cents
   commissionPercent: number // e.g. 10
   commissionAmount: number // integer cents (platform fee)

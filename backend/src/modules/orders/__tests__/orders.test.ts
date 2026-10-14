@@ -59,6 +59,8 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
         {
           id: "ord-1",
           userId: mockBuyer.id,
+          productName: "Automation Bot",
+          fileKey: "uploads/automation.json",
           amount: 4900,
           status: "completed",
           paymentGateway: "simulated",
@@ -80,6 +82,8 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.orders).toHaveLength(1);
       expect(res.body.data.orders[0].product.name).toBe("Automation Bot");
+      expect(res.body.data.orders[0].productName).toBe("Automation Bot");
+      expect(res.body.data.orders[0].fileExtension).toBe(".json");
     });
   });
 

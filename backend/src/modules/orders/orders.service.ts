@@ -1,3 +1,4 @@
+import path from "path";
 import { OrdersRepository, ordersRepository } from "./orders.repository";
 import { ListOrdersQuery } from "./orders.validator";
 
@@ -38,6 +39,8 @@ export class OrdersService {
       orders: items.map((o) => ({
         id: o.id,
         productId: o.productId,
+        productName: o.productName,
+        fileExtension: path.extname(o.fileKey ?? "").toLowerCase() || null,
         amount: o.amount,
         status: o.status,
         paymentGateway: o.paymentGateway,

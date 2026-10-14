@@ -1,3 +1,5 @@
+import path from "path";
+import { Response } from "express";
 import { adminRepository, AdminRepository } from "./admin.repository";
 import { NotFoundError, ConflictError, ApiError } from "../../utils/apiError";
 import { ListAdminUploadsQuery, GetUsersQuery } from "./admin.validator";
@@ -108,6 +110,63 @@ export class AdminService {
     const upload = await this.repo.findUploadById(id);
     if (!upload) throw new NotFoundError("Upload not found");
     return upload;
+  }
+
+  async downloadUpload(
+    id: string,
+    res: Response,
+    headOnly = false,
+    disposition: "inline" | "attachment" = "attachment",
+  ): Promise<void> {
+    const upload = await this.findUploadById(id);
+    if (!upload.fileKey)
+      throw new ConflictError("Upload has no file to review");
+
+    let file: { size: number; mimeType: string };
+    try {
+      file = await storageService.stat(upload.fileKey);
+    } catch {
+      throw new ConflictError("Uploaded file is unavailable");
+    }
+
+    const extension = path.extname(upload.fileKey);
+    const safeName = upload.name.replace(/[^a-zA-Z0-9_\-.]/g, "_") || "asset";
+    const filename = safeName.toLowerCase().endsWith(extension.toLowerCase())
+      ? safeName
+      : `${safeName}${extension}`;
+    // Source files (including HTML and JavaScript) must never execute on this origin.
+    const previewMime =
+      file.mimeType === "application/pdf"
+        ? "application/pdf"
+        : /^(image\/png|image\/jpeg|image\/gif|image\/webp)$/.test(
+              file.mimeType,
+            )
+          ? file.mimeType
+          : file.mimeType.startsWith("text/") ||
+              [
+                "application/json",
+                "application/xml",
+                "application/yaml",
+                "application/toml",
+              ].includes(file.mimeType)
+            ? "text/plain; charset=utf-8"
+            : "application/octet-stream";
+    res.setHeader(
+      "Content-Disposition",
+      `${disposition}; filename="${filename}"`,
+    );
+    res.setHeader(
+      "Content-Type",
+      disposition === "inline" ? previewMime : "application/octet-stream",
+    );
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+
+    if (headOnly) {
+      res.status(200).end();
+      return;
+    }
+    await storageService.stream(upload.fileKey, res);
   }
 
   async approveUpload(adminId: string, id: string) {

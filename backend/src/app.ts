@@ -17,6 +17,7 @@ import adminRoutes from "./modules/admin/admin.routes";
 import uploadsRoutes from "./modules/uploads/uploads.routes";
 import ordersRoutes from "./modules/orders/orders.routes";
 import paymentsRoutes from "./modules/payments/payments.routes";
+import publicSettingsRoutes from "./modules/settings/public-settings.routes";
 
 export const createApp = (): Application => {
   const app: Application = express();
@@ -114,6 +115,7 @@ export const createApp = (): Application => {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/users", userRoutes);
   app.use("/api/v1/products", productsRoutes);
+  app.use("/api/v1/settings", publicSettingsRoutes);
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/uploads", uploadsRoutes);
   app.use("/api/v1/orders", ordersRoutes);
