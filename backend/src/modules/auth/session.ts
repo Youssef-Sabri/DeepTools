@@ -3,7 +3,9 @@ import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import { env } from "../../config/env";
 
-export const SESSION_COOKIE = "dt_session";
+// HttpOnly; never read by client JS. Only the companion dt_csrf cookie is
+// readable, which double-submit CSRF requires. Name per FRONTEND_RULES.md 2.
+export const SESSION_COOKIE = "dt_auth";
 export const CSRF_COOKIE = "dt_csrf";
 
 export function readCookie(req: Request, name: string): string | undefined {

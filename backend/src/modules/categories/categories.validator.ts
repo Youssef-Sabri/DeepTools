@@ -9,6 +9,24 @@ import {
 // Validation for Latin slug (e.g. "ai-agents", "workflow-automation")
 export const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// Presentation / lifecycle metadata (FRONTEND_RULES.md 6 admin CRUD contract).
+// These were previously accepted by the frontend and then silently stripped by
+// Zod's default unknown-key handling, so the admin UI reported success while
+// discarding the values. Declared before use in the schemas below.
+const categoryIcon = z
+  .string()
+  .trim()
+  .max(60, "Icon cannot exceed 60 characters")
+  .optional()
+  .nullable();
+
+const categoryDisplayOrder = z.coerce
+  .number({ message: "displayOrder must be a number" })
+  .int("displayOrder must be an integer")
+  .min(0, "displayOrder must be at least 0")
+  .max(2147483647, "displayOrder is out of range")
+  .optional();
+
 export const createCategorySchema = z.object({
   name: z
     .string()
@@ -54,6 +72,8 @@ export const createCategorySchema = z.object({
     .trim()
     .max(1000, "Arabic description cannot exceed 1000 characters")
     .optional(),
+  icon: categoryIcon,
+  displayOrder: categoryDisplayOrder,
 });
 
 export const updateCategorySchema = z.object({
@@ -103,6 +123,9 @@ export const updateCategorySchema = z.object({
     .trim()
     .max(1000, "Arabic description cannot exceed 1000 characters")
     .optional(),
+  icon: categoryIcon,
+  displayOrder: categoryDisplayOrder,
+  isActive: z.boolean({ message: "isActive must be a boolean" }).optional(),
 });
 
 export const listCategoriesQuerySchema = z.object({
@@ -111,4 +134,3 @@ export const listCategoriesQuerySchema = z.object({
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
-export type ListCategoriesQuery = z.infer<typeof listCategoriesQuerySchema>;

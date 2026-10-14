@@ -94,7 +94,7 @@ describe("Guest Checkout & Returning Access (Phase 2)", () => {
   });
 
   describe("POST /api/v1/orders/guest-purchase", () => {
-    it("completes simulated guest checkout and issues 7-day session cookie", async () => {
+    it("completes simulated guest checkout and issues a 1-hour HttpOnly session cookie", async () => {
       (prisma.product.findFirst as jest.Mock).mockResolvedValue(
         approvedProduct,
       );
@@ -134,11 +134,85 @@ describe("Guest Checkout & Returning Access (Phase 2)", () => {
       expect(res.body.data.downloadToken).toBeDefined();
       expect(res.body.data.downloadUrl).toContain("/download?token=");
 
-      // Checks 7-day session cookie
+      // Assert the real lifetime: a previous build shipped Max-Age=604800.
       const cookies = res.headers["set-cookie"];
       expect(cookies).toBeDefined();
-      expect(cookies.some((c: string) => c.includes("dt_guest_session"))).toBe(
-        true,
+      const sessionCookie = (cookies as string[]).find((c) =>
+        c.startsWith("dt_guest_session="),
+      );
+      expect(sessionCookie).toBeDefined();
+      expect(sessionCookie).toMatch(/HttpOnly/i);
+      expect(sessionCookie).toMatch(/Max-Age=3600/i);
+      expect(sessionCookie).not.toMatch(/Max-Age=604800/i);
+    });
+
+    it("surfaces a unique-constraint violation as a clean 409, not a 500", async () => {
+      // Regression guard for the guest-checkout TOCTOU race: concurrent
+      // purchases each passed the read-then-write pre-check. The partial
+      // UNIQUE indexes now reject the loser, and P2002 must surface as 409.
+      const { Prisma } = jest.requireActual("@prisma/client");
+      const p2002 = new Prisma.PrismaClientKnownRequestError("unique failed", {
+        code: "P2002",
+        clientVersion: "test",
+      });
+
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue(
+        approvedProduct,
+      );
+      // Fast-path check reports "no existing license" -- exactly the racy window.
+      (prisma.license.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.order.create as jest.Mock).mockRejectedValue(p2002);
+
+      const res = await request(app)
+        .post("/api/v1/orders/guest-purchase")
+        .send({
+          productId: approvedProduct.id,
+          buyerEmail: "racer@example.com",
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/already purchased/i);
+      // Must not leak the raw Prisma error to the client.
+      expect(JSON.stringify(res.body)).not.toMatch(/P2002|PrismaClient/i);
+    });
+
+    it("normalizes the buyer email before the duplicate lookup", async () => {
+      // The index compares lower(buyer_email); a non-normalized write could slip past it.
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue(
+        approvedProduct,
+      );
+      (prisma.license.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.order.create as jest.Mock).mockResolvedValue({
+        id: "ord-norm",
+        productId: approvedProduct.id,
+        productName: approvedProduct.name,
+        amount: 4900,
+        status: "COMPLETED",
+        createdAt: new Date(),
+      });
+      (prisma.license.create as jest.Mock).mockResolvedValue({
+        id: "lic-norm",
+        licenseKey: "DT-NORM-0000-0000-0000",
+        guestAccessToken: "gdt_normalized00000000",
+      });
+      (prisma.paymentEvent.create as jest.Mock).mockResolvedValue({
+        id: "pe-norm",
+      });
+
+      const res = await request(app)
+        .post("/api/v1/orders/guest-purchase")
+        .send({
+          productId: approvedProduct.id,
+          buyerEmail: "  Buyer@Example.COM ",
+        });
+
+      // The schema trims/lowercases, so assert the persisted value is canonical.
+      expect(res.status).toBe(201);
+      expect(prisma.license.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ buyerEmail: "buyer@example.com" }),
+        }),
       );
     });
 
@@ -276,7 +350,7 @@ describe("Guest Checkout & Returning Access (Phase 2)", () => {
       expect(res.body.data.email).toBe("buyer@example.com");
       expect(res.body.data.purchases).toHaveLength(1);
 
-      // Verify 7-day session cookie was set
+      // Verify the guest session cookie was set
       const cookies = res.headers["set-cookie"];
       expect(cookies.some((c: string) => c.includes("dt_guest_session"))).toBe(
         true,

@@ -17,14 +17,14 @@ import {
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Order, Product, ProductCategory, SellerSale, Category } from '@/lib/types'
+import type { Dictionary } from '@/dictionaries'
 import { formatCents, dollarsToCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 import { fetchApi, downloadProductFile, fetchCategories } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
-import type { Dictionary } from '@/dictionaries'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface DashboardContentProps {
-  dict?: Dictionary
   locale: string
 }
 
@@ -37,11 +37,11 @@ const categoryOptions: { value: ProductCategory; label: string }[] = [
   { value: 'code', label: 'code (Templates, Schemas)' },
 ]
 
-function orderStatusLabel(status: Order['status'], isAr: boolean): string {
-  if (status === 'COMPLETED') return isAr ? 'مكتمل' : 'Completed'
-  if (status === 'PENDING') return isAr ? 'بانتظار الدفع' : 'Pending Payment'
-  if (status === 'FAILED') return isAr ? 'فشل الدفع' : 'Payment Failed'
-  return isAr ? 'ملغى' : 'Cancelled'
+function orderStatusLabel(status: Order['status'], dict: Dictionary): string {
+  if (status === 'COMPLETED') return dict.dashboard.completed
+  if (status === 'PENDING') return dict.dashboard.pendingPayment
+  if (status === 'FAILED') return dict.dashboard.paymentFailed
+  return dict.dashboard.cancelled
 }
 
 interface PayoutBreakdownProps {
@@ -49,11 +49,11 @@ interface PayoutBreakdownProps {
   commissionPercent: number | null
   commissionLoading: boolean
   commissionError: boolean
-  isAr: boolean
+  dict: Dictionary
   onRetry: () => void
 }
 
-function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, commissionError, isAr, onRetry }: PayoutBreakdownProps) {
+function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, commissionError, dict, onRetry }: PayoutBreakdownProps) {
   // Match the backend splitCommission rule: round commission down to whole cents.
   const commissionCents = commissionPercent === null ? null : Math.floor(priceCents * commissionPercent / 100)
   const sellerCents = commissionCents === null ? null : priceCents - commissionCents
@@ -61,29 +61,29 @@ function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, com
   return (
     <div className="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] space-y-2 text-xs font-mono">
       <div className="text-[10px] uppercase text-[var(--muted-2)] font-semibold">
-        {isAr ? 'تقدير صافي أرباح البائع' : 'ESTIMATED PAYOUT BREAKDOWN'}
+        {dict.dashboard.estimatedPayoutBreakdown}
       </div>
       <div className="flex justify-between text-[var(--muted)]">
-        <span>{isAr ? 'سعر البيع' : 'Customer Price:'}</span>
+        <span>{dict.dashboard.customerPrice}</span>
         <span className="text-[var(--text)]">{formatCents(priceCents)} USD ({priceCents} cents)</span>
       </div>
       <div className="flex justify-between text-[var(--muted)] gap-3">
-        <span>{isAr ? 'رسوم المنصة' : 'Platform Commission'}{commissionPercent === null ? ':' : ` (${commissionPercent}%):`}</span>
+        <span>{dict.dashboard.platformCommission}{commissionPercent === null ? ':' : ` (${commissionPercent}%):`}</span>
         <span className="text-[var(--orange)]">{commissionCents === null ? '—' : `-${formatCents(commissionCents)} USD`}</span>
       </div>
       <div className="border-t border-[var(--line)] pt-2 flex justify-between font-bold text-[var(--green)]">
-        <span>{isAr ? 'صافي ربحك لكل عملية بيع' : 'Your Net Payout:'}</span>
+        <span>{dict.dashboard.yourNetPayout}</span>
         <span>{sellerCents === null ? '—' : `${formatCents(sellerCents)} USD`}</span>
       </div>
       {commissionPercent === null && (
         <div className="text-[var(--muted-2)]" aria-live="polite">
           {commissionLoading
-            ? (isAr ? 'جارٍ تحميل نسبة العمولة...' : 'Loading commission rate...')
+            ? (dict.dashboard.loadingCommissionRate)
             : commissionError && (
               <span>
-                {isAr ? 'تعذر تحميل نسبة العمولة. ' : 'Could not load the commission rate. '}
+                {dict.dashboard.couldNotLoadTheCommissionRate}
                 <button type="button" onClick={onRetry} className="text-[var(--blue-bright)] underline underline-offset-2">
-                  {isAr ? 'إعادة المحاولة' : 'Retry'}
+                  {dict.dashboard.retry}
                 </button>
               </span>
             )}
@@ -94,6 +94,7 @@ function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, com
 }
 
 export default function DashboardContent({ locale }: DashboardContentProps) {
+  const dict = useDictionary()
   const searchParams = useSearchParams()
   const tabFromUrl = searchParams.get('tab') as TabType | null
   const [activeTab, setActiveTab] = useState<TabType>(() => tabFromUrl || 'purchases')
@@ -370,7 +371,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       }, 4000)
     } catch {
       setDownloadState((prev) => ({ ...prev, isVisible: false }))
-      alert(isAr ? 'فشل التنزيل.' : 'Download failed.')
+      alert(dict.dashboard.downloadFailed)
     }
   }
 
@@ -378,25 +379,25 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!uploadFile) {
-      setUploadError(isAr ? 'يرجى إرفاق ملف الأداة الرقمية' : 'Please select an asset file to upload')
+      setUploadError(dict.dashboard.pleaseSelectAnAssetFileToUpload)
       return
     }
 
     const arabicRegex = /[\u0600-\u06FF]/
     if (!uploadName.trim() || uploadName.trim().length < 3) {
-      setUploadError(isAr ? 'يجب أن يحتوي اسم الأداة بالإنجليزية على 3 أحرف على الأقل' : 'English tool name must be at least 3 characters')
+      setUploadError(dict.dashboard.nameTooShort)
       return
     }
     if (!uploadNameAr.trim() || !arabicRegex.test(uploadNameAr)) {
-      setUploadError(isAr ? 'يجب إدخال اسم الأداة بالعربية وبحروف عربية صحيحة' : 'Arabic tool name is required and must contain genuine Arabic characters')
+      setUploadError(dict.dashboard.nameArInvalid)
       return
     }
     if (!uploadDesc.trim() || uploadDesc.trim().length < 10) {
-      setUploadError(isAr ? 'يجب أن يحتوي الوصف بالإنجليزية على 10 أحرف على الأقل' : 'English description must be at least 10 characters')
+      setUploadError(dict.dashboard.descriptionTooShort)
       return
     }
     if (!uploadDescAr.trim() || !arabicRegex.test(uploadDescAr)) {
-      setUploadError(isAr ? 'يجب إدخال الوصف بالعربية وبحروف عربية صحيحة (10 أحرف على الأقل)' : 'Arabic description is required and must contain genuine Arabic characters')
+      setUploadError(dict.dashboard.descriptionArInvalid)
       return
     }
 
@@ -494,7 +495,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         body: JSON.stringify({ name: nameInput || user.name }),
       })
       await refreshUser()
-      setProfileMsg({ text: isAr ? 'تم حفظ الاسم بنجاح' : 'Profile updated successfully', isError: false })
+      setProfileMsg({ text: dict.dashboard.profileUpdatedSuccessfully, isError: false })
     } catch (err: unknown) {
       setProfileMsg({ text: err instanceof Error ? err.message : 'Failed to update profile', isError: true })
     } finally {
@@ -506,7 +507,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (currentPassword === newPassword) {
-      setPasswordMsg({ text: isAr ? 'لا يمكن أن تكون كلمة المرور الجديدة مماثلة للحالية' : 'New password must differ from current password', isError: true })
+      setPasswordMsg({ text: dict.dashboard.passwordReused, isError: true })
       return
     }
     setSavingPassword(true)
@@ -518,7 +519,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       })
       setCurrentPassword('')
       setNewPassword('')
-      setPasswordMsg({ text: isAr ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully', isError: false })
+      setPasswordMsg({ text: dict.dashboard.passwordChangedSuccessfully, isError: false })
     } catch (err: unknown) {
       setPasswordMsg({ text: err instanceof Error ? err.message : 'Failed to change password', isError: true })
     } finally {
@@ -535,11 +536,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   }
 
   const navTabs = [
-    { id: 'purchases', label: isAr ? 'المشتريات والتنزيلات' : 'My Purchases', icon: ShoppingBag },
-    { id: 'upload', label: isAr ? 'نشر أداة جديدة' : 'Upload Studio', icon: Upload },
-    { id: 'uploads', label: isAr ? 'أدواتي المعروضة' : 'My Uploads', icon: Layers },
-    { id: 'sales', label: isAr ? 'الأرباح والمبيعات' : 'Sales & Payouts', icon: TrendingUp },
-    { id: 'profile', label: isAr ? 'الملف والأمان' : 'Profile & Security', icon: UserIcon },
+    { id: 'purchases', label: dict.dashboard.myPurchases, icon: ShoppingBag },
+    { id: 'upload', label: dict.dashboard.uploadStudio, icon: Upload },
+    { id: 'uploads', label: dict.dashboard.myUploads, icon: Layers },
+    { id: 'sales', label: dict.dashboard.salesPayouts, icon: TrendingUp },
+    { id: 'profile', label: dict.dashboard.profileSecurity, icon: UserIcon },
   ]
 
   return (
@@ -554,10 +555,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
-              <span>{isAr ? 'لوحة تحكم المهندس' : 'DEVELOPER WORKBENCH CONSOLE'}</span>
+              <span>{dict.dashboard.developerWorkbenchConsole}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
-              {isAr ? 'أهلاً بك،' : 'Welcome back,'} {user.name}
+              {dict.dashboard.welcomeBack} {user.name}
             </h1>
           </div>
 
@@ -603,20 +604,20 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[var(--text)]">
-                {isAr ? 'الأدوات المشتراة وتراخيص الاستخدام' : 'Orders & Licenses'}
+                {dict.dashboard.ordersLicenses}
               </h2>
               {!loadingPurchases && !purchaseLoadError && <span className="text-xs font-mono text-[var(--muted-2)]">
-                {purchaseTotal} {isAr ? 'عنصر' : 'Items'}
+                {purchaseTotal} {dict.dashboard.items}
               </span>}
             </div>
 
             {loadingPurchases ? (
               <div className="p-12 text-center text-xs text-[var(--muted)]">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                {isAr ? 'جارٍ تحميل المشتريات...' : 'Loading purchases...'}
+                {dict.dashboard.loadingPurchases}
               </div>
             ) : purchaseLoadError ? (
-              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل الطلبات.' : 'Could not load orders.'}</p>
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{dict.dashboard.couldNotLoadOrders}</p>
             ) : purchases.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {purchases.map((order) => (
@@ -628,7 +629,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         </span>
                         <span className={`text-xs font-mono flex items-center gap-1 font-semibold ${order.status === 'COMPLETED' ? 'text-[var(--green)]' : order.status === 'PENDING' ? 'text-[var(--orange)]' : 'text-[var(--rose)]'}`}>
                           {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock3 className="w-3.5 h-3.5" />}
-                          {orderStatusLabel(order.status, isAr)}
+                          {orderStatusLabel(order.status, dict)}
                         </span>
                       </div>
 
@@ -637,9 +638,9 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       </h3>
 
                       <div className="mt-3 text-xs font-mono text-[var(--muted-2)] space-y-1">
-                        <div>{isAr ? 'مرجع الطلب:' : 'Order Ref:'} #{order.id.slice(0, 8).toUpperCase()}</div>
-                        <div>{isAr ? 'تاريخ الطلب:' : 'Ordered:'} {formatDate(order.createdAt, locale)}</div>
-                        <div>{order.status === 'COMPLETED' ? (isAr ? 'المدفوع:' : 'Paid:') : (isAr ? 'المبلغ المستحق:' : 'Due:')} {formatCents(order.amount)}</div>
+                        <div>{dict.dashboard.orderRef} #{order.id.slice(0, 8).toUpperCase()}</div>
+                        <div>{dict.dashboard.ordered} {formatDate(order.createdAt, locale)}</div>
+                        <div>{order.status === 'COMPLETED' ? (dict.dashboard.paid) : (dict.dashboard.due)} {formatCents(order.amount)}</div>
                       </div>
                     </div>
 
@@ -654,7 +655,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>{isAr ? 'تحميل الملف الرقمي' : 'Download Asset File'}</span>
+                        <span>{dict.common.downloadAssetFile}</span>
                       </button>}
                     </div>
                   </div>
@@ -664,12 +665,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
                 <ShoppingBag className="w-10 h-10 text-[var(--muted)] mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-[var(--text)]">
-                  {isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}
+                  {dict.dashboard.noOrdersYet}
                 </h3>
                 <p className="text-xs text-[var(--muted)] mt-1 max-w-sm mx-auto">
-                  {isAr
-                    ? 'تصفح الكتالوج لاكتشاف سيناريوهات وأدوات معتمدة من مهندسي الأتمتة.'
-                    : 'Explore our catalog to acquire production-ready workflows and code.'}
+                  {dict.dashboard.catalogIntro}
                 </p>
               </div>
             )}
@@ -684,12 +683,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             <div className="deeptools-card rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-[var(--text)]">
-                  {isAr ? 'نشر أداة أو سيناريو للبيع' : 'Seller Asset Upload Studio'}
+                  {dict.dashboard.sellerAssetUploadStudio}
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-1">
-                  {isAr
-                    ? 'سيتم إرسال الملف إلى طابور مراجعة الإدارة (Pending Review) قبل اعتماده في الكتالوج العام.'
-                    : 'Assets are submitted to the admin moderation queue before appearing on the public marketplace.'}
+                  {dict.dashboard.moderationNotice}
                 </p>
               </div>
 
@@ -697,9 +694,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <div className="mb-6 p-4 rounded-xl bg-[var(--green)]/15 border border-[var(--green)]/30 text-xs text-[var(--green)] flex items-center gap-3 font-mono">
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span>
-                    {isAr
-                      ? 'تم رفع الأداة بنجاح! الأداة الآن قيد المراجعة لدى فريق الإدارة.'
-                      : 'Asset uploaded successfully! It is now pending admin moderation.'}
+                    {dict.dashboard.uploadSuccess}
                   </span>
                 </div>
               )}
@@ -715,7 +710,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 {/* Drag Drop File Zone */}
                 <div>
                   <label htmlFor="asset-upload-file" className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-2">
-                    {isAr ? 'ملف الأصل الرقمي' : 'DIGITAL ASSET FILE'}
+                    {dict.dashboard.digitalAssetFile}
                   </label>
                   <div className="border-2 border-dashed border-[var(--line-bright)] rounded-xl p-6 text-center bg-[var(--surface-2)]/50">
                     <Upload className="w-8 h-8 text-[var(--blue-bright)] mx-auto mb-2" />
@@ -726,7 +721,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     ) : (
                       <>
                         <div className="text-xs font-semibold text-[var(--text)]">
-                          {isAr ? 'اختر ملف الأداة الرقمية' : 'Select your asset file'}
+                          {dict.dashboard.selectYourAssetFile}
                         </div>
                         <div className="text-[10px] font-mono text-[var(--muted-2)] mt-1">
                           .json, .py, .ts, .js, .sh, .zip, .tar, .sql (Prohibited: .exe, .bat)
@@ -751,7 +746,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'اسم الأداة (English) *' : 'TOOL NAME (EN) *'}
+                      {dict.dashboard.toolNameEn}
                     </label>
                     <input
                       type="text"
@@ -765,7 +760,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'اسم الأداة (العربية) *' : 'TOOL NAME (AR) *'}
+                      {dict.dashboard.toolNameAr}
                     </label>
                     <input
                       type="text"
@@ -783,7 +778,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'القسم' : 'CATEGORY'}
+                      {dict.dashboard.category}
                     </label>
                     <select
                       value={uploadCategory}
@@ -806,7 +801,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'السعر بالدولار ($ USD)' : 'PRICE ($ USD)'}
+                      {dict.dashboard.priceUsd}
                     </label>
                     <div className="relative">
                       <DollarSign className="w-4 h-4 text-[var(--muted-2)] absolute start-3 top-1/2 -translate-y-1/2" />
@@ -827,7 +822,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'الوصف التقني (English) *' : 'TECHNICAL DESCRIPTION (EN) *'}
+                      {dict.dashboard.technicalDescriptionEn}
                     </label>
                     <textarea
                       rows={4}
@@ -841,7 +836,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
-                      {isAr ? 'الوصف التقني (العربية) *' : 'TECHNICAL DESCRIPTION (AR) *'}
+                      {dict.dashboard.technicalDescriptionAr}
                     </label>
                     <textarea
                       rows={4}
@@ -860,7 +855,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   commissionPercent={commissionPercent}
                   commissionLoading={commissionLoading}
                   commissionError={commissionError}
-                  isAr={isAr}
+                  dict={dict}
                   onRetry={() => setCommissionRefreshKey((key) => key + 1)}
                 />
                 <button
@@ -875,8 +870,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   )}
                   <span>
                     {uploading
-                      ? (isAr ? 'جارٍ رفع الأداة...' : 'Submitting to Review Queue...')
-                      : (isAr ? 'إرسال الأداة للمراجعة والاعتماد' : 'Submit Tool for Verification')}
+                      ? (dict.dashboard.submittingToReviewQueue)
+                      : (dict.dashboard.submitToolForVerification)}
                   </span>
                 </button>
               </form>
@@ -889,24 +884,24 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[var(--text)]">
-                {isAr ? 'أدواتي المعروضة وحالات المراجعة' : 'My Submissions & Review Status'}
+                {dict.dashboard.mySubmissionsReviewStatus}
               </h2>
               <button
                 onClick={() => setActiveTab('upload')}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] text-white flex items-center gap-1.5"
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>{isAr ? 'نشر أداة جديدة' : 'Upload New'}</span>
+                <span>{dict.dashboard.uploadNew}</span>
               </button>
             </div>
 
             {loadingUploads ? (
               <div className="p-12 text-center text-xs text-[var(--muted)]">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                {isAr ? 'جارٍ تحميل الأدوات...' : 'Loading submissions...'}
+                {dict.dashboard.loadingSubmissions}
               </div>
             ) : uploadsLoadError ? (
-              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل الأصول المرفوعة.' : 'Could not load your uploads.'}</p>
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{dict.dashboard.couldNotLoadYourUploads}</p>
             ) : myUploads.length > 0 ? (
               <div className="space-y-4">
                 {myUploads.map((prod) => {
@@ -948,7 +943,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                           </p>
 
                           <div className="text-xs font-mono text-[var(--muted-2)]">
-                            {isAr ? 'السعر:' : 'Price:'} {formatCents(prod.price)} • {formatBytes(prod.fileSize)} • {formatDate(prod.createdAt, locale)}
+                            {dict.dashboard.price} {formatCents(prod.price)} • {formatBytes(prod.fileSize)} • {formatDate(prod.createdAt, locale)}
                           </div>
                         </div>
 
@@ -959,7 +954,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line)] flex items-center gap-1.5 transition-colors"
                             >
                               <Edit className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                              <span>{isAr ? 'تعديل وإعادة إرسال' : 'Edit & Resubmit'}</span>
+                              <span>{dict.dashboard.editResubmit}</span>
                             </button>
                           )}
                         </div>
@@ -971,7 +966,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold font-mono uppercase text-[10px]">
-                              {isAr ? 'ملاحظة الإدارة لسبب الرفض:' : 'ADMIN REJECTION REASON:'}
+                              {dict.dashboard.adminRejectionReason}
                             </div>
                             <div className="mt-0.5">{prod.rejectionNote}</div>
                           </div>
@@ -985,10 +980,10 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
                 <Layers className="w-10 h-10 text-[var(--muted)] mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-[var(--text)]">
-                  {isAr ? 'لا توجد أدوات مرفوعة حتى الآن' : 'No Submissions Found'}
+                  {dict.dashboard.noSubmissionsFound}
                 </h3>
                 <p className="text-xs text-[var(--muted)] mt-1">
-                  {isAr ? 'انقر على "نشر أداة جديدة" لعرض أول ملف برمجيات لك.' : 'Click "Upload New" to publish your first engineering tool.'}
+                  {dict.dashboard.firstUploadHint}
                 </p>
               </div>
             )}
@@ -999,14 +994,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         {activeTab === 'sales' && (
           <div className="space-y-6">
             <h2 className="text-lg font-bold text-[var(--text)]">
-              {isAr ? 'أرباح البائع وسجل المبيعات' : 'Seller Revenue & Sales Ledger'}
+              {dict.dashboard.sellerRevenueSalesLedger}
             </h2>
 
             {/* Sales Summary Cards */}
             {!loadingSales && !salesLoadError && <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="deeptools-card rounded-xl p-5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] block">
-                  {isAr ? 'إجمالي المبيعات' : 'TOTAL SALES'}
+                  {dict.dashboard.totalSales}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--blue-bright)] mt-1">
                   {salesTotal}
@@ -1015,7 +1010,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
               <div className="deeptools-card rounded-xl p-5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] block">
-                  {isAr ? 'إجمالي الإيرادات' : 'GROSS SALES AMOUNT'}
+                  {dict.dashboard.grossSalesAmount}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--text)] mt-1">
                   {formatCents(salesGross)}
@@ -1024,7 +1019,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
               <div className="deeptools-card rounded-xl p-5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] block">
-                  {isAr ? 'صافي أرباحك المحققة' : 'NET SELLER PAYOUT'}
+                  {dict.dashboard.netSellerPayout}
                 </span>
                 <div className="text-2xl font-bold font-mono text-[var(--green)] mt-1">
                   {formatCents(sellerEarnings)}
@@ -1036,22 +1031,22 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             {loadingSales ? (
               <div className="p-12 text-center text-xs text-[var(--muted)]">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--blue-bright)]" />
-                {isAr ? 'جارٍ تحميل المبيعات...' : 'Loading sales records...'}
+                {dict.dashboard.loadingSalesRecords}
               </div>
             ) : salesLoadError ? (
-              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{isAr ? 'تعذر تحميل المبيعات.' : 'Could not load sales.'}</p>
+              <p role="alert" className="p-8 text-center text-sm text-[var(--rose)]">{dict.dashboard.couldNotLoadSales}</p>
             ) : sales.length > 0 ? (
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left rtl:text-right">
                     <thead className="bg-[var(--surface-2)] border-b border-[var(--line)] text-[var(--muted-2)] font-mono uppercase text-[10px]">
                       <tr>
-                        <th className="px-4 py-3">{isAr ? 'مرجع الطلب' : 'Order Ref'}</th>
-                        <th className="px-4 py-3">{isAr ? 'الأداة' : 'Product'}</th>
-                        <th className="px-4 py-3">{isAr ? 'المبلغ الإجمالي' : 'Gross Amount'}</th>
-                        <th className="px-4 py-3">{isAr ? 'عمولة المنصة' : 'Commission'}</th>
-                        <th className="px-4 py-3">{isAr ? 'صافي الربح' : 'Net Payout'}</th>
-                        <th className="px-4 py-3">{isAr ? 'التاريخ' : 'Date'}</th>
+                        <th className="px-4 py-3">{dict.dashboard.orderRef2}</th>
+                        <th className="px-4 py-3">{dict.dashboard.product}</th>
+                        <th className="px-4 py-3">{dict.dashboard.grossAmount}</th>
+                        <th className="px-4 py-3">{dict.dashboard.commission}</th>
+                        <th className="px-4 py-3">{dict.dashboard.netPayout}</th>
+                        <th className="px-4 py-3">{dict.dashboard.date}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--line)] font-mono">
@@ -1073,7 +1068,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <div className="p-12 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
                 <TrendingUp className="w-10 h-10 text-[var(--muted)] mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-[var(--text)]">
-                  {isAr ? 'لا توجد مبيعات مسجلة حتى الآن' : 'No Sales Recorded Yet'}
+                  {dict.dashboard.noSalesRecordedYet}
                 </h3>
               </div>
             )}
@@ -1088,7 +1083,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             {/* User Info Form */}
             <div className="deeptools-card rounded-2xl p-6 md:p-8">
               <h2 className="text-lg font-bold text-[var(--text)] mb-4">
-                {isAr ? 'بيانات الملف الشخصي' : 'User Profile Details'}
+                {dict.dashboard.userProfileDetails}
               </h2>
 
               {profileMsg && (
@@ -1106,7 +1101,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1">
-                    {isAr ? 'البريد الإلكتروني (غير قابل للتعديل)' : 'EMAIL (READ-ONLY)'}
+                    {dict.dashboard.emailReadOnly}
                   </label>
                   <input
                     type="email"
@@ -1118,7 +1113,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                 <div>
                   <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1">
-                    {isAr ? 'الاسم الكامل' : 'DISPLAY NAME'}
+                    {dict.dashboard.displayName}
                   </label>
                   <input
                     type="text"
@@ -1134,7 +1129,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   disabled={savingProfile}
                   className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors disabled:opacity-50"
                 >
-                  {savingProfile ? (isAr ? 'جارٍ الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
+                  {savingProfile ? (dict.dashboard.saving) : (dict.dashboard.saveChanges)}
                 </button>
               </form>
             </div>
@@ -1142,7 +1137,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             {/* Password Change Form */}
             <div className="deeptools-card rounded-2xl p-6 md:p-8">
               <h2 className="text-lg font-bold text-[var(--text)] mb-4">
-                {isAr ? 'أمان الحساب وكلمة المرور' : 'Change Password'}
+                {dict.dashboard.changePassword}
               </h2>
 
               {passwordMsg && (
@@ -1160,7 +1155,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1">
-                    {isAr ? 'كلمة المرور الحالية' : 'CURRENT PASSWORD'}
+                    {dict.dashboard.currentPassword}
                   </label>
                   <input
                     type="password"
@@ -1173,7 +1168,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
                 <div>
                   <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1">
-                    {isAr ? 'كلمة المرور الجديدة' : 'NEW PASSWORD'}
+                    {dict.dashboard.newPassword}
                   </label>
                   <input
                     type="password"
@@ -1190,7 +1185,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   disabled={savingPassword}
                   className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[var(--surface-3)] hover:bg-[var(--line-bright)] text-[var(--text)] border border-[var(--line)] transition-colors disabled:opacity-50"
                 >
-                  {savingPassword ? (isAr ? 'جارٍ التحديث...' : 'Updating...') : (isAr ? 'تحديث كلمة المرور' : 'Update Password')}
+                  {savingPassword ? (dict.dashboard.updating) : (dict.dashboard.updatePassword)}
                 </button>
               </form>
             </div>
@@ -1203,7 +1198,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto deeptools-card rounded-2xl p-6 border border-[var(--line-bright)] shadow-2xl">
             <h3 className="text-base font-bold text-[var(--text)] mb-4">
-              {isAr ? 'تعديل الأداة وإعادة تقديمها للمراجعة' : 'Edit & Resubmit Asset'}
+              {dict.dashboard.editResubmitAsset}
             </h3>
 
             <form onSubmit={handleResubmitUpload} className="space-y-4">
@@ -1232,7 +1227,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
               <div>
                 <label htmlFor="asset-edit-category" className="block text-xs font-mono text-[var(--muted-2)] mb-1">
-                  {isAr ? 'القسم' : 'CATEGORY'}
+                  {dict.dashboard.category}
                 </label>
                 <select
                   id="asset-edit-category"
@@ -1294,7 +1289,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 commissionPercent={commissionPercent}
                 commissionLoading={commissionLoading}
                 commissionError={commissionError}
-                isAr={isAr}
+                dict={dict}
                 onRetry={() => setCommissionRefreshKey((key) => key + 1)}
               />
 
@@ -1320,14 +1315,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   onClick={() => setEditingProduct(null)}
                   className="px-4 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.dashboard.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingEdit}
                   className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white"
                 >
-                  {submittingEdit ? (isAr ? 'جارٍ الإرسال...' : 'Submitting...') : (isAr ? 'إعادة الإرسال للمراجعة' : 'Resubmit')}
+                  {submittingEdit ? (dict.dashboard.submitting) : (dict.dashboard.resubmit)}
                 </button>
               </div>
             </form>
@@ -1339,10 +1334,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
       <DownloadOverlay
         isVisible={downloadState.isVisible}
         fileName={downloadState.fileName}
-        progress={downloadState.progress}
         isComplete={downloadState.isComplete}
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
-        locale={locale}
       />
     </div>
   )

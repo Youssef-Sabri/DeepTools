@@ -31,7 +31,7 @@ interface JwtPayload {
 // Verify JWT and attach user payload to request
 export const authenticate = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
@@ -81,7 +81,7 @@ export const authenticate = async (
 
 // Check if authenticated user has one of the allowed roles
 export const authorize = (allowedRoles: string[] | string) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(ApiError.unauthorized("User is not authenticated"));
     }

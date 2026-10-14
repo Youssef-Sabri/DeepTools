@@ -43,7 +43,7 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
       return
     }
 
-    const passwordError = getPasswordValidationError(newPassword, locale === 'ar')
+    const passwordError = getPasswordValidationError(newPassword, dict)
     if (passwordError) {
       setError(passwordError)
       return
@@ -152,7 +152,7 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
 
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {t.confirmPassword}
+              {dict.common.confirmPassword}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -176,7 +176,7 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <span>{t.submit}</span>
+                <span>{dict.common.resetPassword}</span>
                 <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </>
             )}

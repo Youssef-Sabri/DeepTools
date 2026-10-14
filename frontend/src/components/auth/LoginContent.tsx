@@ -22,7 +22,6 @@ export default function LoginContent({ dict, locale }: LoginContentProps) {
 
   const { login } = useAuth()
   const router = useRouter()
-  const isAr = locale === 'ar'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +36,7 @@ export default function LoginContent({ dict, locale }: LoginContentProps) {
         router.push(`/${locale}/dashboard`)
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (isAr ? 'بيانات الاعتماد غير صالحة' : 'Invalid email or password')
+      const msg = err instanceof Error ? err.message : (dict.auth.login.invalidEmailOrPassword)
       setError(msg)
     } finally {
       setSubmitting(false)
@@ -77,7 +76,7 @@ export default function LoginContent({ dict, locale }: LoginContentProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--muted-2)] mb-1.5">
-              {dict.auth.login.email}
+              {dict.common.emailAddress}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[var(--muted-2)] absolute start-3.5 top-1/2 -translate-y-1/2" />
@@ -95,7 +94,7 @@ export default function LoginContent({ dict, locale }: LoginContentProps) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-mono uppercase text-[var(--muted-2)]">
-                {dict.auth.login.password}
+                {dict.common.password}
               </label>
               <Link
                 href={`/${locale}/auth/forgot-password`}

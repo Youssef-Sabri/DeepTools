@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getDictionary, hasLocale, type Locale } from '@/dictionaries'
+import { hasLocale } from '@/dictionaries'
 import type { Product } from '@/lib/types'
 import ProductDetailContent from '@/components/products/ProductDetailContent'
 
@@ -44,10 +44,7 @@ export default async function ProductDetailPage({
   const { locale, id } = await params
   if (!hasLocale(locale)) notFound()
 
-  const [dict, product] = await Promise.all([
-    getDictionary(locale as Locale),
-    getProduct(id, locale),
-  ])
+  const product = await getProduct(id, locale)
 
   if (!product) notFound()
 
@@ -55,7 +52,6 @@ export default async function ProductDetailPage({
     <ProductDetailContent
       product={product}
       locale={locale}
-      dict={dict}
     />
   )
 }

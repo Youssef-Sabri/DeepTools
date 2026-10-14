@@ -13,15 +13,15 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
-import type { Dictionary } from '@/dictionaries'
 import { formatBytes, formatCents, formatDate } from '@/lib/utils'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface HomeContentProps {
-  dict?: Dictionary
   locale: string
 }
 
 export default function HomeContent({ locale }: HomeContentProps) {
+  const dict = useDictionary()
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
@@ -170,23 +170,21 @@ export default function HomeContent({ locale }: HomeContentProps) {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-6 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)] animate-pulse" />
             <span>
-              {isAr
-                ? 'أدوات برمجية موثوقة // سيناريوهات • نصوص • وكلاء ذكاء اصطناعي'
-                : 'VERIFIED PRODUCTION ASSETS // WORKFLOWS • SCRIPTS • AGENTS'}
+              {dict.home.verifiedBanner}
             </span>
           </div>
 
           {/* Thesis Headline */}
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[var(--text)] leading-[1.08]">
-            {isAr ? 'منصة مهندسي الأتمتة' : 'The Automation Engineer’s'}{' '}
+            {dict.home.theAutomationEngineerS}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--blue-bright)] via-[#a78bfa] to-[var(--green)]">
-              {isAr ? 'المتكاملة.' : 'Workbench.'}
+              {dict.home.workbench}
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
-            {isAr ? 'اكتشف الأصول الرقمية المعتمدة من البائعين، وراجع تفاصيلها قبل الشراء.' : 'Explore approved digital assets from sellers and review their details before purchasing.'}
+            {dict.home.intro}
           </p>
 
           {/* Primary CTA Buttons */}
@@ -195,7 +193,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
               href={`/${locale}/products`}
               className="px-6 py-3.5 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
             >
-              <span>{isAr ? 'استكشف كتالوج الأدوات' : 'Explore Catalog'}</span>
+              <span>{dict.home.exploreCatalog}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
             </Link>
 
@@ -204,7 +202,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
               className="px-6 py-3.5 rounded-xl font-semibold text-sm bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line-bright)] flex items-center gap-2 transition-colors"
             >
               <Code2 className="w-4 h-4 text-[var(--purple)]" />
-              <span>{isAr ? 'انشر أداتك وابدأ البيع' : 'Sell Your Code'}</span>
+              <span>{dict.home.sellYourCode}</span>
             </Link>
           </div>
         </div>
@@ -212,7 +210,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
         {!loading && products[0] && (
           <div className="max-w-4xl mx-auto deeptools-card rounded-2xl p-6 md:p-8 border border-[var(--line)]">
             <span className="text-xs font-mono text-[var(--blue-bright)] uppercase">
-              {isAr ? 'أحدث أصل معتمد' : 'Latest approved asset'}
+              {dict.home.latestApprovedAsset}
             </span>
             <div className="mt-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
@@ -234,7 +232,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
               <div className="flex sm:flex-col items-center sm:items-end gap-3 shrink-0">
                 <span className="text-lg font-bold font-mono text-[var(--text)]">{formatCents(products[0].price)}</span>
                 <Link href={`/${locale}/products/${products[0].id}`} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-xs font-semibold">
-                  {isAr ? 'عرض الأصل' : 'View asset'}
+                  {dict.home.viewAsset}
                 </Link>
               </div>
             </div>
@@ -246,10 +244,10 @@ export default function HomeContent({ locale }: HomeContentProps) {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-[var(--blue-bright)] font-semibold block mb-2">
-              {isAr ? 'أحدث الإضافات البرمجية' : 'APPROVED ENGINEERING TOOLS'}
+              {dict.home.approvedEngineeringTools}
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
-              {isAr ? 'أحدث الأصول في السوق' : 'Latest Marketplace Assets'}
+              {dict.home.latestMarketplaceAssets}
             </h2>
           </div>
 
@@ -257,7 +255,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
             href={`/${locale}/products`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--blue-bright)] hover:underline"
           >
-            <span>{isAr ? 'عرض الكتالوج الكامل' : 'Browse All Assets'}</span>
+            <span>{dict.home.browseAllAssets}</span>
             <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
           </Link>
         </div>
@@ -274,7 +272,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
           </div>
         ) : homeError ? (
           <p role="alert" className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--rose)]">
-            {isAr ? 'تعذر تحميل الأصول حالياً.' : 'Could not load marketplace assets.'}
+            {dict.home.couldNotLoadMarketplaceAssets}
           </p>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -301,13 +299,13 @@ export default function HomeContent({ locale }: HomeContentProps) {
           <div className="p-12 rounded-2xl bg-[var(--surface)] border border-[var(--line)] text-center">
             <Terminal className="w-10 h-10 text-[var(--muted)] mx-auto mb-3" />
             <p className="text-sm text-[var(--muted)]">
-              {isAr ? 'لا توجد أدوات معروضة حالياً.' : 'No public engineering assets uploaded yet.'}
+              {dict.home.noPublicEngineeringAssetsUploadedYet}
             </p>
             <Link
               href={`/${locale}/dashboard?tab=upload`}
               className="mt-4 inline-block px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-xs font-semibold"
             >
-              {isAr ? 'كن أول من ينشر أداة' : 'Be the first to submit a tool'}
+              {dict.home.beTheFirstToSubmitATool}
             </Link>
           </div>
         )}
@@ -342,10 +340,8 @@ export default function HomeContent({ locale }: HomeContentProps) {
       <DownloadOverlay
         isVisible={downloadState.isVisible}
         fileName={downloadState.fileName}
-        progress={downloadState.progress}
         isComplete={downloadState.isComplete}
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
-        locale={locale}
       />
     </div>
   )

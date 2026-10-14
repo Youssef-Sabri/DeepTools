@@ -8,34 +8,16 @@ import { updateProfileSchema, changePasswordSchema } from "./users.validator";
 
 const router = Router();
 
-// Protect all routes in this module
 router.use(authenticate);
 
-// Get current user profile
-/**
- * @swagger
- * /api/v1/users/me:
- *   get:
- *     summary: Get current user profile
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile data retrieved successfully
- *       401:
- *         description: Unauthorized
- */
 router.get("/me", asyncHandler(usersController.getMe));
 
-// Update own profile name
 router.patch(
   "/me",
   validate(updateProfileSchema),
   asyncHandler(usersController.updateProfile),
 );
 
-// Change own password
 router.put(
   "/me/password",
   authRateLimiter,

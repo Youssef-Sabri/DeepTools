@@ -14,6 +14,7 @@ import {
   guestRequestAccessSchema,
   guestVerifyAccessQuerySchema,
 } from "./orders.validator";
+import { authRateLimiter } from "../../middleware/rateLimit.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 
 const router = Router();
@@ -33,9 +34,11 @@ router.get(
   asyncHandler(ordersController.getSellerSales),
 );
 
-// Guest Checkout & Access endpoints
+// Unauthenticated, state-changing and email-sending, so they get the same
+// limiter as the authenticated purchase route (BACKEND_RULES.md 5.5).
 router.post(
   "/guest-purchase",
+  authRateLimiter,
   optionalAuthenticate,
   validateBody(guestPurchaseSchema),
   asyncHandler(ordersController.postGuestPurchase),
@@ -43,6 +46,7 @@ router.post(
 
 router.post(
   "/guest/request-access",
+  authRateLimiter,
   validateBody(guestRequestAccessSchema),
   asyncHandler(ordersController.postRequestAccess),
 );

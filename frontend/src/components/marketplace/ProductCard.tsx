@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Terminal, Download, ShoppingCart, Sparkles, CheckCircle2, ShieldCheck, Cpu } from 'lucide-react'
+import { Download, ShoppingCart, CheckCircle2 } from 'lucide-react'
 import type { Product } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getCategoryVisualClass, getFileExtensionPill, normalizeCategory } from '@/lib/utils'
+import { getCategoryVisual } from '@/lib/categoryIcons'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface ProductCardProps {
   product: Product
@@ -22,6 +24,7 @@ export function ProductCard({
   isOwned = false,
   isGuestOwned = false,
 }: ProductCardProps) {
+  const dict = useDictionary()
   const isArabic = locale === 'ar'
   const displayName = product.displayName || ((isArabic && product.nameAr) ? product.nameAr : product.name)
   const displayDescription = product.displayDescription || ((isArabic && product.descriptionAr) ? product.descriptionAr : product.description)
@@ -31,19 +34,11 @@ export function ProductCard({
   const sellerName = product.sellerName?.trim() || product.seller?.name?.trim() || null
   const badge = (product.displayBadge || (isArabic && product.badgeAr ? product.badgeAr : product.badge))?.trim()
 
+  const categoryVisual = getCategoryVisual(normCategory)
+  const CategoryIcon = categoryVisual.icon
+
   const getCategoryGlyph = () => {
-    switch (normCategory) {
-      case 'workflow':
-        return <Sparkles className="w-6 h-6 text-[var(--blue)]" />
-      case 'agentic':
-        return <Cpu className="w-6 h-6 text-[var(--purple)]" />
-      case 'script':
-        return <Terminal className="w-6 h-6 text-[var(--green)]" />
-      case 'code':
-        return <ShieldCheck className="w-6 h-6 text-[var(--orange)]" />
-      default:
-        return <Terminal className="w-6 h-6 text-[var(--blue)]" />
-    }
+    return <CategoryIcon className={`w-6 h-6 ${categoryVisual.accent}`} />
   }
 
   const sellerInitials = sellerName ? sellerName.slice(0, 2).toUpperCase() : '—'
@@ -78,8 +73,8 @@ export function ProductCard({
             >
               <CheckCircle2 className="w-3 h-3 shrink-0" />
               {isGuestOwned
-                ? (isArabic ? 'مملوك (ترخيص دائم)' : 'Owned (Lifetime)')
-                : (isArabic ? 'مملوك في مكتبتك' : 'Owned in Library')}
+                ? (dict.product.ownedLifetime)
+                : (dict.product.ownedInLibrary)}
             </span>
           ) : badge ? (
             <span className="absolute top-3 end-3 px-2.5 py-1 rounded bg-white/90 text-[var(--green)] border border-[var(--line)] text-[10px] font-mono shadow-xs">
@@ -102,7 +97,7 @@ export function ProductCard({
               {sellerInitials}
             </div>
             <span className="text-xs text-[var(--muted-2)] font-mono">
-              {sellerName || (isArabic ? 'الناشر غير متاح' : 'Seller unavailable')}
+              {sellerName || (dict.product.sellerUnavailable)}
             </span>
           </div>
 
@@ -126,8 +121,8 @@ export function ProductCard({
         <div>
           <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--muted-2)] block">
             {isOwned
-              ? (isArabic ? 'حالة الترخيص' : 'License Status')
-              : (isArabic ? 'السعر' : 'Price')}
+              ? (dict.product.licenseStatus)
+              : (dict.product.priceLabel)}
           </span>
           <span className="text-lg font-bold font-mono text-[var(--text)]">
             {isOwned ? (
@@ -137,7 +132,7 @@ export function ProductCard({
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                {isArabic ? 'ترخيص دائم مدى الحياة' : 'Lifetime License'}
+                {dict.product.lifetimeLicense}
               </span>
             ) : (
               formatCents(product.price)
@@ -160,7 +155,7 @@ export function ProductCard({
               }`}
             >
               <Download className="w-3.5 h-3.5" />
-              {isArabic ? 'تحميل الملف' : 'Download'}
+              {dict.product.download}
             </button>
           ) : (
             <button
@@ -172,7 +167,7 @@ export function ProductCard({
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors shadow-sm"
             >
               <ShoppingCart className="w-3.5 h-3.5" />
-              {isArabic ? 'شراء' : 'Buy Asset'}
+              {dict.product.buyAsset}
             </button>
           )}
         </div>

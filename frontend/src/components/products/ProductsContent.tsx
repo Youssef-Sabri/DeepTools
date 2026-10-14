@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   Search,
-  Sparkles,
   Terminal,
-  Cpu,
-  ShieldCheck,
   X,
   Layers,
   ArrowUpDown,
@@ -14,18 +11,19 @@ import {
 import { useSearchParams } from 'next/navigation'
 import type { Product, License, Category } from '@/lib/types'
 import { fetchApi, downloadProductFile, fetchCategories } from '@/lib/api'
+import { getCategoryIcon } from '@/lib/categoryIcons'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
-import type { Dictionary } from '@/dictionaries'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface ProductsContentProps {
-  dict?: Dictionary
   locale: string
 }
 
 export default function ProductsContent({ locale }: ProductsContentProps) {
+  const dict = useDictionary()
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const initialCategory = searchParams.get('category') || 'all'
@@ -57,6 +55,8 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   })
 
   const isAr = locale === 'ar'
+  const couldNotLoadProducts = dict.catalog.couldNotLoadProducts
+  const couldNotLoadCategories = dict.catalog.couldNotLoadCategories
 
   useEffect(() => {
     let isMounted = true
@@ -75,7 +75,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
         setTotalPages(data.totalPages)
       } catch (err) {
         console.error('Failed to load marketplace products:', err)
-        if (isMounted) setCatalogError(isAr ? 'تعذر تحميل الأدوات.' : 'Could not load products.')
+        if (isMounted) setCatalogError(couldNotLoadProducts)
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -86,7 +86,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
       isMounted = false
       clearTimeout(timer)
     }
-  }, [locale, activeCategory, searchQuery, sortBy, isAr])
+  }, [locale, activeCategory, searchQuery, sortBy, isAr, couldNotLoadProducts])
 
   const loadMore = async () => {
     if (loadingMore || page >= totalPages) return
@@ -101,7 +101,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
       setPage((previous) => previous + 1)
       setTotalPages(data.totalPages)
     } catch {
-      setCatalogError(isAr ? 'تعذر تحميل المزيد.' : 'Could not load more products.')
+      setCatalogError(dict.catalog.couldNotLoadMoreProducts)
     } finally { setLoadingMore(false) }
   }
 
@@ -155,55 +155,37 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   }, [user])
 
   const [categoriesList, setCategoriesList] = useState<Category[]>([])
+  const [categoryError, setCategoryError] = useState<string | null>(null)
 
   useEffect(() => {
     let ignore = false
     fetchCategories()
       .then((cats) => {
-        if (!ignore && Array.isArray(cats) && cats.length > 0) {
-          setCategoriesList(cats)
+        if (!ignore) {
+          setCategoriesList(Array.isArray(cats) ? cats : [])
+          setCategoryError(null)
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to load categories:', err)
+        if (!ignore) setCategoryError(couldNotLoadCategories)
+      })
     return () => {
       ignore = true
     }
-  }, [])
+  }, [isAr, couldNotLoadCategories])
 
-  const getCategoryIcon = (slug: string) => {
-    switch (slug) {
-      case 'workflow':
-        return Sparkles
-      case 'agentic':
-        return Cpu
-      case 'script':
-        return Terminal
-      case 'code':
-        return ShieldCheck
-      default:
-        return Layers
-    }
-  }
-
+  // Categories come from GET /api/v1/categories; the UI must never hardcode a
+  // static list or silently substitute one when the API fails (FRONTEND_RULES.md 2.8).
   const categories = [
-    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers, count: undefined },
-    ...(categoriesList.length > 0
-      ? categoriesList.map((cat) => ({
-          id: cat.slug,
-          label: isAr && cat.nameAr ? cat.nameAr : cat.name,
-          icon: getCategoryIcon(cat.slug),
-          count: cat.productCount,
-        }))
-      : [
-          { id: 'workflow', label: 'Workflows (n8n/Make)', icon: Sparkles, count: undefined },
-          { id: 'agentic', label: 'AI Agents', icon: Cpu, count: undefined },
-          { id: 'script', label: 'Scripts (Python/Bash)', icon: Terminal, count: undefined },
-          { id: 'code', label: 'Code Base', icon: ShieldCheck, count: undefined },
-        ]),
+    { id: 'all', label: dict.common.allAssets, icon: Layers, count: undefined },
+    ...categoriesList.map((cat) => ({
+      id: cat.slug,
+      label: isAr && cat.nameAr ? cat.nameAr : cat.name,
+      icon: getCategoryIcon(cat.slug),
+      count: cat.productCount,
+    })),
   ]
-
-  // The API applies search, category, and sort before pagination.
-  const sortedProducts = products
 
   const handleDownload = async (productId: string) => {
     const target = products.find((p) => p.id === productId)
@@ -237,7 +219,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
     } catch (err) {
       console.error(err)
       setDownloadState((prev) => ({ ...prev, isVisible: false }))
-      alert(isAr ? 'فشل التنزيل. يرجى التأكد من شراء الأداة.' : 'Download failed. Ensure you own this tool.')
+      alert(dict.catalog.downloadFailedEnsureYouOwnThisTool)
     }
   }
 
@@ -252,14 +234,14 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
         <div className="max-w-3xl mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
-            <span>{isAr ? 'كتالوج الحلول المعتمدة' : 'VERIFIED DIGITAL MARKETPLACE'}</span>
+            <span>{dict.catalog.verifiedDigitalMarketplace}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--text)]">
-            {isAr ? 'أدوات وسيناريوهات الأتمتة' : 'Developer Asset Catalog'}
+            {dict.catalog.developerAssetCatalog}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-[var(--muted)] leading-relaxed">
-            {isAr ? 'تصفح الأدوات الرقمية المعتمدة واقرأ تفاصيل كل أصل قبل الشراء.' : 'Browse approved workflows, scripts, and code assets with details supplied by their sellers.'}
+            {dict.catalog.browseApprovedWorkflowsScriptsAndCodeAsset}
           </p>
         </div>
 
@@ -272,9 +254,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
-                isAr
-                  ? 'ابحث بالاسم، الوصف، أو الكلمات المفتاحية...'
-                  : 'Search by title, description, or keyword...'
+                dict.catalog.searchByTitleDescriptionOrKeyword
               }
               className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] focus:outline-none"
             />
@@ -296,14 +276,19 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'priceAsc' | 'priceDesc')}
               className="bg-[var(--surface-2)] text-xs text-[var(--text)] border border-[var(--line)] rounded-lg px-3 py-2 focus:outline-none font-mono"
             >
-              <option value="newest">{isAr ? 'الأحدث أولاً' : 'Newest'}</option>
-              <option value="priceAsc">{isAr ? 'الأقل سعراً' : 'Price: Low to High'}</option>
-              <option value="priceDesc">{isAr ? 'الأعلى سعراً' : 'Price: High to Low'}</option>
+              <option value="newest">{dict.catalog.newest}</option>
+              <option value="priceAsc">{dict.catalog.priceLowToHigh}</option>
+              <option value="priceDesc">{dict.catalog.priceHighToLow}</option>
             </select>
           </div>
         </div>
 
         {/* Category Chips Bar */}
+        {categoryError && (
+          <p role="alert" className="mb-4 text-center text-sm text-[var(--rose)]">
+            {categoryError}
+          </p>
+        )}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
           {categories.map((cat) => {
             const Icon = cat.icon
@@ -340,9 +325,9 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               />
             ))}
           </div>
-        ) : sortedProducts.length > 0 ? (
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedProducts.map((product) => {
+            {products.map((product) => {
               const isOwned =
                 ownedProductIds.includes(product.id) ||
                 (Boolean(user) && user?.id === product.sellerId)
@@ -365,19 +350,17 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
           <div className="py-20 text-center rounded-2xl bg-[var(--surface)] border border-[var(--line)] p-8">
             <Terminal className="w-12 h-12 text-[var(--muted)] mx-auto mb-4" />
             <h3 className="text-base font-bold text-[var(--text)]">
-              {isAr ? 'لم يتم العثور على نتائج' : 'No Tools Found'}
+              {dict.catalog.noToolsFound}
             </h3>
             <p className="text-xs text-[var(--muted)] mt-1 max-w-sm mx-auto">
-              {isAr
-                ? 'جرب البحث بكلمات أخرى أو اختر قسماً مختلفاً من الأعلى.'
-                : 'Try adjusting your search criteria or switch to another canonical category.'}
+              {dict.catalog.noResultsHint}
             </p>
           </div>
         )}
         {catalogError && <p role="alert" className="mt-4 text-center text-sm text-[var(--rose)]">{catalogError}</p>}
         {!loading && page < totalPages && (
           <button onClick={loadMore} disabled={loadingMore} className="mt-8 mx-auto block rounded-lg border border-[var(--line)] px-5 py-2 text-sm text-[var(--text)] disabled:opacity-50">
-            {loadingMore ? (isAr ? 'جارٍ التحميل...' : 'Loading...') : (isAr ? 'عرض المزيد' : 'Load more')}
+            {loadingMore ? (dict.catalog.loading) : (dict.catalog.loadMore)}
           </button>
         )}
       </div>
@@ -411,10 +394,8 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
       <DownloadOverlay
         isVisible={downloadState.isVisible}
         fileName={downloadState.fileName}
-        progress={downloadState.progress}
         isComplete={downloadState.isComplete}
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
-        locale={locale}
       />
     </div>
   )

@@ -2,26 +2,36 @@ import { Request, Response, NextFunction } from "express";
 import { AnyZodObject, ZodError, ZodSchema } from "zod";
 import { ApiError } from "../utils/apiError";
 
-class ValidationError extends ApiError {
-  constructor(
-    message: string,
-    public errors: any[] = [],
-  ) {
-    super(422, message, errors);
-  }
+/**
+ * Turn a ZodError into the flat, field-annotated message shape the API
+ * contract expects: `{ "field": "...", "message": "..." }`.
+ */
+function formatIssues(
+  error: ZodError,
+): Array<{ field: string; message: string }> {
+  return error.issues.map((issue) => ({
+    field: issue.path.join(".").replace(/^body\.|^query\.|^params\./, ""),
+    message: issue.message,
+  }));
+}
+
+/** Raise a 422 carrying the individual field errors. */
+function unprocessable(error: ZodError, scope: string): ApiError {
+  const issues = formatIssues(error);
+  const message = issues
+    .map((i) => `${i.field || scope}: ${i.message}`)
+    .join(", ");
+  return ApiError.unprocessable(message, issues);
 }
 
 export const validateBody = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.body = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const message = error.issues
-          .map((i) => `${i.path.join(".") || "body"}: ${i.message}`)
-          .join(", ");
-        return next(new ValidationError(message, error.issues));
+        return next(unprocessable(error, "body"));
       }
       next(error);
     }
@@ -29,7 +39,7 @@ export const validateBody = (schema: ZodSchema) => {
 };
 
 export const validateQuery = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     try {
       const parsed = schema.parse(req.query);
       Object.defineProperty(req, "query", {
@@ -41,10 +51,7 @@ export const validateQuery = (schema: ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const message = error.issues
-          .map((i) => `${i.path.join(".") || "query"}: ${i.message}`)
-          .join(", ");
-        return next(new ValidationError(message, error.issues));
+        return next(unprocessable(error, "query"));
       }
       next(error);
     }
@@ -58,12 +65,7 @@ export const validateParams = (schema: ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const message = error.issues
-          .map(
-            (issue) => `${issue.path.join(".") || "params"}: ${issue.message}`,
-          )
-          .join(", ");
-        return next(new ValidationError(message, error.issues));
+        return next(unprocessable(error, "params"));
       }
       next(error);
     }
@@ -72,7 +74,7 @@ export const validateParams = (schema: ZodSchema) => {
 
 // Validate incoming request schema
 export const validate = (schema: AnyZodObject) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     try {
       const parsed = schema.parse({
         body: req.body,
@@ -96,12 +98,7 @@ export const validate = (schema: AnyZodObject) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.errors.map((err) => ({
-          field: err.path.join(".").replace(/^body\.|^query\.|^params\./, ""),
-          message: err.message,
-        }));
-
-        next(ApiError.unprocessable("Validation failed", errorMessages));
+        next(unprocessable(error, "body"));
       } else {
         next(error);
       }

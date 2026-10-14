@@ -103,7 +103,7 @@ registry.registerPath({
   responses: {
     200: {
       description:
-        "Logged in successfully; sets HttpOnly dt_session and readable dt_csrf cookies",
+        "Logged in successfully; sets HttpOnly dt_auth and readable dt_csrf cookies",
       content: { "application/json": { schema: envelope(AuthResponseSchema) } },
     },
     401: {

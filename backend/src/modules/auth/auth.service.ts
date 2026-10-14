@@ -74,21 +74,23 @@ export class AuthService {
   }
 
   async register(input: RegisterInput): Promise<AuthResult> {
-    const existingUser = await this.repo.findByEmail(input.email);
+    const email = input.email.toLowerCase().trim();
+    const existingUser = await this.repo.findByEmail(email);
     if (existingUser) {
       throw ApiError.conflict("Email is already registered");
     }
 
     const passwordHash = await this.hashPassword(input.password);
-    const newUser = await this.repo.createUser({
-      email: input.email,
+
+    // Account creation and guest-purchase migration share ONE transaction, so a
+    // failure can never leave the buyer registered while their paid orders and
+    // licenses stay unlinked (BACKEND_RULES.md rule 11).
+    const newUser = await this.repo.createUserAndLinkGuestPurchases({
+      email,
       name: input.name,
       passwordHash,
       role: Role.USER,
     });
-
-    // Automatically link previous guest purchases under this email to the new registered account
-    await this.repo.linkGuestOrdersAndLicenses(newUser.email, newUser.id);
 
     const token = this.generateToken(
       newUser.id,

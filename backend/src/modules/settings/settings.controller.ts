@@ -15,7 +15,9 @@ export class SettingsController {
 
   updateCommission = async (req: Request, res: Response): Promise<void> => {
     const { commissionPercent } = req.body as UpdateCommissionInput;
-    const data = await this.service.updateCommission(commissionPercent);
+    const data = await this.service.updateCommission(commissionPercent, {
+      id: req.user?.id ?? "unknown",
+    });
     res.status(200).json({
       success: true,
       message: req.t("settings.commissionUpdated"),

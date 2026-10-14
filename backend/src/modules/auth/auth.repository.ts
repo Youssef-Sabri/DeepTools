@@ -21,14 +21,32 @@ export class AuthRepository {
     });
   }
 
-  async createUser(data: CreateUserData): Promise<User> {
-    return prisma.user.create({
-      data: {
-        email: data.email,
-        name: data.name,
-        passwordHash: data.passwordHash,
-        role: data.role ?? Role.USER,
-      },
+  /** Creates the account AND links its unlinked guest orders/licenses in ONE
+   *  transaction (BACKEND_RULES.md rule 11); splitting them orphans purchases. */
+  async createUserAndLinkGuestPurchases(data: CreateUserData): Promise<User> {
+    const normalizedEmail = data.email.toLowerCase().trim();
+
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name: data.name,
+          passwordHash: data.passwordHash,
+          role: data.role ?? Role.USER,
+        },
+      });
+
+      await tx.order.updateMany({
+        where: { buyerEmail: normalizedEmail, userId: null },
+        data: { userId: user.id },
+      });
+
+      await tx.license.updateMany({
+        where: { buyerEmail: normalizedEmail, userId: null },
+        data: { userId: user.id },
+      });
+
+      return user;
     });
   }
 
@@ -90,45 +108,6 @@ export class AuthRepository {
       });
       return true;
     });
-  }
-
-  async linkGuestOrdersAndLicenses(
-    email: string,
-    userId: string,
-  ): Promise<void> {
-    const normalizedEmail = email.toLowerCase().trim();
-    if (typeof prisma.$transaction === "function") {
-      await prisma.$transaction(async (tx) => {
-        await tx.order.updateMany({
-          where: {
-            buyerEmail: normalizedEmail,
-            userId: null,
-          },
-          data: { userId },
-        });
-
-        await tx.license.updateMany({
-          where: {
-            buyerEmail: normalizedEmail,
-            userId: null,
-          },
-          data: { userId },
-        });
-      });
-    } else {
-      if (typeof prisma.order?.updateMany === "function") {
-        await prisma.order.updateMany({
-          where: { buyerEmail: normalizedEmail, userId: null },
-          data: { userId },
-        });
-      }
-      if (typeof prisma.license?.updateMany === "function") {
-        await prisma.license.updateMany({
-          where: { buyerEmail: normalizedEmail, userId: null },
-          data: { userId },
-        });
-      }
-    }
   }
 }
 

@@ -188,6 +188,93 @@ describe("Dynamic Categories Endpoints (Phase 2)", () => {
       expect(res.body.data.nameAr).toBe("نصوص برمجية");
     });
 
+    it("persists icon and displayOrder instead of silently dropping them", async () => {
+      // Regression guard: the frontend sent icon/displayOrder but the schema had
+      // no such columns, so Zod stripped them and the API replied 201 while
+      // discarding the values -- admin choices vanished with no error.
+      (prisma.category.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.category.create as jest.Mock).mockResolvedValue({
+        id: "d0000000-0000-0000-0000-000000000009",
+        slug: "ai-agents",
+        name: "AI Agents",
+        nameAr: "وكلاء",
+        icon: "Cpu",
+        displayOrder: 7,
+        isActive: true,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .post("/api/v1/admin/categories")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          slug: "ai-agents",
+          name: "AI Agents",
+          nameAr: "وكلاء",
+          icon: "Cpu",
+          displayOrder: 7,
+        });
+
+      expect(res.status).toBe(201);
+      expect(prisma.category.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            icon: "Cpu",
+            displayOrder: 7,
+          }),
+        }),
+      );
+    });
+
+    it("rejects a negative displayOrder with 422", async () => {
+      const res = await request(app)
+        .post("/api/v1/admin/categories")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          name: "Bad Order",
+          nameAr: "ترتيب خاطئ",
+          displayOrder: -5,
+        });
+
+      expect(res.status).toBe(422);
+    });
+
+    it("honours isActive on update (deactivating a category)", async () => {
+      (prisma.category.findUnique as jest.Mock).mockResolvedValue({
+        id: "d0000000-0000-4000-8000-000000000001",
+        slug: "workflow",
+        name: "Workflows",
+        nameAr: "مسارات",
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      (prisma.category.update as jest.Mock).mockResolvedValue({
+        id: "d0000000-0000-4000-8000-000000000001",
+        slug: "workflow",
+        name: "Workflows",
+        nameAr: "مسارات",
+        isActive: false,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .put("/api/v1/admin/categories/d0000000-0000-4000-8000-000000000001")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ isActive: false });
+
+      expect(res.status).toBe(200);
+      expect(prisma.category.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isActive: false }),
+        }),
+      );
+    });
+
     it("rejects creation with 422 if nameAr contains non-Arabic text", async () => {
       const res = await request(app)
         .post("/api/v1/admin/categories")

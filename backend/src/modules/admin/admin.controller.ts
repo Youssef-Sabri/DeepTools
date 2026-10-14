@@ -23,7 +23,7 @@ export class AdminController {
     });
   };
 
-  getUsersInsights = async (req: Request, res: Response): Promise<void> => {
+  getUsersInsights = async (_req: Request, res: Response): Promise<void> => {
     const insights = await this.service.getUsersInsights();
     res.status(200).json({ success: true, statusCode: 200, data: insights });
   };

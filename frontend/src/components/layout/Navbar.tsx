@@ -17,20 +17,11 @@ import {
 import { fetchApi } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { OmnisearchModal } from '@/components/marketplace/OmnisearchModal'
-import type { Locale } from '@/dictionaries'
+import type { Locale, Dictionary } from '@/dictionaries'
 
 interface NavbarProps {
   locale: Locale
-  dict: {
-    nav: {
-      home: string
-      products: string
-      dashboard?: string
-      login: string
-      register: string
-      switchLanguage: string
-    }
-  }
+  dict: Dictionary
 }
 
 export default function Navbar({ locale, dict }: NavbarProps) {
@@ -144,7 +135,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                       : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
                   }`}
                 >
-                  {isAr ? 'كتالوج الأدوات' : 'Marketplace'}
+                  {dict.nav.marketplace}
                 </Link>
 
                 <Link
@@ -155,7 +146,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                       : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
                   }`}
                 >
-                  {isAr ? 'لوحة التحكم' : 'Console'}
+                  {dict.nav.console}
                 </Link>
 
                 {isAdmin && (
@@ -168,7 +159,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                     }`}
                   >
                     <Shield className="w-3.5 h-3.5" />
-                    <span>{isAr ? 'الإدارة' : 'Admin'}</span>
+                    <span>{dict.nav.admin2}</span>
                   </Link>
                 )}
               </div>
@@ -182,7 +173,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
               >
                 <Search className="w-3.5 h-3.5" />
-                <span>{isAr ? 'بحث سريع...' : 'Omnisearch...'}</span>
+                <span>{dict.nav.omnisearch}</span>
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[10px] font-mono border border-[var(--line)] text-[var(--muted-2)]">
                   ⌘K
                 </kbd>
@@ -192,7 +183,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
               <Link
                 href={alternateUrl}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-                title={isAr ? 'تبديل إلى الإنجليزية' : 'Switch to Arabic'}
+                title={dict.nav.switchToArabic}
               >
                 <Globe className="w-3.5 h-3.5" />
                 <span>{dict.nav.switchLanguage}</span>
@@ -236,35 +227,35 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                           className="flex items-center gap-2 px-3 py-2 text-[var(--blue-bright)] hover:bg-[var(--surface-2)] transition-colors font-semibold"
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>{isAr ? 'نشر أداة جديدة' : 'Upload New Tool'}</span>
+                          <span>{dict.nav.uploadNewTool}</span>
                         </Link>
 
                         <Link
                           href={`/${locale}/dashboard?tab=purchases`}
                           className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                         >
-                          {isAr ? 'مشترياتي وترخيصاتي' : 'My Purchases'}
+                          {dict.nav.myPurchases}
                         </Link>
 
                         <Link
                           href={`/${locale}/dashboard?tab=uploads`}
                           className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                         >
-                          {isAr ? 'أدواتي المعروضة' : 'My Uploads'}
+                          {dict.nav.myUploads}
                         </Link>
 
                         <Link
                           href={`/${locale}/dashboard?tab=sales`}
                           className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                         >
-                          {isAr ? 'الأرباح والمبيعات' : 'Sales & Payouts'}
+                          {dict.nav.salesPayouts}
                         </Link>
 
                         <Link
                           href={`/${locale}/dashboard?tab=profile`}
                           className="block px-3 py-2 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                         >
-                          {isAr ? 'الملف الشخصي والأمان' : 'Profile & Security'}
+                          {dict.nav.profileSecurity}
                         </Link>
 
                         <button
@@ -272,7 +263,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                           className="w-full text-left rtl:text-right px-3 py-2 text-[var(--rose)] hover:bg-[var(--surface-2)] flex items-center gap-2 border-t border-[var(--line)] mt-1 transition-colors"
                         >
                           <LogOut className="w-3.5 h-3.5" />
-                          <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                          <span>{dict.nav.signOut}</span>
                         </button>
                       </div>
                     </>
@@ -287,7 +278,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                       title={activeGuestSession.email}
                     >
                       <Key className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'مشترياتي (كزائر)' : 'Guest Orders'}</span>
+                      <span>{dict.nav.guestOrders}</span>
                       {typeof activeGuestSession.purchasesCount === 'number' && activeGuestSession.purchasesCount > 0 && (
                         <span className="w-4 h-4 rounded-full bg-[var(--blue-bright)] text-black text-[9px] font-bold flex items-center justify-center">
                           {activeGuestSession.purchasesCount}
@@ -334,7 +325,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
             >
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4" />
-                <span>{isAr ? 'بحث سريع في الكتالوج...' : 'Search Assets (Omnisearch)...'}</span>
+                <span>{dict.nav.searchAssetsOmnisearch}</span>
               </div>
               <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[10px] font-mono border border-[var(--line)] text-[var(--muted-2)]">
                 ⌘K
@@ -346,14 +337,14 @@ export default function Navbar({ locale, dict }: NavbarProps) {
               onClick={() => setIsOpen(false)}
               className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
             >
-              {isAr ? 'كتالوج الأدوات' : 'Marketplace'}
+              {dict.nav.marketplace2}
             </Link>
             <Link
               href={`/${locale}/dashboard`}
               onClick={() => setIsOpen(false)}
               className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
             >
-              {isAr ? 'لوحة التحكم' : 'Console'}
+              {dict.nav.console2}
             </Link>
 
             {isAdmin && (
@@ -362,7 +353,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 onClick={() => setIsOpen(false)}
                 className="block px-3 py-2 rounded-lg text-sm font-medium text-[var(--orange)] hover:bg-[var(--surface-2)]"
               >
-                {isAr ? 'الإدارة' : 'Admin'}
+                {dict.nav.admin3}
               </Link>
             )}
 
@@ -377,35 +368,35 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--blue-bright)] hover:bg-[var(--surface-2)]"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'نشر أداة جديدة' : 'Submit New Tool'}</span>
+                  <span>{dict.nav.submitNewTool}</span>
                 </Link>
                 <Link
                   href={`/${locale}/dashboard?tab=purchases`}
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
                 >
-                  {isAr ? 'مشترياتي وترخيصاتي' : 'My Purchases'}
+                  {dict.nav.myPurchases2}
                 </Link>
                 <Link
                   href={`/${locale}/dashboard?tab=uploads`}
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
                 >
-                  {isAr ? 'أدواتي المعروضة' : 'My Uploads'}
+                  {dict.nav.myUploads2}
                 </Link>
                 <Link
                   href={`/${locale}/dashboard?tab=sales`}
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
                 >
-                  {isAr ? 'الأرباح والمبيعات' : 'Sales & Payouts'}
+                  {dict.nav.salesPayouts2}
                 </Link>
                 <Link
                   href={`/${locale}/dashboard?tab=profile`}
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
                 >
-                  {isAr ? 'الملف الشخصي والأمان' : 'Profile & Security'}
+                  {dict.nav.profileSecurity2}
                 </Link>
                 <button
                   onClick={() => {
@@ -415,7 +406,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                   className="w-full text-left rtl:text-right px-3 py-2 rounded-lg text-xs text-[var(--rose)] hover:bg-[var(--surface-2)] flex items-center gap-2"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                  <span>{dict.nav.signOut2}</span>
                 </button>
               </div>
             ) : (
@@ -428,7 +419,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                   >
                     <div className="flex items-center gap-2">
                       <Key className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'مشترياتي الرقمية (كزائر)' : 'My Guest Purchases'}</span>
+                      <span>{dict.nav.myGuestPurchases}</span>
                     </div>
                     {typeof activeGuestSession.purchasesCount === 'number' && activeGuestSession.purchasesCount > 0 && (
                       <span className="w-4 h-4 rounded-full bg-[var(--blue-bright)] text-black text-[9px] font-bold flex items-center justify-center">
@@ -459,7 +450,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                     onClick={() => setIsOpen(false)}
                     className="block text-center text-[11px] font-mono text-[var(--muted)] hover:text-[var(--blue-bright)] py-1.5 transition-colors"
                   >
-                    {isAr ? 'البحث عن مشتريات زائر' : 'Guest Purchases Lookup'}
+                    {dict.nav.guestPurchasesLookup}
                   </Link>
                 )}
               </div>

@@ -21,7 +21,7 @@ registry.registerComponent("securitySchemes", "bearerAuth", {
 registry.registerComponent("securitySchemes", "cookieAuth", {
   type: "apiKey",
   in: "cookie",
-  name: "dt_session",
+  name: "dt_auth",
   description:
     "HttpOnly session cookie set by login/register. State-changing requests also require X-CSRF-Token from the dt_csrf cookie.",
 });

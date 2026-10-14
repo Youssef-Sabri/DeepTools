@@ -44,8 +44,15 @@ export class ProductsRepository {
               conditions.push(
                 { name: { contains: term, mode: "insensitive" } },
                 { nameAr: { contains: term, mode: "insensitive" } },
+                // Normalized projections let taa marbuta / alef maqsura queries
+                // (ة<->ه, ى<->ي) match the indexed stored text. Querying the raw
+                // columns alone made those BACKEND_RULES 16.3 rules inoperative.
+                { nameArNorm: { contains: term, mode: "insensitive" } },
                 { description: { contains: term, mode: "insensitive" } },
                 { descriptionAr: { contains: term, mode: "insensitive" } },
+                {
+                  descriptionArNorm: { contains: term, mode: "insensitive" },
+                },
               );
             }
             return { OR: conditions };
@@ -114,7 +121,17 @@ export class ProductsRepository {
     badge?: string | null;
     badgeAr?: string | null;
   }) {
-    return prisma.product.create({ data });
+    return prisma.product.create({
+      data: {
+        ...data,
+        // Maintain the normalized search projections so admin-created products
+        // are as searchable as seller uploads (BACKEND_RULES.md 16.3).
+        nameArNorm: data.nameAr ? normalizeArabicText(data.nameAr) : null,
+        descriptionArNorm: data.descriptionAr
+          ? normalizeArabicText(data.descriptionAr)
+          : null,
+      },
+    });
   }
 
   async update(
@@ -133,7 +150,24 @@ export class ProductsRepository {
       status?: ProductStatus;
     }>,
   ) {
-    return prisma.product.update({ where: { id }, data });
+    return prisma.product.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(data.nameAr !== undefined
+          ? {
+              nameArNorm: data.nameAr ? normalizeArabicText(data.nameAr) : null,
+            }
+          : {}),
+        ...(data.descriptionAr !== undefined
+          ? {
+              descriptionArNorm: data.descriptionAr
+                ? normalizeArabicText(data.descriptionAr)
+                : null,
+            }
+          : {}),
+      },
+    });
   }
 
   async delete(id: string) {

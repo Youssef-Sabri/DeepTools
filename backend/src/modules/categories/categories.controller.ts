@@ -9,7 +9,10 @@ export class CategoriesController {
 
   listCategories = asyncHandler(async (req: Request, res: Response) => {
     const lang = req.language || "en";
-    const categories = await this.service.listCategories(lang);
+    // Admins manage the full list (including deactivated categories); the public
+    // catalog only sees active ones.
+    const isAdmin = req.user?.role === "ADMIN";
+    const categories = await this.service.listCategories(lang, isAdmin);
 
     res.status(200).json({
       success: true,

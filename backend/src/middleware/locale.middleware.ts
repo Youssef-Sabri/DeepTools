@@ -19,10 +19,7 @@ declare global {
   }
 }
 
-/**
- * Parses the Accept-Language header per RFC 7231 / RFC 4647,
- * respecting language quality weights (q-factors).
- */
+/** Parses Accept-Language per RFC 7231/4647, honouring q-factors. */
 export function parseAcceptLanguage(header?: string): SupportedLanguage | null {
   if (!header || typeof header !== "string") return null;
 
@@ -51,13 +48,8 @@ export function parseAcceptLanguage(header?: string): SupportedLanguage | null {
   return null;
 }
 
-/**
- * Detects the request language from:
- * 1. Explicit query parameter (?lang=ar or ?locale=ar)
- * 2. Explicit custom headers (X-Locale or X-Language)
- * 3. Standard HTTP Accept-Language header with q-factor sorting
- * 4. Default fallback: "en"
- */
+/** Resolves language: ?lang/?locale, then X-Locale/X-Language, then
+ *  Accept-Language q-factors, then "en". */
 export function resolveRequestLanguage(req: Request): SupportedLanguage {
   // 1. Query parameter
   const queryLang = (req.query?.lang || req.query?.locale) as
@@ -85,9 +77,7 @@ export function resolveRequestLanguage(req: Request): SupportedLanguage {
   return DEFAULT_LANGUAGE;
 }
 
-/**
- * Express middleware that initializes request localization context.
- */
+/** Initializes request localization and sets Content-Language / Vary. */
 export function localeMiddleware(
   req: Request,
   res: Response,

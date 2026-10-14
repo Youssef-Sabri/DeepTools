@@ -4,22 +4,17 @@ import {
   paginationDepthError,
   withinPaginationDepth,
 } from "../../middleware/requestBounds";
-
-export const productCategoryEnum = z.enum([
-  "workflow",
-  "script",
-  "code",
-  "agentic",
-]);
+import { MAX_PRICE_CENTS } from "../uploads/uploads.validator";
 
 export const listPublicProductsQuerySchema = z
   .object({
     page: paginationFields.page,
     limit: paginationFields.limit.default(20),
-    category: z
-      .enum(["workflow", "script", "code", "agentic"])
-      .or(z.string().max(50))
-      .optional(),
+    // Categories are dynamic (BACKEND_RULES.md rule 12), so this is a free-form
+    // slug. It was previously `z.enum(["workflow","script","code","agentic"])
+    // .or(z.string().max(50))`, a no-op union -- the second branch already
+    // accepted every enum value while hardcoding the category list.
+    category: z.string().max(50).optional(),
     search: z.string().max(100).optional(),
     sort: z.enum(["newest", "priceAsc", "priceDesc"]).default("newest"),
     lang: z.enum(["en", "ar"]).default("en").optional(),
@@ -36,7 +31,13 @@ export const createProductSchema = z.object({
   description: z.string().min(1, "Description is required"),
   descriptionAr: z.string().nullable().optional(),
   category: z.string().min(1, "Category is required"),
-  price: z.number().int().nonnegative("Price must be a non-negative integer"),
+  // Bounded to the Postgres INTEGER range; without this an out-of-range price
+  // passes z.number().int() and surfaces as an opaque 500.
+  price: z
+    .number()
+    .int("Price must be an integer in cents")
+    .nonnegative("Price must be a non-negative integer")
+    .max(MAX_PRICE_CENTS, "Price exceeds the maximum supported amount"),
   version: z.string().optional(),
   badge: z.string().nullable().optional(),
   badgeAr: z.string().nullable().optional(),

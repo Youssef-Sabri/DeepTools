@@ -3,11 +3,8 @@ export interface CommissionSplit {
   sellerAmount: number;
 }
 
-/**
- * Deterministic integer split.
- * Uses Math.floor — rounding remainder always goes to seller.
- * Invariant: commissionAmount + sellerAmount === price
- */
+/** Deterministic split; the remainder always goes to the seller.
+ *  Invariant: commissionAmount + sellerAmount === price. */
 export function splitCommission(
   price: number,
   commissionPercent: number,

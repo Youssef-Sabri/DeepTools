@@ -21,7 +21,11 @@ import {
   normalizeCategory,
   getCategoryVisualClass,
 } from '@/lib/utils'
-import { fetchApi } from '@/lib/api'
+import { fetchApi, fetchCategories } from '@/lib/api'
+import { getCategoryIcon } from '@/lib/categoryIcons'
+import { interpolate } from '@/lib/interpolate'
+import type { Category } from '@/lib/types'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface OmnisearchModalProps {
   isOpen: boolean
@@ -34,6 +38,7 @@ export function OmnisearchModal({
   onClose,
   locale,
 }: OmnisearchModalProps) {
+  const dict = useDictionary()
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
@@ -41,9 +46,28 @@ export function OmnisearchModal({
   const [resultTotal, setResultTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [searchError, setSearchError] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+
+  // Dynamic categories (FRONTEND_RULES.md 2.8). Fetched lazily when the modal
+  // opens rather than hardcoded, and the search still works if it fails.
+  useEffect(() => {
+    if (!isOpen || categories.length > 0) return
+    let ignore = false
+    fetchCategories()
+      .then((cats) => {
+        if (!ignore) setCategories(Array.isArray(cats) ? cats : [])
+      })
+      .catch(() => {
+        if (!ignore) setCategories([])
+      })
+    return () => {
+      ignore = true
+    }
+  }, [isOpen, categories.length])
 
   const router = useRouter()
   const isAr = locale === 'ar'
+  const allAssetsLabel = dict.common.allAssets
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -79,13 +103,18 @@ export function OmnisearchModal({
     }
   }, [isOpen, locale, query, activeCategory])
 
-  const categoryChips = useMemo(() => [
-    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers },
-    { id: 'workflow', label: 'Workflows', icon: Sparkles },
-    { id: 'agentic', label: 'AI Agents', icon: Cpu },
-    { id: 'script', label: 'Scripts', icon: Terminal },
-    { id: 'code', label: 'Code Base', icon: ShieldCheck },
-  ], [isAr])
+  const categoryChips = useMemo(() => {
+    // FRONTEND_RULES.md 2.8: categories come from GET /api/v1/categories; the UI
+    // must never hardcode a static list.
+    return [
+      { id: 'all', label: allAssetsLabel, icon: Layers },
+      ...categories.map((cat: Category) => ({
+        id: cat.slug,
+        label: isAr && cat.nameAr ? cat.nameAr : cat.name,
+        icon: getCategoryIcon(cat.slug),
+      })),
+    ]
+  }, [categories, isAr, allAssetsLabel])
   const filtered = results
   const safeSelectedIndex = selectedIndex >= filtered.length ? 0 : selectedIndex
 
@@ -220,9 +249,7 @@ export function OmnisearchModal({
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder={
-                isAr
-                  ? 'ابحث في السيناريوهات، الأكواد، أو وكلاء الذكاء الاصطناعي (⌘K)...'
-                  : 'Search workflows, scripts, or agent skills (⌘K)...'
+                dict.search.searchWorkflowsScriptsOrAgentSkillsK
               }
               className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] focus:outline-none font-sans"
             />
@@ -230,7 +257,7 @@ export function OmnisearchModal({
               <button
                 onClick={() => handleQueryChange('')}
                 className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] me-2 transition-colors"
-                title={isAr ? 'مسح البحث' : 'Clear search'}
+                title={dict.search.clearSearch}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -247,7 +274,7 @@ export function OmnisearchModal({
           {/* Canonical Category Filter Chips */}
           <div className="px-4 py-3 border-b border-[var(--line)] bg-[var(--surface-2)] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] font-semibold me-2 shrink-0">
-              {isAr ? 'التصنيف:' : 'FILTER:'}
+              {dict.search.filter}
             </span>
             {categoryChips.map((cat) => {
               const Icon = cat.icon
@@ -295,10 +322,10 @@ export function OmnisearchModal({
                 {/* Group Heading */}
                 <div className="px-3 py-2 flex items-center justify-between text-[11px] font-mono text-[var(--muted-2)] uppercase tracking-wider">
                   <span>
-                    {isAr ? `نتائج البحث (${resultTotal})` : `ASSETS (${resultTotal})`}
+                    {interpolate(dict.search.assetsCount, { count: resultTotal })}
                   </span>
                   <span className="text-[10px] lowercase text-[var(--muted-2)] font-mono">
-                    {isAr ? 'استخدم الأسهم للتنقل' : 'use ↑↓ to navigate'}
+                    {dict.search.useToNavigate}
                   </span>
                 </div>
 
@@ -359,7 +386,7 @@ export function OmnisearchModal({
                             </span>
                             <span className="text-[var(--line-bright)]">•</span>
                             <span className="text-[var(--muted-2)] truncate max-w-[140px]">
-                              {prod.sellerName || (isAr ? 'الناشر غير متاح' : 'Seller unavailable')}
+                              {prod.sellerName || (dict.common.sellerUnavailable)}
                             </span>
                           </div>
                         </div>
@@ -373,7 +400,7 @@ export function OmnisearchModal({
 
                         {isSelected ? (
                           <div className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--blue)] text-white text-[10px] font-mono font-semibold shadow-sm">
-                            <span>{isAr ? 'فتح' : 'Open'}</span>
+                            <span>{dict.search.open}</span>
                             <CornerDownLeft className="w-3 h-3 rtl:rotate-180" />
                           </div>
                         ) : (
@@ -386,7 +413,7 @@ export function OmnisearchModal({
               </div>
             ) : searchError ? (
               <div role="alert" className="p-8 text-center text-sm text-[var(--rose)]">
-                {isAr ? 'تعذر تحميل نتائج البحث.' : 'Could not load search results.'}
+                {dict.search.couldNotLoadSearchResults}
               </div>
             ) : (
               /* Search Miss / Empty State */
@@ -400,9 +427,7 @@ export function OmnisearchModal({
                     : `No engineering assets found matching "${query}"`}
                 </h3>
                 <p className="text-xs text-[var(--muted)] mt-1.5 max-w-sm leading-relaxed">
-                  {isAr
-                    ? 'جرب البحث باسم الأداة (مثل n8n، Postgres، Python) أو أعد ضبط التصنيف المختار.'
-                    : 'Try searching by workflow keyword, language, or clear the category filter.'}
+                  {dict.search.searchEmptyHint}
                 </p>
 
                 <div className="flex items-center gap-2 mt-5">
@@ -411,7 +436,7 @@ export function OmnisearchModal({
                       onClick={() => handleQueryChange('')}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line)] transition-colors"
                     >
-                      {isAr ? 'مسح البحث' : 'Clear search text'}
+                      {dict.search.clearSearchText}
                     </button>
                   )}
                   {activeCategory !== 'all' && (
@@ -419,7 +444,7 @@ export function OmnisearchModal({
                       onClick={() => handleCategoryChange('all')}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line)] transition-colors"
                     >
-                      {isAr ? 'عرض جميع الأقسام' : 'Reset category filter'}
+                      {dict.search.resetCategoryFilter}
                     </button>
                   )}
                   <button
@@ -429,7 +454,7 @@ export function OmnisearchModal({
                     }}
                     className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors flex items-center gap-1.5 shadow-sm"
                   >
-                    <span>{isAr ? 'تصفح الكتالوج الكامل' : 'Browse Catalog'}</span>
+                    <span>{dict.search.browseCatalog}</span>
                     <ExternalLink className="w-3 h-3" />
                   </button>
                 </div>
@@ -442,7 +467,7 @@ export function OmnisearchModal({
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
               <span>
-                {resultTotal} {isAr ? 'أصل مطابق' : 'matching assets'}
+                {resultTotal} {dict.search.matchingAssets}
               </span>
             </div>
 
@@ -451,25 +476,25 @@ export function OmnisearchModal({
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   ↑↓
                 </kbd>
-                <span>{isAr ? 'تنقل' : 'Navigate'}</span>
+                <span>{dict.search.navigate}</span>
               </div>
               <div className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   ↵
                 </kbd>
-                <span>{isAr ? 'فتح' : 'Open'}</span>
+                <span>{dict.search.open}</span>
               </div>
               <div className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   Tab
                 </kbd>
-                <span>{isAr ? 'القسم' : 'Category'}</span>
+                <span>{dict.search.category}</span>
               </div>
               <div className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   Esc
                 </kbd>
-                <span>{isAr ? 'إغلاق' : 'Close'}</span>
+                <span>{dict.common.close}</span>
               </div>
             </div>
           </div>

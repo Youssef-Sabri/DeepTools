@@ -1,22 +1,19 @@
-// Keep these checks aligned with the strong password rule in backend/src/modules/auth/auth.validator.ts.
-export function getPasswordValidationError(password: string, isAr: boolean): string | null {
-  if (password.length < 8) {
-    return isAr ? 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل' : 'Password must be at least 8 characters long'
-  }
-  if (!/[A-Z]/.test(password)) {
-    return isAr ? 'يجب أن تحتوي كلمة المرور على حرف إنجليزي كبير واحد على الأقل' : 'Password must contain at least one uppercase letter'
-  }
-  if (!/[a-z]/.test(password)) {
-    return isAr ? 'يجب أن تحتوي كلمة المرور على حرف إنجليزي صغير واحد على الأقل' : 'Password must contain at least one lowercase letter'
-  }
-  if (!/\d/.test(password)) {
-    return isAr ? 'يجب أن تحتوي كلمة المرور على رقم واحد على الأقل' : 'Password must contain at least one number'
-  }
-  if (!/[@$!%*?&]/.test(password)) {
-    return isAr ? 'يجب أن تحتوي كلمة المرور على رمز واحد على الأقل من @$!%*?&' : 'Password must contain at least one special character from @$!%*?&'
-  }
-  if (/[^A-Za-z\d@$!%*?&]/.test(password)) {
-    return isAr ? 'يمكن أن تحتوي كلمة المرور على أحرف إنجليزية وأرقام والرموز @$!%*?& فقط' : 'Password can contain only English letters, numbers, and @$!%*?&'
-  }
+import type { Dictionary } from '@/dictionaries'
+
+// Keep these checks aligned with the strong password rule in
+// backend/src/modules/auth/auth.validator.ts. Messages come from the shared
+// dictionary so they stay consistent across every surface that validates a
+// password and can never drift from the translations.
+export function getPasswordValidationError(
+  password: string,
+  dict: Dictionary,
+): string | null {
+  const rules = dict.auth.passwordRules
+  if (password.length < 8) return rules.minLength
+  if (!/[A-Z]/.test(password)) return rules.uppercase
+  if (!/[a-z]/.test(password)) return rules.lowercase
+  if (!/\d/.test(password)) return rules.digit
+  if (!/[@$!%*?&]/.test(password)) return rules.special
+  if (/[^A-Za-z\d@$!%*?&]/.test(password)) return rules.allowedCharacters
   return null
 }

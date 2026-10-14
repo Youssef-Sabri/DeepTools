@@ -25,8 +25,10 @@ import {
 import Link from 'next/link'
 import type { Product, Order } from '@/lib/types'
 import { formatCents } from '@/lib/utils'
+import { interpolate } from '@/lib/interpolate'
 import { fetchApi, downloadProductFile } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface CartDrawerProps {
   product: Product | null
@@ -58,6 +60,7 @@ export function CartDrawer({
   isGuestOwned = false,
   onOrderCompleted,
 }: CartDrawerProps) {
+  const dict = useDictionary()
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState<string | null>(null)
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
@@ -89,7 +92,7 @@ export function CartDrawer({
 
     try {
       if (user) {
-        setLoadingStep(isAr ? 'جارٍ تسجيل العملية...' : 'Processing license...')
+        setLoadingStep(dict.cart.processingLicense)
         const result = await fetchApi<{ order: Order }>(
           `/products/${product.id}/purchase`,
           { method: 'POST' }
@@ -100,15 +103,13 @@ export function CartDrawer({
       } else {
         if (!isValidEmail(buyerEmail)) {
           setError(
-            isAr
-              ? 'يرجى إدخال عنوان بريد إلكتروني صالح (مثال: name@domain.com)'
-              : 'Please enter a valid email address (e.g. name@domain.com)'
+            dict.cart.pleaseEnterAValidEmailAddressEGNameDomainC
           )
           setLoading(false)
           return
         }
 
-        setLoadingStep(isAr ? 'جارٍ إنشاء الترخيص الرقمي وتأمين الرابط...' : 'Issuing cryptographic license...')
+        setLoadingStep(dict.cart.issuingCryptographicLicense)
         const result = await fetchApi<GuestPurchaseResult>(
           '/orders/guest-purchase',
           {
@@ -210,13 +211,13 @@ export function CartDrawer({
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-[var(--text)]">
                     {completedOrder
-                      ? (isAr ? 'اكتملت العملية بنجاح' : 'Order Confirmed')
-                      : (isAr ? 'الدفع الآمن الفوري' : 'Secure Express Checkout')}
+                      ? (dict.cart.orderConfirmed)
+                      : (dict.cart.secureExpressCheckout)}
                   </h2>
                   <p className="text-[11px] font-mono text-[var(--muted-2)]">
                     {completedOrder
-                      ? (isAr ? 'تم إصدار الترخيص الرقمي' : 'Digital License Activated')
-                      : (isAr ? 'تسليم رقمي مشفر فوري' : 'Instant 256-Bit Encrypted Delivery')}
+                      ? (dict.cart.digitalLicenseActivated)
+                      : (dict.cart.instant256BitEncryptedDelivery)}
                   </p>
                 </div>
               </div>
@@ -241,13 +242,13 @@ export function CartDrawer({
                     </div>
 
                     <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 font-bold mb-0.5">
-                      {isAr ? 'تم تفعيل الترخيص التجاري' : 'LIFETIME LICENSE ACTIVE'}
+                      {dict.cart.lifetimeLicenseActive}
                     </span>
                     <h3 className="text-lg font-bold text-[var(--text)]">
-                      {isAr ? 'شكراً لاختيارك DeepTools!' : 'Thank you for your purchase!'}
+                      {dict.cart.thankYouForYourPurchase}
                     </h3>
                     <p className="text-xs text-[var(--muted)] mt-1 font-mono">
-                      {isAr ? 'رقم الإيصال:' : 'Receipt:'} #{completedOrder.id.slice(0, 8).toUpperCase()}
+                      {dict.cart.receipt} #{completedOrder.id.slice(0, 8).toUpperCase()}
                     </p>
                   </div>
 
@@ -256,7 +257,7 @@ export function CartDrawer({
                     <div className="flex items-center gap-2 text-[var(--text)] font-semibold">
                       <Mail className="w-4 h-4 text-[var(--blue-bright)] shrink-0" />
                       <span>
-                        {isAr ? 'تم إرسال رابط الوصول إلى بريدك' : 'Access Link Dispatched via Email'}
+                        {dict.cart.accessLinkDispatchedViaEmail}
                       </span>
                     </div>
                     <p className="text-[var(--muted)] leading-relaxed text-[11px]">
@@ -272,7 +273,7 @@ export function CartDrawer({
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-mono text-[var(--muted-2)] uppercase flex items-center gap-1.5 font-semibold">
                           <Key className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                          {isAr ? 'مفتاح الترخيص الخاص بك' : 'Your Commercial License Key'}
+                          {dict.cart.yourCommercialLicenseKey}
                         </span>
                         <button
                           onClick={handleCopyKey}
@@ -280,7 +281,7 @@ export function CartDrawer({
                         >
                           {copiedKey ? <Check className="w-3 h-3 text-[var(--green)]" /> : <Copy className="w-3 h-3" />}
                           <span className={copiedKey ? 'text-[var(--green)] font-semibold' : ''}>
-                            {copiedKey ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ' : 'Copy')}
+                            {copiedKey ? (dict.cart.copied) : (dict.cart.copy)}
                           </span>
                         </button>
                       </div>
@@ -300,8 +301,8 @@ export function CartDrawer({
                       {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                       <span>
                         {downloading
-                          ? (isAr ? 'جارٍ البث المباشر للملف...' : 'Streaming from secure storage...')
-                          : (isAr ? 'تنزيل الملف الرقمي الآن (.zip)' : 'Download Digital Asset (.zip)')}
+                          ? (dict.cart.streamingFromSecureStorage)
+                          : (dict.cart.downloadDigitalAssetZip)}
                       </span>
                     </button>
 
@@ -311,7 +312,7 @@ export function CartDrawer({
                       className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs border border-[var(--line-bright)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] flex items-center justify-center gap-2 transition-colors"
                     >
                       <Key className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                      <span>{isAr ? 'فتح مكتبة مشترياتي الكاملة' : 'Open My Guest Purchases Hub'}</span>
+                      <span>{dict.cart.openMyGuestPurchasesHub}</span>
                       <ArrowUpRight className="w-3.5 h-3.5 text-[var(--muted-2)] rtl:rotate-90" />
                     </Link>
                   </div>
@@ -321,19 +322,17 @@ export function CartDrawer({
                     <div className="p-4 rounded-xl border border-[var(--blue-bright)]/30 bg-[var(--blue)]/5 space-y-2 text-xs">
                       <div className="flex items-center gap-2 text-[var(--blue-bright)] font-semibold">
                         <Sparkles className="w-4 h-4 shrink-0" />
-                        <span>{isAr ? 'حفظ الأداة في حساب دائم' : 'Keep Forever in Cloud Library'}</span>
+                        <span>{dict.cart.keepForeverInCloudLibrary}</span>
                       </div>
                       <p className="text-[var(--muted)] text-[11px] leading-relaxed">
-                        {isAr
-                          ? 'قم بإنشاء حساب مجاني لتثبيت تراخيصك في السحابة والوصول إليها من أي جهاز دون الحاجة لروابط مؤقتة.'
-                          : 'Create a permanent password to access this tool forever from any device without needing temporary links.'}
+                        {dict.cart.createAPermanentPasswordToAccessThisToolFo}
                       </p>
                       <Link
                         href={`/${locale}/auth/register?email=${encodeURIComponent(buyerEmail)}&guest_upgrade=true`}
                         onClick={onClose}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--blue-bright)] hover:underline pt-1"
                       >
-                        <span>{isAr ? 'إنشاء حساب دائم الآن' : 'Claim permanent account now'}</span>
+                        <span>{dict.cart.claimPermanentAccountNow}</span>
                         <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                       </Link>
                     </div>
@@ -346,13 +345,13 @@ export function CartDrawer({
                     <ShieldCheck className="w-7 h-7" />
                   </div>
                   <span className="text-xs font-mono uppercase tracking-wider text-[var(--blue-bright)] font-semibold mb-1">
-                    {isAr ? 'وصول الناشر' : 'CREATOR ACCESS'}
+                    {dict.cart.creatorAccess}
                   </span>
                   <h3 className="text-lg font-bold text-[var(--text)]">
-                    {isAr ? 'أنت صاحب هذا الأصل الرقمي' : 'You Published This Tool'}
+                    {dict.cart.youPublishedThisTool}
                   </h3>
                   <p className="text-xs text-[var(--muted)] mt-2 max-w-xs leading-relaxed">
-                    {isAr ? 'بصفتك ناشر هذا الأصل، يمكنك تنزيل ملفك في أي وقت.' : "As this asset's creator, you can download the uploaded file."}
+                    {dict.cart.creatorDownloadNote}
                   </p>
                   <div className="w-full mt-6">
                     <button
@@ -361,7 +360,7 @@ export function CartDrawer({
                       className="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-all shadow-md"
                     >
                       {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      <span>{isAr ? 'تنزيل ملفك' : 'Download Your File'}</span>
+                      <span>{dict.cart.downloadYourFile}</span>
                     </button>
                   </div>
                 </div>
@@ -383,22 +382,18 @@ export function CartDrawer({
                     }`}
                   >
                     {isGuestOwned
-                      ? (isAr ? 'ترخيص دائم مدى الحياة' : 'LIFETIME COMMERCIAL LICENSE')
-                      : (isAr ? 'ترخيص دائم في مكتبتك' : 'ACTIVE COMMERCIAL LICENSE')}
+                      ? (dict.cart.lifetimeCommercialLicense)
+                      : (dict.cart.activeCommercialLicense)}
                   </span>
                   <h3 className="text-lg font-bold text-[var(--text)]">
                     {isGuestOwned
-                      ? (isAr ? 'الأداة مملوكة لديك' : 'Asset In Your Purchases')
-                      : (isAr ? 'الأداة مضافة إلى مكتبتك' : 'Tool In Your Library')}
+                      ? (dict.cart.assetInYourPurchases)
+                      : (dict.cart.toolInYourLibrary)}
                   </h3>
                   <p className="text-xs text-[var(--muted)] mt-2 max-w-xs leading-relaxed">
                     {isGuestOwned
-                      ? (isAr
-                          ? 'أنت تمتلك ترخيصاً تجارياً دائماً لهذا الأصل الرقمي. يمكنك تنزيله الآن مباشرة أو استخدام الرابط الدائم المرسل لبريدك الإلكتروني.'
-                          : 'You hold a permanent lifetime license for this digital asset. You can download it directly or access it anytime via your email link.')
-                      : (isAr
-                          ? 'لقد قمت بشراء ترخيص تجاري دائم لهذه الأداة وربطه بحسابك.'
-                          : 'You already hold an active commercial license for this digital asset.')}
+                      ? (dict.cart.youHoldAPermanentLifetimeLicenseForThisDig)
+                      : (dict.cart.youAlreadyHoldAnActiveCommercialLicenseFor)}
                   </p>
                   <div className="w-full mt-6 space-y-2">
                     <button
@@ -411,7 +406,7 @@ export function CartDrawer({
                       }`}
                     >
                       {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      <span>{isAr ? 'تحميل الملف الرقمي' : 'Download Asset File'}</span>
+                      <span>{dict.common.downloadAssetFile}</span>
                     </button>
                     <Link
                       href={user ? `/${locale}/dashboard` : `/${locale}/guest/purchases`}
@@ -419,8 +414,8 @@ export function CartDrawer({
                       className="w-full py-2 px-3 rounded-lg text-xs font-mono text-[var(--muted-2)] hover:text-[var(--text)] block text-center"
                     >
                       {user
-                        ? (isAr ? 'الانتقال إلى مكتبتي' : 'Go to My Library')
-                        : (isAr ? 'عرض كافة مشترياتي' : 'View all my purchases')}
+                        ? (dict.cart.goToMyLibrary)
+                        : (dict.cart.viewAllMyPurchases)}
                     </Link>
                   </div>
                 </div>
@@ -439,7 +434,7 @@ export function CartDrawer({
                     <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-3">
                       <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
                         <AlertCircle className="w-4 h-4 shrink-0" />
-                        <span>{isAr ? 'أنت تمتلك هذا الأصل بالفعل!' : 'You already own this item!'}</span>
+                        <span>{dict.cart.youAlreadyOwnThisItem}</span>
                       </div>
                       <p className="text-[var(--muted)] leading-relaxed text-[11px]">
                         {isAr
@@ -451,7 +446,7 @@ export function CartDrawer({
                         {magicLinkSent ? (
                           <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 font-semibold flex items-center gap-2">
                             <Check className="w-4 h-4" />
-                            <span>{isAr ? 'تم إرسال الرابط! راجع بريدك الآن.' : 'Access link sent! Check your inbox.'}</span>
+                            <span>{dict.cart.accessLinkSentCheckYourInbox}</span>
                           </div>
                         ) : (
                           <button
@@ -460,7 +455,7 @@ export function CartDrawer({
                             className="w-full py-2.5 px-3 rounded-lg font-bold text-xs bg-amber-500 hover:bg-amber-400 text-black flex items-center justify-center gap-2 transition-colors"
                           >
                             {sendingMagicLink ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-                            <span>{isAr ? 'إرسال رابط التحميل إلى بريدي' : 'Email Me My Access Link'}</span>
+                            <span>{dict.common.emailMeMyAccessLink}</span>
                           </button>
                         )}
 
@@ -470,7 +465,7 @@ export function CartDrawer({
                             onClick={onClose}
                             className="flex-1 py-2 px-3 text-center rounded-lg border border-[var(--line-bright)] bg-[var(--surface-2)] text-[11px] font-semibold text-[var(--text)] hover:bg-[var(--surface-3)]"
                           >
-                            {isAr ? 'فتح مكتبة مشترياتي' : 'Open Purchases Hub'}
+                            {dict.cart.openPurchasesHub}
                           </Link>
                           <button
                             onClick={() => {
@@ -481,7 +476,7 @@ export function CartDrawer({
                             className="py-2 px-3 rounded-lg text-[11px] font-mono text-[var(--muted-2)] hover:text-[var(--text)] flex items-center gap-1"
                           >
                             <RotateCcw className="w-3 h-3" />
-                            <span>{isAr ? 'بريد آخر' : 'Change email'}</span>
+                            <span>{dict.cart.changeEmail}</span>
                           </button>
                         </div>
                       </div>
@@ -521,13 +516,13 @@ export function CartDrawer({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-[var(--text)] flex items-center gap-1.5">
                           <Lock className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                          {isAr ? 'بيانات تسليم الترخيص الرقمي' : 'License Delivery & Access'}
+                          {dict.cart.licenseDeliveryAccess}
                         </span>
                         <Link
                           href={`/${locale}/auth/login`}
                           className="text-[11px] text-[var(--blue-bright)] hover:underline font-medium"
                         >
-                          {isAr ? 'تسجيل الدخول' : 'Sign In'}
+                          {dict.cart.signIn}
                         </Link>
                       </div>
 
@@ -535,7 +530,7 @@ export function CartDrawer({
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="text-[11px] font-mono text-[var(--muted-2)] font-semibold">
-                            {isAr ? 'البريد الإلكتروني (إلزامي)' : 'Email Address (Required)'}
+                            {dict.cart.emailAddressRequired}
                           </label>
                           {buyerEmail && (
                             <span
@@ -546,10 +541,10 @@ export function CartDrawer({
                               {emailIsValid ? (
                                 <>
                                   <Check className="w-3 h-3" />
-                                  <span>{isAr ? 'صالح' : 'Valid'}</span>
+                                  <span>{dict.cart.valid}</span>
                                 </>
                               ) : (
-                                <span>{isAr ? 'أدخل بريداً صحيحاً' : 'Valid email needed'}</span>
+                                <span>{dict.cart.validEmailNeeded}</span>
                               )}
                             </span>
                           )}
@@ -583,7 +578,7 @@ export function CartDrawer({
                       {/* Optional Name */}
                       <div>
                         <label className="text-[11px] font-mono text-[var(--muted-2)] block mb-1 font-semibold">
-                          {isAr ? 'اسم المهندس / المستلم (اختياري)' : 'Engineer / Buyer Name (Optional)'}
+                          {dict.cart.engineerBuyerNameOptional}
                         </label>
                         <div className="relative">
                           <UserIcon className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-[var(--muted-2)]" />
@@ -591,7 +586,7 @@ export function CartDrawer({
                             type="text"
                             value={buyerName}
                             onChange={(e) => setBuyerName(e.target.value)}
-                            placeholder={isAr ? 'يوسف وائل' : 'Alex Vance'}
+                            placeholder={dict.cart.alexVance}
                             className="w-full ps-9 pe-3 py-2 text-xs rounded-lg bg-[var(--bg-soft)] border border-[var(--line)] text-[var(--text)] focus:border-[var(--blue-bright)] focus:outline-none"
                           />
                         </div>
@@ -604,31 +599,29 @@ export function CartDrawer({
                     <div className="flex items-center justify-between text-xs font-semibold text-[var(--text)]">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-3.5 h-3.5 text-[var(--blue-bright)]" />
-                        <span>{isAr ? 'بوابة الدفع التجريبي الفوري' : 'Instant Sandbox Fulfillment'}</span>
+                        <span>{dict.cart.instantSandboxFulfillment}</span>
                       </div>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                        {isAr ? 'موافقة فورية 100%' : 'Pre-Approved'}
+                        {dict.cart.preApproved}
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-                      {isAr
-                        ? 'عملية شراء تجريبية بدون خصم مالي حقيقي. يصدر الترخيص الإنتاجي المشفر ورابط التنزيل السحابي في أجزاء من الثانية.'
-                        : 'Sandbox transaction with zero friction. Commercial license and verified binary stream are issued in under 50ms.'}
+                      {dict.cart.sandboxTransactionWithZeroFrictionCommerci}
                     </p>
                   </div>
 
                   {/* Pricing Breakdown */}
                   <div className="space-y-2.5 pt-1 text-xs">
                     <div className="flex justify-between text-[var(--muted)]">
-                      <span>{isAr ? 'سعر الأداة' : 'Digital Tool Subtotal'}</span>
+                      <span>{dict.cart.digitalToolSubtotal}</span>
                       <span className="font-mono text-[var(--text)]">{formatCents(product.price)}</span>
                     </div>
                     <div className="flex justify-between text-[var(--muted)]">
-                      <span>{isAr ? 'رسوم المعاملة' : 'Processing Fee'}</span>
-                      <span className="font-mono text-emerald-600 font-semibold">{isAr ? 'مجاني ($0.00)' : 'Free ($0.00)'}</span>
+                      <span>{dict.cart.processingFee}</span>
+                      <span className="font-mono text-emerald-600 font-semibold">{dict.cart.free000}</span>
                     </div>
                     <div className="border-t border-[var(--line)] pt-2.5 flex justify-between text-sm font-bold text-[var(--text)]">
-                      <span>{isAr ? 'المجموع المستحق' : 'Total Due'}</span>
+                      <span>{dict.cart.totalDue}</span>
                       <span className="font-mono text-[var(--blue-bright)] text-base">
                         {formatCents(product.price)}
                       </span>
@@ -649,15 +642,15 @@ export function CartDrawer({
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{loadingStep || (isAr ? 'جارٍ المعالجة...' : 'Processing...')}</span>
+                      <span>{loadingStep || (dict.cart.processing)}</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
                       <span>
                         {user
-                          ? (isAr ? `تأكيد الشراء (${formatCents(product.price)})` : `Confirm Purchase (${formatCents(product.price)})`)
-                          : (isAr ? `إتمام الطلب الفوري (${formatCents(product.price)})` : `Complete Guest Order (${formatCents(product.price)})`)}
+                          ? interpolate(dict.cart.confirmPurchase, { amount: formatCents(product.price) })
+                          : interpolate(dict.cart.completeGuestOrder, { amount: formatCents(product.price) })}
                       </span>
                       <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                     </>
@@ -666,9 +659,7 @@ export function CartDrawer({
 
                 {!user && (
                   <p className="text-[10px] text-center font-mono text-[var(--muted-2)]">
-                    {isAr
-                      ? 'دفع لمرة واحدة • بدون اشتراك شهري • تفعيل فوري'
-                      : 'One-time payment • No subscription • Instant verified delivery'}
+                    {dict.cart.oneTimePaymentNoSubscriptionInstantVerifie}
                   </p>
                 )}
               </div>
