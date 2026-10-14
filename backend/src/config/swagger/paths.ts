@@ -30,6 +30,10 @@ import {
   BuyerOrdersResponseSchema,
   SellerSalesResponseSchema,
   MarketplaceInsightsSchema,
+  CategoriesListResponseSchema,
+  CategoryDetailsResponseSchema,
+  CreateCategoryInputSchema,
+  UpdateCategoryInputSchema,
 } from "./schemas";
 
 const LangQueryParam = z
@@ -1270,6 +1274,185 @@ registry.registerPath({
     },
     403: {
       description: "Forbidden: Admin access required",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 12. Dynamic Categories Endpoints (Public & Admin)
+// ==========================================
+registry.registerPath({
+  method: "get",
+  path: "/categories",
+  tags: ["Categories"],
+  summary: "List all active categories with product counts (Public)",
+  request: {
+    query: z.object({
+      lang: LangQueryParam,
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of active categories",
+      content: { "application/json": { schema: CategoriesListResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/categories/{id}",
+  tags: ["Categories"],
+  summary: "Get category details by ID (Public)",
+  request: {
+    params: z.object({
+      id: z.string().uuid().openapi({ description: "Category UUID" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Category details",
+      content: {
+        "application/json": { schema: CategoryDetailsResponseSchema },
+      },
+    },
+    404: {
+      description: "Category not found",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/admin/categories",
+  tags: ["Admin"],
+  summary: "Create a new bilingual category (Admin only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: CreateCategoryInputSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Category created successfully",
+      content: {
+        "application/json": { schema: CategoryDetailsResponseSchema },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: "Category slug already exists",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    422: {
+      description: "Validation failed (e.g. missing authentic Arabic script)",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/admin/categories/{id}",
+  tags: ["Admin"],
+  summary: "Update an existing category (Admin only)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().uuid().openapi({ description: "Category UUID" }),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: UpdateCategoryInputSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Category updated successfully",
+      content: {
+        "application/json": { schema: CategoryDetailsResponseSchema },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: "Category not found",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: "Slug already exists",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    422: {
+      description: "Validation failed",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/admin/categories/{id}",
+  tags: ["Admin"],
+  summary:
+    "Delete a category (Admin only - returns 409 if active products exist)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().uuid().openapi({ description: "Category UUID" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Category deleted successfully",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean().openapi({ example: true }),
+            message: z
+              .string()
+              .openapi({ example: "Category deleted successfully" }),
+          }),
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: "Category not found",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: "Conflict: Cannot delete category with active products",
       content: { "application/json": { schema: ApiErrorSchema } },
     },
   },

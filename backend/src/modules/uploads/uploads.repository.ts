@@ -8,7 +8,8 @@ export class UploadsRepository {
     nameAr?: string | null;
     description: string;
     descriptionAr?: string | null;
-    category: string;
+    category?: string | null;
+    categoryId?: string | null;
     price: number;
     version?: string;
     status: ProductStatus;
@@ -73,7 +74,8 @@ export class UploadsRepository {
       nameAr?: string | null;
       description: string;
       descriptionAr?: string | null;
-      category: string;
+      category?: string;
+      categoryId?: string | null;
       price: number;
       version?: string;
       status: ProductStatus;

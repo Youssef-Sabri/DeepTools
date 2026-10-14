@@ -592,3 +592,80 @@ export const MarketplaceInsightsSchema = registry.register(
     ),
   }),
 );
+
+// 12. Dynamic Categories Schemas
+export const CategoryItemSchema = registry.register(
+  "CategoryItem",
+  z.object({
+    id: z
+      .string()
+      .uuid()
+      .openapi({ example: "d0000000-0000-0000-0000-000000000001" }),
+    slug: z.string().openapi({ example: "workflows" }),
+    name: z.string().openapi({ example: "Workflows" }),
+    nameAr: z.string().openapi({ example: "سيناريوهات العمل" }),
+    displayName: z.string().openapi({ example: "Workflows" }),
+    description: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: "Automated workflow blueprints" }),
+    descriptionAr: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: "مخططات مسارات عمل مؤتمتة" }),
+    displayDescription: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: "Automated workflow blueprints" }),
+    productCount: z.number().int().openapi({ example: 8 }),
+    createdAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+  }),
+);
+
+export const CategoriesListResponseSchema = registry.register(
+  "CategoriesListResponse",
+  z.object({
+    success: z.boolean().openapi({ example: true }),
+    data: z.array(CategoryItemSchema),
+  }),
+);
+
+export const CategoryDetailsResponseSchema = registry.register(
+  "CategoryDetailsResponse",
+  z.object({
+    success: z.boolean().openapi({ example: true }),
+    data: CategoryItemSchema,
+  }),
+);
+
+export const CreateCategoryInputSchema = registry.register(
+  "CreateCategoryInput",
+  z.object({
+    name: z.string().min(2).max(100).openapi({ example: "AI Agents" }),
+    nameAr: z
+      .string()
+      .min(2)
+      .max(100)
+      .openapi({ example: "وكلاء الذكاء الاصطناعي" }),
+    slug: z.string().max(50).optional().openapi({ example: "ai-agents" }),
+    description: z
+      .string()
+      .max(1000)
+      .optional()
+      .openapi({ example: "Autonomous reasoning agents" }),
+    descriptionAr: z
+      .string()
+      .max(1000)
+      .optional()
+      .openapi({ example: "وكلاء تفكير ذاتيون لتنفيذ المهام" }),
+  }),
+);
+
+export const UpdateCategoryInputSchema = registry.register(
+  "UpdateCategoryInput",
+  CreateCategoryInputSchema.partial(),
+);

@@ -97,7 +97,9 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         .post("/api/v1/uploads")
         .set("Authorization", `Bearer ${userToken}`)
         .field("name", "Automation Script")
+        .field("nameAr", "أداة أتمتة بايثون")
         .field("description", "Complete Python automation solution script")
+        .field("descriptionAr", "حل أتمتة متكامل بلغة بايثون عالي الأداء")
         .field("category", "script")
         .field("price", 2500)
         .attach("file", fakeZip, "solution.zip");
@@ -139,7 +141,9 @@ describe("Seller Uploads Endpoints (Task B-2)", () => {
         .post("/api/v1/uploads")
         .set("Authorization", `Bearer ${userToken}`)
         .field("name", "Float Price Script")
+        .field("nameAr", "أداة تجربة السعر")
         .field("description", "Description of float price test")
+        .field("descriptionAr", "وصف أداة تجربة السعر باللغة العربية")
         .field("category", "script")
         .field("price", "19.99")
         .attach("file", fakeZip, "solution.zip");

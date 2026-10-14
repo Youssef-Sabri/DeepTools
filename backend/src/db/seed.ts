@@ -56,7 +56,84 @@ async function main() {
     },
   });
 
-  // 5. Seed 8 Canonical Marketplace Products
+  // 5. Seed Canonical Bilingual Categories
+  console.log("📁 Seeding canonical bilingual categories...");
+  const catWorkflow = await prisma.category.upsert({
+    where: { slug: "workflow" },
+    update: {
+      name: "Workflows",
+      nameAr: "سيناريوهات العمل",
+      description: "Automated workflow blueprints and pipelines",
+      descriptionAr: "مخططات ومسارات عمل مؤتمتة للأعمال",
+    },
+    create: {
+      slug: "workflow",
+      name: "Workflows",
+      nameAr: "سيناريوهات العمل",
+      description: "Automated workflow blueprints and pipelines",
+      descriptionAr: "مخططات ومسارات عمل مؤتمتة للأعمال",
+    },
+  });
+
+  const catAgentic = await prisma.category.upsert({
+    where: { slug: "agentic" },
+    update: {
+      name: "AI Agents",
+      nameAr: "وكلاء الذكاء الاصطناعي",
+      description: "Autonomous reasoning and tool-using AI agents",
+      descriptionAr: "وكلاء ذكاء اصطناعي تفاعليون ومستقلون لتنفيذ المهام",
+    },
+    create: {
+      slug: "agentic",
+      name: "AI Agents",
+      nameAr: "وكلاء الذكاء الاصطناعي",
+      description: "Autonomous reasoning and tool-using AI agents",
+      descriptionAr: "وكلاء ذكاء اصطناعي تفاعليون ومستقلون لتنفيذ المهام",
+    },
+  });
+
+  const catScript = await prisma.category.upsert({
+    where: { slug: "script" },
+    update: {
+      name: "Automation Scripts",
+      nameAr: "نصوص الأتمتة",
+      description: "Python, Bash, and Node.js productivity automation scripts",
+      descriptionAr: "سكربتات أتمتة برمجية بلغات بايثون، باش ونود جي إس",
+    },
+    create: {
+      slug: "script",
+      name: "Automation Scripts",
+      nameAr: "نصوص الأتمتة",
+      description: "Python, Bash, and Node.js productivity automation scripts",
+      descriptionAr: "سكربتات أتمتة برمجية بلغات بايثون، باش ونود جي إس",
+    },
+  });
+
+  const catCode = await prisma.category.upsert({
+    where: { slug: "code" },
+    update: {
+      name: "Code Base",
+      nameAr: "قواعد برمجية",
+      description: "Modular templates, starter repositories, and SDK wrappers",
+      descriptionAr: "قواعد وأطر برمجية معيارية وحزم تطوير متقدمة",
+    },
+    create: {
+      slug: "code",
+      name: "Code Base",
+      nameAr: "قواعد برمجية",
+      description: "Modular templates, starter repositories, and SDK wrappers",
+      descriptionAr: "قواعد وأطر برمجية معيارية وحزم تطوير متقدمة",
+    },
+  });
+
+  const categoryMap: Record<string, string> = {
+    workflow: catWorkflow.id,
+    agentic: catAgentic.id,
+    script: catScript.id,
+    code: catCode.id,
+  };
+
+  // 6. Seed 8 Canonical Marketplace Products
   console.log(
     "📦 Creating 8 bilingual products across canonical categories...",
   );
@@ -72,6 +149,7 @@ async function main() {
       descriptionAr:
         "سير عمل آلي عبر n8n لمراقبة حاويات دوكر واستعادتها تلقائياً عند التوقف مع إشعارات مباشرة لقنوات سلاك.",
       category: "workflow",
+      categoryId: categoryMap["workflow"],
       price: 4900, // $49.00
       badge: "Verified",
       badgeAr: "معتمد",
@@ -95,6 +173,7 @@ async function main() {
       descriptionAr:
         "وكيل ذكاء اصطناعي مستقل يقوم بتحليل استعلامات قواعد البيانات البطيئة واقتراح الفهارس المثلى تلقائياً.",
       category: "agentic",
+      categoryId: categoryMap["agentic"],
       price: 5900, // $59.00
       badge: "Featured",
       badgeAr: "مميز",
@@ -118,6 +197,7 @@ async function main() {
       descriptionAr:
         "أداة بايثون متقدمة لتعديل وتقسيم جداول قواعد البيانات الضخمة دون أي قفل للجداول أو انقطاع في الخدمة.",
       category: "script",
+      categoryId: categoryMap["script"],
       price: 3900, // $39.00
       badge: "Hot",
       badgeAr: "رائج",
@@ -141,6 +221,7 @@ async function main() {
       descriptionAr:
         "محرك تايب سكريبت احترافي لإدارة الأقفال الموزعة بين خوادم التطبيقات لمنع تعارض المعاملات المتزامنة.",
       category: "code",
+      categoryId: categoryMap["code"],
       price: 3500, // $35.00
       badge: "Enterprise",
       badgeAr: "للمؤسسات",
@@ -164,6 +245,7 @@ async function main() {
       descriptionAr:
         "خط تدفق بيانات لمزامنة قواعد البيانات السحابية المتعددة مع التوافق التلقائي للمخططات البيانية.",
       category: "workflow",
+      categoryId: categoryMap["workflow"],
       price: 6900, // $69.00
       badge: null,
       badgeAr: null,
@@ -187,6 +269,7 @@ async function main() {
       descriptionAr:
         "وكيل أمني لمراقبة قواعد البيانات وكشف ثغرات الحقن ومحاولات تسريب البيانات الشاذة في الوقت الحقيقي.",
       category: "agentic",
+      categoryId: categoryMap["agentic"],
       price: 7900, // $79.00
       badge: "Security",
       badgeAr: "حماية فائقة",
@@ -210,6 +293,7 @@ async function main() {
       descriptionAr:
         "سكربت جدولة ذكي لإدارة عمليات التنظيف التلقائي في بوستجرس دون التأثير على أداء أوقات الذروة.",
       category: "script",
+      categoryId: categoryMap["script"],
       price: 2900, // $29.00
       badge: "New",
       badgeAr: "جديد",
@@ -233,6 +317,7 @@ async function main() {
       descriptionAr:
         "محرك التقاط تغييرات البيانات في الوقت الحقيقي لبث التعديلات فورياً إلى أنظمة الحدث والتخزين التحليلي.",
       category: "code",
+      categoryId: categoryMap["code"],
       price: 8900, // $89.00
       badge: "High Perf",
       badgeAr: "أداء فائق",
@@ -294,6 +379,7 @@ async function main() {
       descriptionAr:
         "أداة بايثون خفيفة لتحديد الفهارس غير المستخدمة والمكررة واقتراح أوامر الحذف الآمنة.",
       category: "script",
+      categoryId: categoryMap["script"],
       price: 2500, // $25.00
       version: "1.0.0",
       fileKey: "postgres_vacuum_orchestrator.zip",

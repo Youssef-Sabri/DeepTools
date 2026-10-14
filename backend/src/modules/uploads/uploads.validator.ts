@@ -5,36 +5,72 @@ import {
   paginationDepthError,
   withinPaginationDepth,
 } from "../../middleware/requestBounds";
+import {
+  ARABIC_TEXT_REGEX,
+  ENGLISH_TEXT_REGEX,
+  HAS_ARABIC_LETTER_REGEX,
+  HAS_LATIN_LETTER_REGEX,
+} from "../../utils/localization";
 
-export const uploadCategoryEnum = z.enum([
-  "workflow",
-  "script",
-  "code",
-  "agentic",
-]);
+export const uploadCategoryEnum = z.string().min(1, "Category is required");
 
 export const uploadStatusEnum = z.nativeEnum(ProductStatus);
 
 export const createUploadSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name cannot exceed 100 characters"),
+    .trim()
+    .min(2, "English name must be at least 2 characters")
+    .max(100, "English name cannot exceed 100 characters")
+    .regex(
+      ENGLISH_TEXT_REGEX,
+      "English name must contain valid Latin characters",
+    )
+    .refine((val) => HAS_LATIN_LETTER_REGEX.test(val), {
+      message: "English name must contain at least one Latin letter",
+    }),
   nameAr: z
     .string()
+    .trim()
+    .min(2, "Arabic name is required and must be at least 2 characters")
     .max(100, "Arabic name cannot exceed 100 characters")
-    .nullable()
-    .optional(),
+    .regex(
+      ARABIC_TEXT_REGEX,
+      "Arabic name must contain valid Arabic Unicode script",
+    )
+    .refine((val) => HAS_ARABIC_LETTER_REGEX.test(val), {
+      message: "Arabic name must contain at least one authentic Arabic letter",
+    }),
   description: z
     .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(2000, "Description cannot exceed 2000 characters"),
+    .trim()
+    .min(10, "English description must be at least 10 characters")
+    .max(2000, "English description cannot exceed 2000 characters")
+    .regex(
+      ENGLISH_TEXT_REGEX,
+      "English description must contain valid Latin characters",
+    )
+    .refine((val) => HAS_LATIN_LETTER_REGEX.test(val), {
+      message: "English description must contain at least one Latin letter",
+    }),
   descriptionAr: z
     .string()
+    .trim()
+    .min(
+      10,
+      "Arabic description is required and must be at least 10 characters",
+    )
     .max(2000, "Arabic description cannot exceed 2000 characters")
-    .nullable()
-    .optional(),
+    .regex(
+      ARABIC_TEXT_REGEX,
+      "Arabic description must contain valid Arabic Unicode script",
+    )
+    .refine((val) => HAS_ARABIC_LETTER_REGEX.test(val), {
+      message:
+        "Arabic description must contain at least one authentic Arabic letter",
+    }),
   category: uploadCategoryEnum,
+  categoryId: z.string().uuid("Invalid categoryId format").optional(),
   price: z.preprocess(
     (val) => (typeof val === "string" ? Number(val) : val),
     z

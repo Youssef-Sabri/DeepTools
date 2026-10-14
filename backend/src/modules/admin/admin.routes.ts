@@ -15,12 +15,16 @@ import {
   getUsersQuerySchema,
 } from "./admin.validator";
 import settingsRoutes from "../settings/settings.routes";
+import { adminCategoriesRoutes } from "../categories/categories.routes";
 
 const router = Router();
 
 // Enforce authentication and ADMIN role across all admin routes
 router.use(authenticate);
 router.use(requireRole(["ADMIN"]));
+
+// Category management
+router.use("/categories", adminCategoriesRoutes);
 
 // 1. User management routes
 router.get(

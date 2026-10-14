@@ -22,7 +22,15 @@ export class ProductsRepository {
       ...(status === ProductStatus.APPROVED
         ? { approvedFileKey: { not: null } }
         : {}),
-      ...(params?.category ? { category: params.category } : {}),
+      ...(params?.category
+        ? {
+            OR: [
+              { category: params.category },
+              { categoryId: params.category },
+              { categoryRel: { slug: params.category } },
+            ],
+          }
+        : {}),
       ...(params?.search
         ? {
             OR: [
@@ -55,6 +63,9 @@ export class ProductsRepository {
           seller: {
             select: { id: true, name: true },
           },
+          categoryRel: {
+            select: { id: true, slug: true, name: true, nameAr: true },
+          },
         },
       }),
       prisma.product.count({ where }),
@@ -73,6 +84,9 @@ export class ProductsRepository {
       include: {
         seller: {
           select: { id: true, name: true },
+        },
+        categoryRel: {
+          select: { id: true, slug: true, name: true, nameAr: true },
         },
       },
     });
