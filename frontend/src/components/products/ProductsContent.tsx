@@ -12,8 +12,8 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
-import type { Product, License } from '@/lib/types'
-import { fetchApi, downloadProductFile } from '@/lib/api'
+import type { Product, License, Category } from '@/lib/types'
+import { fetchApi, downloadProductFile, fetchCategories } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { ProductCard } from '@/components/marketplace/ProductCard'
 import { CartDrawer } from '@/components/marketplace/CartDrawer'
@@ -32,6 +32,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
 
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
+  const [guestOwnedProductIds, setGuestOwnedProductIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -105,29 +106,100 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   }
 
   useEffect(() => {
-    if (!user) return
     let ignore = false
-    fetchApi<License[]>('/products/my/licenses')
-      .then((data) => {
-        if (ignore) return
-        setOwnedProductIds(
-          data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
-            .map((license) => license.productId)
-        )
-      })
-      .catch(() => {})
+
+    const checkOwnership = () => {
+      if (user) {
+        fetchApi<License[]>('/products/my/licenses')
+          .then((data) => {
+            if (ignore) return
+            setOwnedProductIds(
+              data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
+                .map((license) => license.productId)
+            )
+            setGuestOwnedProductIds([])
+          })
+          .catch(() => {})
+      } else {
+        fetchApi<{ email: string; purchases: Array<{ productId: string }> }>('/orders/guest/purchases')
+          .then((data) => {
+            if (ignore) return
+            if (data?.purchases && Array.isArray(data.purchases)) {
+              const ids = data.purchases.map((p) => p.productId)
+              setOwnedProductIds(ids)
+              setGuestOwnedProductIds(ids)
+            } else {
+              setOwnedProductIds([])
+              setGuestOwnedProductIds([])
+            }
+          })
+          .catch(() => {
+            if (ignore) return
+            setOwnedProductIds([])
+            setGuestOwnedProductIds([])
+          })
+      }
+    }
+
+    checkOwnership()
+
+    const handleSessionUpdate = () => {
+      checkOwnership()
+    }
+    window.addEventListener('guest:session_updated', handleSessionUpdate)
 
     return () => {
       ignore = true
+      window.removeEventListener('guest:session_updated', handleSessionUpdate)
     }
   }, [user])
 
+  const [categoriesList, setCategoriesList] = useState<Category[]>([])
+
+  useEffect(() => {
+    let ignore = false
+    fetchCategories()
+      .then((cats) => {
+        if (!ignore && Array.isArray(cats) && cats.length > 0) {
+          setCategoriesList(cats)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const getCategoryIcon = (slug: string) => {
+    switch (slug) {
+      case 'workflow':
+        return Sparkles
+      case 'agentic':
+        return Cpu
+      case 'script':
+        return Terminal
+      case 'code':
+        return ShieldCheck
+      default:
+        return Layers
+    }
+  }
+
   const categories = [
-    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers },
-    { id: 'workflow', label: 'Workflows (n8n/Make)', icon: Sparkles },
-    { id: 'agentic', label: 'AI Agents', icon: Cpu },
-    { id: 'script', label: 'Scripts (Python/Bash)', icon: Terminal },
-    { id: 'code', label: 'Code Base', icon: ShieldCheck },
+    { id: 'all', label: isAr ? 'جميع الأدوات' : 'All Assets', icon: Layers, count: undefined },
+    ...(categoriesList.length > 0
+      ? categoriesList.map((cat) => ({
+          id: cat.slug,
+          label: isAr && cat.nameAr ? cat.nameAr : cat.name,
+          icon: getCategoryIcon(cat.slug),
+          count: cat.productCount,
+        }))
+      : [
+          { id: 'workflow', label: 'Workflows (n8n/Make)', icon: Sparkles, count: undefined },
+          { id: 'agentic', label: 'AI Agents', icon: Cpu, count: undefined },
+          { id: 'script', label: 'Scripts (Python/Bash)', icon: Terminal, count: undefined },
+          { id: 'code', label: 'Code Base', icon: ShieldCheck, count: undefined },
+        ]),
   ]
 
   // The API applies search, category, and sort before pagination.
@@ -248,6 +320,11 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{cat.label}</span>
+                {typeof cat.count === 'number' && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600 border border-[var(--line)]'}`}>
+                    {cat.count}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -269,6 +346,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               const isOwned =
                 ownedProductIds.includes(product.id) ||
                 (Boolean(user) && user?.id === product.sellerId)
+              const isGuestOwned = !user && guestOwnedProductIds.includes(product.id)
 
               return (
                 <ProductCard
@@ -276,6 +354,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
                   product={product}
                   locale={locale}
                   isOwned={isOwned}
+                  isGuestOwned={isGuestOwned}
                   onBuy={(p) => setSelectedProductForCart(p)}
                   onDownload={(id) => handleDownload(id)}
                 />
@@ -315,8 +394,16 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               (Boolean(user) && user?.id === selectedProductForCart.sellerId)
             : false
         }
+        isGuestOwned={
+          selectedProductForCart
+            ? !user && guestOwnedProductIds.includes(selectedProductForCart.id)
+            : false
+        }
         onOrderCompleted={(newProductId) => {
-          setOwnedProductIds((prev) => [...prev, newProductId])
+          setOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
+          if (!user) {
+            setGuestOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
+          }
         }}
       />
 

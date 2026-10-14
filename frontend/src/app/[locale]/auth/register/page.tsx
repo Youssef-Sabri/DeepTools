@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getDictionary, hasLocale, type Locale } from '@/dictionaries'
 import RegisterContent from '@/components/auth/RegisterContent'
@@ -13,5 +14,9 @@ export default async function RegisterPage({ params }: { params: Promise<{ local
   const { locale } = await params
   if (!hasLocale(locale)) notFound()
   const dict = await getDictionary(locale as Locale)
-  return <RegisterContent dict={dict} locale={locale} />
+  return (
+    <Suspense fallback={null}>
+      <RegisterContent dict={dict} locale={locale} />
+    </Suspense>
+  )
 }

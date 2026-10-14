@@ -1,15 +1,35 @@
 const upstreamBase = process.env.API_INTERNAL_URL || 'http://localhost:4000/api/v1'
 
+function isAllowedOrigin(origin: string | null, host: string | null): boolean {
+  if (!origin) return true
+  try {
+    const originUrl = new URL(origin)
+    if (host) {
+      const hostUrl = host.includes('://') ? new URL(host) : new URL(`http://${host}`)
+      if (originUrl.host === hostUrl.host) return true
+    }
+    if (['localhost', '127.0.0.1', '0.0.0.0'].includes(originUrl.hostname)) {
+      return true
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }): Promise<Response> {
   const { path } = await context.params
   const incoming = new URL(request.url)
   if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
     const origin = request.headers.get('origin')
-    if (origin && origin !== incoming.origin) return new Response('Forbidden origin', { status: 403 })
+    const host = request.headers.get('host')
+    if (origin && !isAllowedOrigin(origin, host)) {
+      return new Response('Forbidden origin', { status: 403 })
+    }
   }
   const target = `${upstreamBase.replace(/\/$/, '')}/${path.map(encodeURIComponent).join('/')}${incoming.search}`
   const headers = new Headers(request.headers)
-  for (const name of ['host', 'connection', 'content-length', 'accept-encoding', 'origin']) headers.delete(name)
+  for (const name of ['host', 'connection', 'content-length', 'accept-encoding']) headers.delete(name)
   try {
     const upstream = await fetch(target, {
       method: request.method,

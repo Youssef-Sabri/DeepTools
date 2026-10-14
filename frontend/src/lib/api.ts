@@ -1,3 +1,5 @@
+import type { Category } from '@/lib/types'
+
 const API_BASE_URL = '/api/v1'
 
 export type ApiFetchOptions = RequestInit
@@ -97,8 +99,9 @@ async function downloadFile(url: string, fallbackFileName: string): Promise<void
   a.remove()
 }
 
-export function downloadProductFile(productId: string, fallbackFileName: string = 'asset'): Promise<void> {
-  return downloadFile(`${API_BASE_URL}/products/${encodeURIComponent(productId)}/download`, fallbackFileName)
+export function downloadProductFile(productId: string, fallbackFileName: string = 'asset', guestToken?: string): Promise<void> {
+  const query = guestToken ? `?token=${encodeURIComponent(guestToken)}` : ''
+  return downloadFile(`${API_BASE_URL}/products/${encodeURIComponent(productId)}/download${query}`, fallbackFileName)
 }
 
 export function downloadAdminUploadFile(productId: string, fallbackFileName: string = 'asset-review.zip'): Promise<void> {
@@ -107,4 +110,52 @@ export function downloadAdminUploadFile(productId: string, fallbackFileName: str
 
 export function adminUploadViewUrl(productId: string): string {
   return `${API_BASE_URL}/admin/uploads/${encodeURIComponent(productId)}/download?disposition=inline`
+}
+
+export async function fetchCategories(): Promise<Category[]> {
+  const res = await fetchApi<Category[] | { categories: Category[] }>('/categories')
+  if (Array.isArray(res)) return res
+  if (res && typeof res === 'object' && 'categories' in res && Array.isArray(res.categories)) {
+    return res.categories
+  }
+  return []
+}
+
+export async function createAdminCategory(data: {
+  slug: string
+  name: string
+  nameAr: string
+  description?: string
+  descriptionAr?: string
+  icon?: string
+  displayOrder?: number
+}): Promise<Category> {
+  return fetchApi<Category>('/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateAdminCategory(
+  id: string,
+  data: Partial<{
+    name: string
+    nameAr: string
+    description: string
+    descriptionAr: string
+    icon: string
+    displayOrder: number
+    isActive: boolean
+  }>
+): Promise<Category> {
+  return fetchApi<Category>(`/admin/categories/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteAdminCategory(id: string): Promise<{ message: string }> {
+  return fetchApi<{ message: string }>(`/admin/categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
 }

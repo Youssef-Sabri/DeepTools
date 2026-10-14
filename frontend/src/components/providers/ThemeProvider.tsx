@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -11,37 +11,18 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-function subscribe(callback: () => void) {
-  window.addEventListener('storage', callback)
-  return () => window.removeEventListener('storage', callback)
-}
-
-function getSnapshot(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  const stored = localStorage.getItem('theme') as Theme | null
-  return stored || 'dark'
-}
-
-function getServerSnapshot(): Theme {
-  return 'dark'
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const currentTheme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const [theme, setTheme] = useState<Theme>(currentTheme)
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
     const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-    localStorage.setItem('theme', theme)
-  }, [theme])
+    root.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }, [])
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+    // Light mode only
+    setTheme('light')
   }
 
   return (

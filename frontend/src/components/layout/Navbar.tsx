@@ -12,7 +12,9 @@ import {
   Menu,
   X,
   ChevronDown,
+  Key,
 } from 'lucide-react'
+import { fetchApi } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { OmnisearchModal } from '@/components/marketplace/OmnisearchModal'
 import type { Locale } from '@/dictionaries'
@@ -62,6 +64,41 @@ export default function Navbar({ locale, dict }: NavbarProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const [guestSession, setGuestSession] = useState<{ active: boolean; email?: string; purchasesCount?: number } | null>(null)
+
+  useEffect(() => {
+    if (user) return
+
+    let isMounted = true
+    const checkGuestSession = async () => {
+      try {
+        const res = await fetchApi<{ success: boolean; data: { active: boolean; email?: string; purchasesCount?: number } }>(
+          '/orders/guest/session'
+        )
+        if (isMounted) {
+          if (res?.data?.active) {
+            setGuestSession(res.data)
+          } else {
+            setGuestSession(null)
+          }
+        }
+      } catch {
+        if (isMounted) setGuestSession(null)
+      }
+    }
+
+    checkGuestSession()
+
+    const handleUpdate = () => checkGuestSession()
+    window.addEventListener('guest:session_updated', handleUpdate)
+    return () => {
+      isMounted = false
+      window.removeEventListener('guest:session_updated', handleUpdate)
+    }
+  }, [user])
+
+  const activeGuestSession = user ? null : guestSession
+
   const isAdmin = user?.role === 'ADMIN'
 
   return (
@@ -71,7 +108,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
         dir={isAr ? 'rtl' : 'ltr'}
         className={`fixed top-0 inset-x-0 z-40 transition-all duration-250 ${
           scrolled
-            ? 'bg-[#080b10]/90 backdrop-blur-md border-b border-[var(--line)] shadow-xl'
+            ? 'bg-white/90 backdrop-blur-md border-b border-[var(--line)] shadow-xs'
             : 'bg-transparent border-b border-transparent'
         }`}
       >
@@ -243,6 +280,21 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  {activeGuestSession?.active && (
+                    <Link
+                      href={`/${locale}/guest/purchases`}
+                      className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--blue-bright)]/40 text-xs font-mono text-[var(--blue-bright)] hover:bg-[var(--blue-bright)]/10 transition-colors shadow-sm"
+                      title={activeGuestSession.email}
+                    >
+                      <Key className="w-3.5 h-3.5" />
+                      <span>{isAr ? 'مشترياتي (كزائر)' : 'Guest Orders'}</span>
+                      {typeof activeGuestSession.purchasesCount === 'number' && activeGuestSession.purchasesCount > 0 && (
+                        <span className="w-4 h-4 rounded-full bg-[var(--blue-bright)] text-black text-[9px] font-bold flex items-center justify-center">
+                          {activeGuestSession.purchasesCount}
+                        </span>
+                      )}
+                    </Link>
+                  )}
                   <Link
                     href={`/${locale}/auth/login`}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
@@ -367,21 +419,49 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 </button>
               </div>
             ) : (
-              <div className="pt-3 border-t border-[var(--line)] flex items-center gap-2">
-                <Link
-                  href={`/${locale}/auth/login`}
-                  onClick={() => setIsOpen(false)}
-                  className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]"
-                >
-                  {dict.nav.login}
-                </Link>
-                <Link
-                  href={`/${locale}/auth/register`}
-                  onClick={() => setIsOpen(false)}
-                  className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] text-white"
-                >
-                  {dict.nav.register}
-                </Link>
+              <div className="pt-3 border-t border-[var(--line)] space-y-2">
+                {activeGuestSession?.active && (
+                  <Link
+                    href={`/${locale}/guest/purchases`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-mono bg-[var(--surface-2)] border border-[var(--blue-bright)]/40 text-[var(--blue-bright)]"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Key className="w-3.5 h-3.5" />
+                      <span>{isAr ? 'مشترياتي الرقمية (كزائر)' : 'My Guest Purchases'}</span>
+                    </div>
+                    {typeof activeGuestSession.purchasesCount === 'number' && activeGuestSession.purchasesCount > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-[var(--blue-bright)] text-black text-[9px] font-bold flex items-center justify-center">
+                        {activeGuestSession.purchasesCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/${locale}/auth/login`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]"
+                  >
+                    {dict.nav.login}
+                  </Link>
+                  <Link
+                    href={`/${locale}/auth/register`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex-1 text-center py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] text-white"
+                  >
+                    {dict.nav.register}
+                  </Link>
+                </div>
+                {!activeGuestSession?.active && (
+                  <Link
+                    href={`/${locale}/guest/purchases`}
+                    onClick={() => setIsOpen(false)}
+                    className="block text-center text-[11px] font-mono text-[var(--muted)] hover:text-[var(--blue-bright)] py-1.5 transition-colors"
+                  >
+                    {isAr ? 'البحث عن مشتريات زائر' : 'Guest Purchases Lookup'}
+                  </Link>
+                )}
               </div>
             )}
           </div>

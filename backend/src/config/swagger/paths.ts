@@ -14,8 +14,7 @@ import {
   PaginatedProductsSchema,
   CreateProductInputDocs,
   UpdateProductInputDocs,
-  LicenseSchema,
-  ToggleLicenseInputDocs,
+  PaginatedUsersSchema,
   PurchaseResponseSchema,
   UserLicenseSchema,
   CreateUploadInputDocs,
@@ -34,6 +33,11 @@ import {
   CategoryDetailsResponseSchema,
   CreateCategoryInputSchema,
   UpdateCategoryInputSchema,
+  GuestPurchaseInputSchema,
+  GuestPurchaseResponseSchema,
+  GuestRequestAccessInputSchema,
+  GuestRequestAccessResponseSchema,
+  GuestPurchasesResponseSchema,
 } from "./schemas";
 
 const LangQueryParam = z
@@ -477,44 +481,41 @@ registry.registerPath({
   method: "get",
   path: "/admin/users",
   tags: ["Admin"],
-  summary: "List all registered users (Admin only)",
-  security: [{ bearerAuth: [] }],
-  responses: {
-    200: {
-      description: "List of all system users",
-      content: {
-        "application/json": { schema: envelope(z.array(UserSchema)) },
-      },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "delete",
-  path: "/admin/users/{id}",
-  tags: ["Admin"],
-  summary: "Delete a registered user (Admin only)",
+  summary: "List all registered users with pagination and search (Admin only)",
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    query: z.object({
+      page: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .optional()
+        .openapi({ example: 1 }),
+      limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .openapi({ example: 10 }),
+      search: z.string().max(100).optional().openapi({ example: "john" }),
+      role: z.enum(["USER", "ADMIN"]).optional().openapi({ example: "USER" }),
+    }),
   },
   responses: {
     200: {
-      description: "User deleted successfully",
+      description: "List of system users paginated",
       content: {
-        "application/json": {
-          schema: envelope(
-            z.object({
-              message: z
-                .string()
-                .openapi({ example: "User deleted successfully" }),
-            }),
-          ),
-        },
+        "application/json": { schema: envelope(PaginatedUsersSchema) },
       },
     },
-    404: {
-      description: "User not found",
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden: Admin access required",
       content: { "application/json": { schema: ApiErrorSchema } },
     },
   },
@@ -522,43 +523,32 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/admin/licenses",
+  path: "/admin/users/{id}",
   tags: ["Admin"],
-  summary: "List all issued licenses with relations (Admin only)",
-  security: [{ bearerAuth: [] }],
-  responses: {
-    200: {
-      description: "List of all licenses",
-      content: {
-        "application/json": { schema: envelope(z.array(LicenseSchema)) },
-      },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "patch",
-  path: "/admin/licenses/{id}/toggle",
-  tags: ["Admin"],
-  summary: "Toggle active status of a license (Admin only)",
+  summary: "Get user details by ID (Admin only)",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({ id: z.string().uuid() }),
-    body: {
-      content: {
-        "application/json": {
-          schema: ToggleLicenseInputDocs,
-        },
-      },
-    },
   },
   responses: {
     200: {
-      description: "License status updated",
-      content: { "application/json": { schema: envelope(LicenseSchema) } },
+      description: "User details retrieved successfully",
+      content: {
+        "application/json": {
+          schema: envelope(UserSchema),
+        },
+      },
     },
-    422: {
-      description: "Validation failed",
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden: Admin access required",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    404: {
+      description: "User not found",
       content: { "application/json": { schema: ApiErrorSchema } },
     },
   },
@@ -1454,6 +1444,134 @@ registry.registerPath({
     409: {
       description: "Conflict: Cannot delete category with active products",
       content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+// ==========================================
+// 12. Guest Checkout & Returning Access Endpoints
+// ==========================================
+registry.registerPath({
+  method: "post",
+  path: "/orders/guest-purchase",
+  tags: ["Orders"],
+  summary: "Complete instant simulated guest purchase and unlock 7-day session",
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: GuestPurchaseInputSchema },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Guest purchase completed successfully",
+      content: {
+        "application/json": { schema: GuestPurchaseResponseSchema },
+      },
+    },
+    400: {
+      description: "Bad Request: Product unapproved or invalid input",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    403: {
+      description: "Forbidden: Cannot purchase own product",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+    409: {
+      description: "Conflict: Product already purchased by this email",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/orders/guest/request-access",
+  tags: ["Orders"],
+  summary:
+    "Request anti-theft single-use magic link to access previous guest purchases",
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: GuestRequestAccessInputSchema },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Generic security confirmation message",
+      content: {
+        "application/json": { schema: GuestRequestAccessResponseSchema },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/orders/guest/verify-access",
+  tags: ["Orders"],
+  summary:
+    "Verify single-use magic link token and unlock 7-day guest session cookie",
+  request: {
+    query: z.object({
+      token: z.string().openapi({ description: "Single-use magic link token" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Guest session unlocked successfully for 7 days",
+      content: {
+        "application/json": { schema: GuestPurchasesResponseSchema },
+      },
+    },
+    401: {
+      description: "Unauthorized: Invalid or expired magic link token",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/orders/guest/purchases",
+  tags: ["Orders"],
+  summary:
+    "Retrieve list of all active purchases and licenses for current guest session",
+  responses: {
+    200: {
+      description: "Active guest purchases retrieved successfully",
+      content: {
+        "application/json": { schema: GuestPurchasesResponseSchema },
+      },
+    },
+    401: {
+      description: "Unauthorized: No active guest session cookie found",
+      content: { "application/json": { schema: ApiErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/orders/guest/session",
+  tags: ["Orders"],
+  summary: "Check whether current device has an active 7-day guest session",
+  responses: {
+    200: {
+      description: "Guest session state returned",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.object({
+              active: z.boolean(),
+              email: z.string().nullable(),
+            }),
+          }),
+        },
+      },
     },
   },
 });

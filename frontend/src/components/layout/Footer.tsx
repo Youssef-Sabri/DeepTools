@@ -17,7 +17,7 @@ export default function Footer({ locale, dict }: FooterProps) {
   const isAr = locale === 'ar'
 
   return (
-    <footer className="border-t border-[var(--line)] bg-[#05070a] text-[var(--muted)] text-xs mt-20">
+    <footer className="border-t border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] text-xs mt-20">
       <div className="container-custom py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}
@@ -113,6 +113,14 @@ export default function Footer({ locale, dict }: FooterProps) {
               <li>
                 <Link href={`/${locale}/dashboard?tab=sales`} className="hover:text-[var(--text)] transition-colors">
                   {isAr ? 'أرباح ومبيعات البائع' : 'Seller Payouts'}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={`/${locale}/guest/purchases`}
+                  className="hover:text-[var(--blue-bright)] text-[var(--blue-bright)]/90 transition-colors flex items-center gap-1 font-medium"
+                >
+                  <span>{isAr ? 'الوصول لمشتريات الزائر' : 'Guest Purchases Lookup'}</span>
                 </Link>
               </li>
             </ul>

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from "express";
 import { ApiError } from "../utils/apiError";
 import { env } from "../config/env";
+import { t } from "../utils/i18n";
 
 export const errorHandler: ErrorRequestHandler = (
   err: Error,
@@ -9,6 +10,7 @@ export const errorHandler: ErrorRequestHandler = (
   _next: NextFunction,
 ): void => {
   const requestId = req.headers["x-request-id"] || "unknown";
+  const lang = req.language || "en";
 
   if (res.headersSent || res.destroyed) {
     if (!res.destroyed) res.destroy(err);
@@ -16,10 +18,11 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   if (err instanceof ApiError) {
+    const localizedMessage = t(err.message, lang);
     res.status(err.statusCode).json({
       success: false,
       statusCode: err.statusCode,
-      message: err.message,
+      message: localizedMessage,
       errors: err.errors,
     });
     return;
@@ -31,13 +34,15 @@ export const errorHandler: ErrorRequestHandler = (
     err.message,
   );
 
+  const fallbackMessage =
+    env.NODE_ENV === "production"
+      ? t("Internal server error", lang)
+      : err.message || t("Internal server error", lang);
+
   res.status(500).json({
     success: false,
     statusCode: 500,
-    message:
-      env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message || "Internal server error",
+    message: fallbackMessage,
     errors: [],
   });
 };

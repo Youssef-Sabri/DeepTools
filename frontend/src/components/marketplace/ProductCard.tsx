@@ -11,6 +11,7 @@ interface ProductCardProps {
   onBuy?: (product: Product) => void
   onDownload?: (productId: string) => void
   isOwned?: boolean
+  isGuestOwned?: boolean
 }
 
 export function ProductCard({
@@ -19,28 +20,29 @@ export function ProductCard({
   onBuy,
   onDownload,
   isOwned = false,
+  isGuestOwned = false,
 }: ProductCardProps) {
   const isArabic = locale === 'ar'
-  const displayName = (isArabic && product.nameAr) ? product.nameAr : product.name
-  const displayDescription = (isArabic && product.descriptionAr) ? product.descriptionAr : product.description
+  const displayName = product.displayName || ((isArabic && product.nameAr) ? product.nameAr : product.name)
+  const displayDescription = product.displayDescription || ((isArabic && product.descriptionAr) ? product.descriptionAr : product.description)
   const visualClass = getCategoryVisualClass(product.category)
   const filePill = product.fileExtension || (product.fileKey ? getFileExtensionPill(product.fileKey) : null)
   const normCategory = normalizeCategory(product.category)
   const sellerName = product.sellerName?.trim() || product.seller?.name?.trim() || null
-  const badge = (isArabic && product.badgeAr ? product.badgeAr : product.badge)?.trim()
+  const badge = (product.displayBadge || (isArabic && product.badgeAr ? product.badgeAr : product.badge))?.trim()
 
   const getCategoryGlyph = () => {
     switch (normCategory) {
       case 'workflow':
-        return <Sparkles className="w-6 h-6 text-[#62a0ff]" />
+        return <Sparkles className="w-6 h-6 text-[var(--blue)]" />
       case 'agentic':
-        return <Cpu className="w-6 h-6 text-[#bb86fc]" />
+        return <Cpu className="w-6 h-6 text-[var(--purple)]" />
       case 'script':
-        return <Terminal className="w-6 h-6 text-[#35d69f]" />
+        return <Terminal className="w-6 h-6 text-[var(--green)]" />
       case 'code':
-        return <ShieldCheck className="w-6 h-6 text-[#f59e50]" />
+        return <ShieldCheck className="w-6 h-6 text-[var(--orange)]" />
       default:
-        return <Terminal className="w-6 h-6 text-[#62a0ff]" />
+        return <Terminal className="w-6 h-6 text-[var(--blue)]" />
     }
   }
 
@@ -48,25 +50,42 @@ export function ProductCard({
 
   return (
     <div className="deeptools-card rounded-xl overflow-hidden flex flex-col justify-between group">
-      <div>
+      <Link
+        href={`/${locale}/products/${product.id}`}
+        className="flex flex-col flex-1 block focus:outline-none cursor-pointer"
+        aria-label={displayName}
+      >
         {/* Visual Header with Radial Category Backdrop */}
         <div className={`relative h-44 w-full ${visualClass} flex items-center justify-center overflow-hidden border-b border-[var(--line)]`}>
           {/* Frosted Glyph */}
-          <div className="product-glyph w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-lg">
+          <div className="product-glyph w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-sm">
             {getCategoryGlyph()}
           </div>
 
           {/* Category Chip at Top-Left */}
           <div className="absolute top-3 start-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded bg-[#080b10]/70 text-[var(--text)] border border-[var(--line)] backdrop-blur-sm">
+            <span className="text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded bg-white/90 text-[var(--text)] border border-[var(--line)] backdrop-blur-sm shadow-xs">
               {normCategory}
             </span>
           </div>
-          {badge && (
-            <span className="absolute top-3 end-3 px-2.5 py-1 rounded bg-[#080b10]/70 text-[var(--green)] border border-[var(--line)] text-[10px] font-mono">
+          {isOwned ? (
+            <span
+              className={`absolute top-3 end-3 px-2.5 py-1 rounded text-[10px] font-mono shadow-xs flex items-center gap-1 font-semibold backdrop-blur-xs ${
+                isGuestOwned
+                  ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
+                  : 'bg-[var(--blue)]/15 text-[var(--blue-bright)] border border-[var(--blue)]/30'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3 shrink-0" />
+              {isGuestOwned
+                ? (isArabic ? 'مملوك (جلسة 7 أيام)' : 'Owned (7-day Guest)')
+                : (isArabic ? 'مملوك في مكتبتك' : 'Owned in Library')}
+            </span>
+          ) : badge ? (
+            <span className="absolute top-3 end-3 px-2.5 py-1 rounded bg-white/90 text-[var(--green)] border border-[var(--line)] text-[10px] font-mono shadow-xs">
               {badge}
             </span>
-          )}
+          ) : null}
 
           {/* Bottom-Right File Extension Pill */}
           {filePill && <div className="absolute bottom-3 end-3">
@@ -77,7 +96,7 @@ export function ProductCard({
         </div>
 
         {/* Content Body */}
-        <div className="p-5">
+        <div className="p-5 flex-1">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-5 h-5 rounded-full bg-[var(--surface-3)] border border-[var(--line)] text-[10px] font-mono flex items-center justify-center text-[var(--muted)]">
               {sellerInitials}
@@ -87,11 +106,9 @@ export function ProductCard({
             </span>
           </div>
 
-          <Link href={`/${locale}/products/${product.id}`} className="block group-hover:text-[var(--blue-bright)] transition-colors">
-            <h3 className="text-base font-semibold text-[var(--text)] line-clamp-1">
-              {displayName}
-            </h3>
-          </Link>
+          <h3 className="text-base font-semibold text-[var(--text)] line-clamp-1 group-hover:text-[var(--blue-bright)] transition-colors">
+            {displayName}
+          </h3>
 
           <p className="mt-2 text-xs text-[var(--muted)] line-clamp-2 leading-relaxed">
             {displayDescription}
@@ -102,19 +119,27 @@ export function ProductCard({
             <span>{formatDate(product.publishedAt || product.createdAt, locale)}</span>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Card Footer with Price and Actions */}
       <div className="p-5 pt-0 mt-3 flex items-center justify-between border-t border-[var(--line)]/50 pt-4">
         <div>
           <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--muted-2)] block">
-            {isOwned ? (isArabic ? 'متاح لك' : 'Accessible') : (isArabic ? 'السعر' : 'Price')}
+            {isOwned
+              ? (isArabic ? 'حالة الترخيص' : 'License Status')
+              : (isArabic ? 'السعر' : 'Price')}
           </span>
           <span className="text-lg font-bold font-mono text-[var(--text)]">
             {isOwned ? (
-              <span className="text-xs text-[var(--green)] flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {isArabic ? 'متاح لك' : 'Accessible'}
+              <span
+                className={`text-xs flex items-center gap-1 font-semibold ${
+                  isGuestOwned ? 'text-emerald-600' : 'text-[var(--blue-bright)]'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                {isGuestOwned
+                  ? (isArabic ? 'جلسة 7 أيام' : '7-Day Guest')
+                  : (isArabic ? 'ترخيص دائم' : 'Lifetime License')}
               </span>
             ) : (
               formatCents(product.price)
@@ -125,15 +150,27 @@ export function ProductCard({
         <div className="flex items-center gap-2">
           {isOwned ? (
             <button
-              onClick={() => onDownload && onDownload(product.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-[#2bc48d] text-[#080b10] transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDownload && onDownload(product.id)
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors shadow-xs ${
+                isGuestOwned
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : 'bg-[var(--blue)] hover:bg-[var(--blue-bright)]'
+              }`}
             >
               <Download className="w-3.5 h-3.5" />
-              {isArabic ? 'تحميل' : 'Download'}
+              {isArabic ? 'تحميل الملف' : 'Download'}
             </button>
           ) : (
             <button
-              onClick={() => onBuy && onBuy(product)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onBuy && onBuy(product)
+              }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors shadow-sm"
             >
               <ShoppingCart className="w-3.5 h-3.5" />

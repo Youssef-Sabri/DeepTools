@@ -34,14 +34,6 @@ export class AdminController {
     res.status(200).json({ success: true, statusCode: 200, data: user });
   };
 
-  toggleLicense = async (req: Request, res: Response): Promise<void> => {
-    const id = req.params.id as string;
-    const body = req.body as { isActive?: boolean };
-    const isActive = Boolean(body.isActive);
-    const result = await this.service.toggleLicenseStatus(id, isActive);
-    res.status(200).json({ success: true, data: result });
-  };
-
   getUploads = async (req: Request, res: Response): Promise<void> => {
     const query = listAdminUploadsQuerySchema.parse(req.query);
     const result = await this.service.findAllUploads(query);
@@ -72,7 +64,7 @@ export class AdminController {
     const result = await this.service.approveUpload(adminId, id);
     res.status(200).json({
       success: true,
-      message: "Product approved successfully",
+      message: req.t("uploads.approved"),
       data: result,
     });
   };
@@ -85,7 +77,7 @@ export class AdminController {
     const result = await this.service.rejectUpload(adminId, id, rejectionNote);
     res.status(200).json({
       success: true,
-      message: "Product rejected successfully",
+      message: req.t("uploads.rejected"),
       data: result,
     });
   };

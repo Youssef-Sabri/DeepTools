@@ -20,7 +20,7 @@ export class AuthController {
     res.status(201).json({
       success: true,
       statusCode: 201,
-      message: "User registered successfully",
+      message: req.t("auth.registered"),
       data: { user: result.user },
     });
   };
@@ -34,7 +34,7 @@ export class AuthController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "Login successful",
+      message: req.t("auth.loginSuccess"),
       data: { user: result.user },
     });
   };
@@ -52,7 +52,7 @@ export class AuthController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "If the email exists, a password reset token has been generated",
+      message: req.t("auth.forgotPasswordSent"),
     });
   };
 
@@ -64,7 +64,7 @@ export class AuthController {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "Password has been reset successfully",
+      message: req.t("auth.passwordResetSuccess"),
     });
   };
 }

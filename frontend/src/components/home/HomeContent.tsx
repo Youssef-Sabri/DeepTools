@@ -25,6 +25,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
+  const [guestOwnedProductIds, setGuestOwnedProductIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [homeError, setHomeError] = useState(false)
 
@@ -71,20 +72,51 @@ export default function HomeContent({ locale }: HomeContentProps) {
   }, [locale])
 
   useEffect(() => {
-    if (!user) return
     let ignore = false
-    fetchApi<License[]>('/products/my/licenses')
-      .then((data) => {
-        if (ignore) return
-        setOwnedProductIds(
-          data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
-            .map((license) => license.productId)
-        )
-      })
-      .catch(() => {})
+
+    const checkOwnership = () => {
+      if (user) {
+        fetchApi<License[]>('/products/my/licenses')
+          .then((data) => {
+            if (ignore) return
+            setOwnedProductIds(
+              data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
+                .map((license) => license.productId)
+            )
+            setGuestOwnedProductIds([])
+          })
+          .catch(() => {})
+      } else {
+        fetchApi<{ email: string; purchases: Array<{ productId: string }> }>('/orders/guest/purchases')
+          .then((data) => {
+            if (ignore) return
+            if (data?.purchases && Array.isArray(data.purchases)) {
+              const ids = data.purchases.map((p) => p.productId)
+              setOwnedProductIds(ids)
+              setGuestOwnedProductIds(ids)
+            } else {
+              setOwnedProductIds([])
+              setGuestOwnedProductIds([])
+            }
+          })
+          .catch(() => {
+            if (ignore) return
+            setOwnedProductIds([])
+            setGuestOwnedProductIds([])
+          })
+      }
+    }
+
+    checkOwnership()
+
+    const handleSessionUpdate = () => {
+      checkOwnership()
+    }
+    window.addEventListener('guest:session_updated', handleSessionUpdate)
 
     return () => {
       ignore = true
+      window.removeEventListener('guest:session_updated', handleSessionUpdate)
     }
   }, [user])
 
@@ -185,10 +217,10 @@ export default function HomeContent({ locale }: HomeContentProps) {
             <div className="mt-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-[var(--text)]">
-                  {isAr && products[0].nameAr ? products[0].nameAr : products[0].name}
+                  {products[0].displayName || (isAr && products[0].nameAr ? products[0].nameAr : products[0].name)}
                 </h2>
                 <p className="mt-2 text-sm text-[var(--muted)] line-clamp-3">
-                  {isAr && products[0].descriptionAr ? products[0].descriptionAr : products[0].description}
+                  {products[0].displayDescription || (isAr && products[0].descriptionAr ? products[0].descriptionAr : products[0].description)}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3 text-xs font-mono text-[var(--muted-2)]">
                   <span>{products[0].category}</span>
@@ -250,6 +282,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
               const isOwned =
                 ownedProductIds.includes(product.id) ||
                 (Boolean(user) && user?.id === product.sellerId)
+              const isGuestOwned = !user && guestOwnedProductIds.includes(product.id)
 
               return (
                 <ProductCard
@@ -257,6 +290,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
                   product={product}
                   locale={locale}
                   isOwned={isOwned}
+                  isGuestOwned={isGuestOwned}
                   onBuy={(p) => setSelectedProductForCart(p)}
                   onDownload={(id) => handleDownload(id)}
                 />
@@ -291,8 +325,16 @@ export default function HomeContent({ locale }: HomeContentProps) {
               (Boolean(user) && user?.id === selectedProductForCart.sellerId)
             : false
         }
+        isGuestOwned={
+          selectedProductForCart
+            ? !user && guestOwnedProductIds.includes(selectedProductForCart.id)
+            : false
+        }
         onOrderCompleted={(newProductId) => {
-          setOwnedProductIds((prev) => [...prev, newProductId])
+          setOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
+          if (!user) {
+            setGuestOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
+          }
         }}
       />
 

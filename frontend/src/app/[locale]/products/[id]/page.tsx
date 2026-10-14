@@ -28,10 +28,11 @@ export async function generateMetadata({
   const product = await getProduct(id, locale)
   if (!product) return {}
 
-  const name = locale === 'ar' && product.nameAr ? product.nameAr : product.name
+  const name = product.displayName || (locale === 'ar' && product.nameAr ? product.nameAr : product.name)
+  const description = product.displayDescription || (locale === 'ar' && product.descriptionAr ? product.descriptionAr : product.description)
   return {
     title: `${name} — DeepTools`,
-    description: product.description,
+    description: description,
   }
 }
 

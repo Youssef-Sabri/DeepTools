@@ -58,7 +58,10 @@ export class CategoriesService {
     }));
   }
 
-  async getCategoryById(id: string): Promise<FormattedCategory> {
+  async getCategoryById(
+    id: string,
+    lang: string = "en",
+  ): Promise<FormattedCategory> {
     const cat = await this.repo.findById(id);
     if (!cat || cat.deletedAt) {
       throw ApiError.notFound("Category not found");
@@ -69,10 +72,14 @@ export class CategoriesService {
       slug: cat.slug,
       name: cat.name,
       nameAr: cat.nameAr,
-      displayName: cat.name,
+      displayName: resolveLocalizedField(cat.name, cat.nameAr, lang),
       description: cat.description,
       descriptionAr: cat.descriptionAr,
-      displayDescription: cat.description,
+      displayDescription: resolveLocalizedField(
+        cat.description,
+        cat.descriptionAr,
+        lang,
+      ),
       productCount: await this.repo.countActiveProducts(cat.id, cat.slug),
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,

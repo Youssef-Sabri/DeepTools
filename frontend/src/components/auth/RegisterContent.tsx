@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Lock, User, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, Loader2, ArrowRight, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { getPasswordValidationError } from '@/lib/passwordValidation'
 import type { Dictionary } from '@/dictionaries'
@@ -15,9 +15,13 @@ interface RegisterContentProps {
 }
 
 export default function RegisterContent({ dict, locale }: RegisterContentProps) {
+  const searchParams = useSearchParams()
+  const emailParam = searchParams.get('email') || ''
+  const isGuestUpgrade = searchParams.get('guest_upgrade') === 'true' || Boolean(emailParam)
+
   const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(emailParam)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -84,6 +88,22 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
         {error && (
           <div className="mb-6 p-3.5 rounded-xl bg-[var(--rose)]/15 border border-[var(--rose)]/30 text-xs text-[var(--rose)] font-mono">
             {error}
+          </div>
+        )}
+
+        {isGuestUpgrade && (
+          <div className="mb-6 p-3.5 rounded-xl bg-[var(--blue)]/10 border border-[var(--blue-bright)]/30 text-xs text-[var(--blue-bright)] flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-[var(--blue-bright)]" />
+            <div>
+              <p className="font-semibold text-[var(--text)]">
+                {isAr ? 'ربط مشتريات الزائر تلقائياً' : 'Automatic Purchase Linking'}
+              </p>
+              <p className="text-[11px] text-[var(--muted)] mt-0.5 leading-relaxed">
+                {isAr
+                  ? 'عند إتمام التسجيل بهذا البريد، ستُنقل جميع ملفاتك وتراخيصك السابقة كزائر تلقائياً وبأمان إلى لوحة التحكم الخاصة بك.'
+                  : 'Registering with this email will automatically and permanently link all your previous guest downloads and licenses to your account dashboard.'}
+              </p>
+            </div>
           </div>
         )}
 

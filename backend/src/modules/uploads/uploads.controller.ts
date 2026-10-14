@@ -17,6 +17,7 @@ export class UploadsController {
     const product = await this.service.create(sellerId, input, file);
     res.status(201).json({
       success: true,
+      message: req.t("uploads.created"),
       data: product,
     });
   };
@@ -65,10 +66,10 @@ export class UploadsController {
     const sellerId = req.user!.id;
     const id = req.params.id as string;
 
-    const result = await this.service.deleteMyUpload(sellerId, id);
+    await this.service.deleteMyUpload(sellerId, id);
     res.status(200).json({
       success: true,
-      message: result.message,
+      message: req.t("uploads.deleted"),
     });
   };
 }

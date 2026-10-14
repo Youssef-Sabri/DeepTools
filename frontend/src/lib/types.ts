@@ -9,7 +9,22 @@ export interface User {
   updatedAt?: string
 }
 
-export type ProductCategory = 'workflow' | 'script' | 'code' | 'agentic'
+export interface Category {
+  id: string
+  slug: string
+  name: string
+  nameAr: string
+  description?: string | null
+  descriptionAr?: string | null
+  icon?: string | null
+  displayOrder: number
+  isActive: boolean
+  productCount?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type ProductCategory = 'workflow' | 'script' | 'code' | 'agentic' | (string & {})
 
 export type ProductStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 

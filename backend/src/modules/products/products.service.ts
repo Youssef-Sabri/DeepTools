@@ -6,6 +6,7 @@ import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
+  UnauthorizedError,
   InternalServerError,
 } from "../../utils/apiError";
 import { settingsService, SettingsService } from "../settings/settings.service";
@@ -240,42 +241,69 @@ export class ProductsService {
   }
 
   async downloadProduct(
-    userId: string,
+    auth:
+      string | { userId?: string; guestEmail?: string; downloadToken?: string },
     productId: string,
     res: Response,
     headOnly = false,
   ): Promise<void> {
-    const ownedProduct = await this.repo.findById(productId, "");
-    if (ownedProduct?.sellerId === userId) {
-      const ownFileKey = ownedProduct.fileKey;
-      if (!ownFileKey)
-        throw new InternalServerError("Product file is unavailable");
-      try {
-        const resolvedPath = this.storage.resolveKeyPath(ownFileKey);
-        await fs.promises.access(resolvedPath, fs.constants.R_OK);
-      } catch {
-        throw new InternalServerError("Product file is unavailable");
-      }
-      const ext = path.extname(ownFileKey) || "";
-      const safeName = ownedProduct.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${safeName}${ext}"`,
+    const userId = typeof auth === "string" ? auth : auth.userId;
+    const guestEmail = typeof auth === "object" ? auth.guestEmail : undefined;
+    const downloadToken =
+      typeof auth === "object" ? auth.downloadToken : undefined;
+
+    if (!userId && !guestEmail && !downloadToken) {
+      throw new UnauthorizedError(
+        "Authentication or valid purchase access is required to download this file.",
       );
-      res.setHeader(
-        "Content-Type",
-        ownedProduct.fileMime || "application/octet-stream",
-      );
-      res.setHeader("Cache-Control", "private, no-store");
-      if (headOnly) {
-        res.status(200).end();
+    }
+
+    if (userId) {
+      const ownedProduct = await this.repo.findById(productId, "");
+      if (ownedProduct?.sellerId === userId) {
+        const ownFileKey = ownedProduct.fileKey;
+        if (!ownFileKey)
+          throw new InternalServerError("Product file is unavailable");
+        try {
+          const resolvedPath = this.storage.resolveKeyPath(ownFileKey);
+          await fs.promises.access(resolvedPath, fs.constants.R_OK);
+        } catch {
+          throw new InternalServerError("Product file is unavailable");
+        }
+        const ext = path.extname(ownFileKey) || "";
+        const safeName = ownedProduct.name.replace(/[^a-zA-Z0-9_\-.]/g, "_");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${safeName}${ext}"`,
+        );
+        res.setHeader(
+          "Content-Type",
+          ownedProduct.fileMime || "application/octet-stream",
+        );
+        res.setHeader("Cache-Control", "private, no-store");
+        if (headOnly) {
+          res.status(200).end();
+          return;
+        }
+        await this.storage.stream(ownFileKey, res);
         return;
       }
-      await this.storage.stream(ownFileKey, res);
-      return;
     }
-    const license = await this.repo.findLicense(userId, productId);
+
+    // Flexible license check (User ID, Guest Session Email, or Direct Guest Access Token)
+    const license = await this.repo.findLicenseFlexible({
+      productId,
+      userId,
+      buyerEmail: guestEmail,
+      guestAccessToken: downloadToken,
+    });
+
     if (!license) {
+      if (downloadToken || guestEmail) {
+        throw new UnauthorizedError(
+          "Invalid or unauthorized download access for this file.",
+        );
+      }
       throw new ForbiddenError(
         "You do not have a license to download this product",
       );
