@@ -121,6 +121,18 @@ body {
   outline-offset: 2px;
 }
 
+/* Form inputs manage their own bespoke focus rings / borders */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
 /* ===== ATMOSPHERIC ARCHITECTURAL GRID & LIGHTING ===== */
 .blueprint-grid {
   background-image: 

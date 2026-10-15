@@ -10,10 +10,7 @@ export const listPublicProductsQuerySchema = z
   .object({
     page: paginationFields.page,
     limit: paginationFields.limit.default(20),
-    // Categories are dynamic (BACKEND_RULES.md rule 12), so this is a free-form
-    // slug. It was previously `z.enum(["workflow","script","code","agentic"])
-    // .or(z.string().max(50))`, a no-op union -- the second branch already
-    // accepted every enum value while hardcoding the category list.
+    // Dynamic category slug filter
     category: z.string().max(50).optional(),
     search: z.string().max(100).optional(),
     sort: z.enum(["newest", "priceAsc", "priceDesc"]).default("newest"),

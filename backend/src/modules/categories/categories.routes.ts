@@ -12,7 +12,6 @@ import {
   listCategoriesQuerySchema,
 } from "./categories.validator";
 
-// ================= Public Categories Routes ================= //
 const publicRouter = Router();
 
 publicRouter.get(
@@ -27,9 +26,7 @@ publicRouter.get(
   categoriesController.getCategoryById,
 );
 
-// ================= Admin Categories Routes ================= //
-// Note: router.use(authenticate) and router.use(requireRole(["ADMIN"]))
-// are applied automatically by admin.routes.ts
+// Admin routes (auth enforced by parent admin router)
 const adminRouter = Router();
 
 adminRouter.get(

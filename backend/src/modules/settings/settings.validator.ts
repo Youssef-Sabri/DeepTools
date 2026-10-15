@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-/**
- * Validation schema for updating commission percentage.
- * Must be an integer between 0 and 100 inclusive.
- */
+/** Validation schema for updating commission percentage (0-100 inclusive). */
 export const updateCommissionSchema = z.object({
   commissionPercent: z
     .number({ message: "commissionPercent is required" })

@@ -13,9 +13,10 @@ import {
   Layers,
   CornerDownLeft,
   ExternalLink,
+  Loader2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import type { Product } from '@/lib/types'
+import type { Product, Category } from '@/lib/types'
 import {
   formatCents,
   normalizeCategory,
@@ -24,7 +25,6 @@ import {
 import { fetchApi, fetchCategories } from '@/lib/api'
 import { getCategoryIcon } from '@/lib/categoryIcons'
 import { interpolate } from '@/lib/interpolate'
-import type { Category } from '@/lib/types'
 import { useDictionary } from '@/components/providers/DictionaryProvider'
 
 interface OmnisearchModalProps {
@@ -39,14 +39,22 @@ export function OmnisearchModal({
   locale,
 }: OmnisearchModalProps) {
   const dict = useDictionary()
+  const router = useRouter()
+  const isAr = locale === 'ar'
+  const allAssetsLabel = dict.common.allAssets
+
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
   const [results, setResults] = useState<Product[]>([])
   const [resultTotal, setResultTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+
+  const listRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Dynamic categories (FRONTEND_RULES.md 2.8). Fetched lazily when the modal
   // opens rather than hardcoded, and the search still works if it fails.
@@ -65,18 +73,12 @@ export function OmnisearchModal({
     }
   }, [isOpen, categories.length])
 
-  const router = useRouter()
-  const isAr = locale === 'ar'
-  const allAssetsLabel = dict.common.allAssets
-  const listRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Search the database so the modal is not limited to whichever products a page preloaded.
+  // Search the database with debouncing. Keeps existing results rendered during typing to prevent layout jitter.
   useEffect(() => {
     if (!isOpen) return
     let ignore = false
     const timer = setTimeout(async () => {
-      setLoading(true)
+      setIsSearching(true)
       setSearchError(false)
       const params = new URLSearchParams({ lang: locale, limit: '50' })
       if (query.trim()) params.set('search', query.trim().slice(0, 100))
@@ -84,8 +86,8 @@ export function OmnisearchModal({
       try {
         const data = await fetchApi<{ items: Product[]; total: number }>(`/products?${params}`)
         if (!ignore) {
-          setResults(data.items)
-          setResultTotal(data.total)
+          setResults(data.items || [])
+          setResultTotal(data.total || 0)
         }
       } catch {
         if (!ignore) {
@@ -94,9 +96,12 @@ export function OmnisearchModal({
           setSearchError(true)
         }
       } finally {
-        if (!ignore) setLoading(false)
+        if (!ignore) {
+          setIsSearching(false)
+          setIsInitialLoading(false)
+        }
       }
-    }, query ? 250 : 0)
+    }, query ? 180 : 0)
     return () => {
       ignore = true
       clearTimeout(timer)
@@ -115,13 +120,11 @@ export function OmnisearchModal({
       })),
     ]
   }, [categories, isAr, allAssetsLabel])
+
   const filtered = results
   const safeSelectedIndex = selectedIndex >= filtered.length ? 0 : selectedIndex
 
   const handleClose = useCallback(() => {
-    setResults([])
-    setResultTotal(0)
-    setLoading(true)
     setQuery('')
     setActiveCategory('all')
     setSelectedIndex(0)
@@ -129,14 +132,14 @@ export function OmnisearchModal({
   }, [onClose])
 
   const handleQueryChange = (val: string) => {
-    setLoading(true)
     setQuery(val)
+    setIsSearching(true)
     setSelectedIndex(0)
   }
 
   const handleCategoryChange = (catId: string) => {
-    setLoading(true)
     setActiveCategory(catId)
+    setIsSearching(true)
     setSelectedIndex(0)
   }
 
@@ -229,64 +232,80 @@ export function OmnisearchModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-slate-950/60 backdrop-blur-sm">
         {/* Backdrop click to dismiss */}
         <div className="fixed inset-0" onClick={handleClose} />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: -16 }}
+          initial={{ opacity: 0, scale: 0.97, y: -12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -16 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--line)] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
+          exit={{ opacity: 0, scale: 0.97, y: -12 }}
+          transition={{ duration: 0.16, ease: 'easeOut' }}
+          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--line-bright)] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
         >
-          {/* 62px Search Input Bar */}
-          <div className="relative flex items-center px-4 h-[62px] border-b border-[var(--line)] bg-[var(--surface)]">
-            <Search className="w-5 h-5 text-[var(--blue-bright)] ms-2 shrink-0" />
+          {/* Search Input Bar - High-End Spotlight / Raycast Style */}
+          <div className="relative flex items-center px-4 h-[60px] border-b border-[var(--line)] bg-[var(--surface)]">
+            {isSearching ? (
+              <Loader2 className="w-5 h-5 text-[var(--blue-bright)] ms-1 shrink-0 animate-spin" />
+            ) : (
+              <Search className="w-5 h-5 text-[var(--blue-bright)] ms-1 shrink-0" />
+            )}
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
-              placeholder={
-                dict.search.searchWorkflowsScriptsOrAgentSkillsK
-              }
-              className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] focus:outline-none font-sans"
+              placeholder={dict.search.searchWorkflowsScriptsOrAgentSkillsK}
+              className="w-full h-full bg-transparent px-3 text-sm text-[var(--text)] placeholder-[var(--muted-2)] outline-none border-0 focus:outline-none focus:ring-0 focus:border-0 font-sans shadow-none"
+              style={{ outline: 'none', boxShadow: 'none' }}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
             />
             {query ? (
               <button
-                onClick={() => handleQueryChange('')}
-                className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] me-2 transition-colors"
+                type="button"
+                onClick={() => {
+                  handleQueryChange('')
+                  inputRef.current?.focus()
+                }}
+                className="p-1.5 rounded-lg text-[var(--muted-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] me-1 transition-colors"
                 title={dict.search.clearSearch}
               >
                 <X className="w-4 h-4" />
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleClose}
-                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono text-[var(--muted-2)] hover:text-[var(--text)] bg-[var(--surface-2)] border border-[var(--line)] rounded-md me-2 transition-colors"
+                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono text-[var(--muted-2)] hover:text-[var(--text)] bg-[var(--surface-2)] border border-[var(--line)] rounded-md me-1 transition-colors"
               >
                 <span>ESC</span>
               </button>
             )}
+
+            {/* Subtle Progress Bar When Searching with Active Results */}
+            {isSearching && !isInitialLoading && (
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--blue)]/20 overflow-hidden">
+                <div className="h-full bg-[var(--blue-bright)] animate-pulse w-full" />
+              </div>
+            )}
           </div>
 
           {/* Canonical Category Filter Chips */}
-          <div className="px-4 py-3 border-b border-[var(--line)] bg-[var(--surface-2)] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted-2)] font-semibold me-2 shrink-0">
-              {dict.search.filter}
-            </span>
+          <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--surface-2)]/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {categoryChips.map((cat) => {
               const Icon = cat.icon
               const isActive = activeCategory === cat.id
               return (
                 <button
                   key={cat.id}
+                  type="button"
                   onClick={() => handleCategoryChange(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium shrink-0 transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium shrink-0 transition-all ${
                     isActive
-                      ? 'bg-[var(--blue)] text-white shadow-md shadow-[var(--blue)]/20 border border-[var(--blue-bright)]'
-                      : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] border border-[var(--line)]'
+                      ? 'bg-[var(--blue)] text-white shadow-sm shadow-[var(--blue)]/30 border border-transparent'
+                      : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] border border-[var(--line)]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -298,8 +317,8 @@ export function OmnisearchModal({
 
           {/* Results List Section */}
           <div ref={listRef} className="flex-1 overflow-y-auto p-2 min-h-[260px] max-h-[440px]">
-            {loading ? (
-              /* Skeleton Loader */
+            {isInitialLoading && results.length === 0 ? (
+              /* Initial Skeleton Loader */
               <div className="space-y-2 p-2">
                 {[1, 2, 3, 4].map((i) => (
                   <div
@@ -433,6 +452,7 @@ export function OmnisearchModal({
                 <div className="flex items-center gap-2 mt-5">
                   {query && (
                     <button
+                      type="button"
                       onClick={() => handleQueryChange('')}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line)] transition-colors"
                     >
@@ -441,6 +461,7 @@ export function OmnisearchModal({
                   )}
                   {activeCategory !== 'all' && (
                     <button
+                      type="button"
                       onClick={() => handleCategoryChange('all')}
                       className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line)] transition-colors"
                     >
@@ -448,6 +469,7 @@ export function OmnisearchModal({
                     </button>
                   )}
                   <button
+                    type="button"
                     onClick={() => {
                       handleClose()
                       router.push(`/${locale}/products`)
@@ -464,34 +486,45 @@ export function OmnisearchModal({
 
           {/* Command Keyboard Legend Footer */}
           <div className="p-3 border-t border-[var(--line)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-[var(--muted-2)]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
-              <span>
-                {resultTotal} {dict.search.matchingAssets}
-              </span>
+            <div className="flex items-center gap-2">
+              {isSearching ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[var(--blue-bright)] animate-ping shrink-0" />
+                  <span className="text-[var(--text)] font-sans">
+                    {dict.search.searching}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[var(--green)] shrink-0" />
+                  <span className="text-[var(--text)] font-sans">
+                    {resultTotal} {dict.search.matchingAssets}
+                  </span>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   ↑↓
                 </kbd>
                 <span>{dict.search.navigate}</span>
               </div>
               <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   ↵
                 </kbd>
                 <span>{dict.search.open}</span>
               </div>
               <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   Tab
                 </kbd>
                 <span>{dict.search.category}</span>
               </div>
               <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[10px] text-[var(--text)]">
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[10px] text-[var(--text)]">
                   Esc
                 </kbd>
                 <span>{dict.common.close}</span>

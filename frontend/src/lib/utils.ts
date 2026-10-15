@@ -5,9 +5,7 @@ export function cn(...inputs: ClassValue[]): string {
   return clsx(inputs)
 }
 
-/**
- * Format integer cents into USD currency string (e.g. 4900 => "$49.00")
- */
+/** Format integer cents into USD currency string (e.g. 4900 => "$49.00") */
 export function formatCents(cents: number | undefined | null): string {
   if (typeof cents !== 'number' || isNaN(cents)) return '$0.00'
   return (cents / 100).toLocaleString('en-US', {
@@ -18,18 +16,14 @@ export function formatCents(cents: number | undefined | null): string {
   })
 }
 
-/**
- * Convert dollar number or string to integer cents (e.g. 49.99 => 4999)
- */
+/** Convert dollar number or string to integer cents (e.g. 49.99 => 4999) */
 export function dollarsToCents(dollars: number | string): number {
   const val = typeof dollars === 'string' ? parseFloat(dollars) : dollars
   if (isNaN(val)) return 0
   return Math.round(val * 100)
 }
 
-/**
- * Format bytes into human-readable size (KB, MB, GB)
- */
+/** Format bytes into human-readable size (KB, MB, GB) */
 export function formatBytes(bytes: number | undefined | null): string {
   if (bytes == null || !Number.isFinite(bytes)) return '—'
   if (bytes <= 0) return '0 B'
@@ -39,9 +33,7 @@ export function formatBytes(bytes: number | undefined | null): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
-/**
- * Format ISO date string into readable date
- */
+/** Format ISO date string into readable date */
 export function formatDate(dateString: string | undefined | null, locale: string = 'en'): string {
   if (!dateString) return ''
   try {
@@ -57,9 +49,7 @@ export function formatDate(dateString: string | undefined | null, locale: string
   }
 }
 
-/**
- * Normalize any DB category slug to one of the 4 canonical Phase 1 categories
- */
+/** Normalize any DB category slug to one of the 4 canonical Phase 1 categories */
 export function normalizeCategory(cat?: string | null): ProductCategory {
   const c = (cat || '').toLowerCase()
   if (c === 'agentic' || c === 'aiagents') return 'agentic'
@@ -69,9 +59,7 @@ export function normalizeCategory(cat?: string | null): ProductCategory {
   return 'workflow'
 }
 
-/**
- * Return category visual styling classes based on FRONTEND_RULES
- */
+/** Return category visual styling classes based on FRONTEND_RULES */
 export function getCategoryVisualClass(category: ProductCategory | string): string {
   const norm = normalizeCategory(category)
   switch (norm) {
@@ -88,9 +76,7 @@ export function getCategoryVisualClass(category: ProductCategory | string): stri
   }
 }
 
-/**
- * Derive the extension from a stored file name. Missing names have no badge.
- */
+/** Derive the extension from a stored file name. Missing names have no badge. */
 export function getFileExtensionPill(fileName?: string | null): string {
   if (fileName) {
     const ext = fileName.split('.').pop()

@@ -27,10 +27,6 @@ const upload = multer({
   },
 });
 
-/**
- * POST /api/v1/uploads
- * Upload a solution file and create a new pending marketplace product.
- */
 router.post(
   "/",
   authRateLimiter,
@@ -40,10 +36,6 @@ router.post(
   asyncHandler(uploadsController.create),
 );
 
-/**
- * GET /api/v1/uploads/mine
- * List the current seller's own uploads.
- */
 router.get(
   "/mine",
   authenticate,
@@ -51,10 +43,6 @@ router.get(
   asyncHandler(uploadsController.getMyUploads),
 );
 
-/**
- * GET /api/v1/uploads/mine/:id
- * Retrieve details of a specific upload owned by the current seller.
- */
 router.get(
   "/mine/:id",
   authenticate,
@@ -62,10 +50,6 @@ router.get(
   asyncHandler(uploadsController.getMyUploadById),
 );
 
-/**
- * PUT /api/v1/uploads/mine/:id
- * Edit and resubmit an upload (optionally replacing the attached file).
- */
 router.put(
   "/mine/:id",
   authRateLimiter,
@@ -76,10 +60,6 @@ router.put(
   asyncHandler(uploadsController.updateMyUpload),
 );
 
-/**
- * DELETE /api/v1/uploads/mine/:id
- * Delete a pending or rejected upload (removes disk file).
- */
 router.delete(
   "/mine/:id",
   authenticate,
