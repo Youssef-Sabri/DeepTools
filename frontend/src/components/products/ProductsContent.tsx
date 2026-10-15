@@ -256,7 +256,8 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
               placeholder={
                 dict.catalog.searchByTitleDescriptionOrKeyword
               }
-              className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] focus:outline-none"
+              className="w-full h-full bg-transparent px-4 text-sm text-[var(--text)] placeholder-[var(--muted-2)] outline-none border-none focus:outline-none focus:ring-0 font-sans shadow-none"
+              style={{ outline: 'none', boxShadow: 'none' }}
             />
             {searchQuery && (
               <button

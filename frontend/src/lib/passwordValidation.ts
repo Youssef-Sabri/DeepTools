@@ -1,9 +1,6 @@
 import type { Dictionary } from '@/dictionaries'
 
-// Keep these checks aligned with the strong password rule in
-// backend/src/modules/auth/auth.validator.ts. Messages come from the shared
-// dictionary so they stay consistent across every surface that validates a
-// password and can never drift from the translations.
+// Validates password strength against dictionary error messages
 export function getPasswordValidationError(
   password: string,
   dict: Dictionary,

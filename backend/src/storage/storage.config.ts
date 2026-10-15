@@ -1,9 +1,6 @@
 import { env } from "../config/env";
 
-/**
- * All file types allowed in GitHub repositories / digital code solutions:
- * Source code, scripts, agentic workflows, configs, documentation, and project archives.
- */
+/** Allowed MIME types for digital solutions, code archives, workflows, and configs. */
 export const ALLOWED_MIME_TYPES = [
   // Archives & Bundles
   "application/zip",
@@ -52,9 +49,7 @@ export const ALLOWED_MIME_TYPES = [
   "text/css",
 ] as const;
 
-/**
- * Explicitly prohibited dangerous executable / system binary extensions.
- */
+/** Explicitly prohibited dangerous executable / system binary extensions. */
 export const BLOCKED_EXTENSIONS = [
   ".exe",
   ".dll",

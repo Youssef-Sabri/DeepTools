@@ -16,10 +16,7 @@ export const uploadCategoryEnum = z.string().min(1, "Category is required");
 
 export const uploadStatusEnum = z.nativeEnum(ProductStatus);
 
-// Money is an integer in the smallest currency unit and is stored in a
-// Postgres INTEGER column, so the upper bound must be enforced here. Without
-// it an out-of-range value passes `z.number().int()` (Number.isInteger(1e21)
-// is true) and then fails at the database with an opaque 500.
+// Maximum 32-bit signed integer boundary for Postgres INTEGER cents column
 export const MAX_PRICE_CENTS = 2_147_483_647;
 
 const priceInCents = z.preprocess(

@@ -9,10 +9,7 @@ import {
 // Validation for Latin slug (e.g. "ai-agents", "workflow-automation")
 export const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-// Presentation / lifecycle metadata (FRONTEND_RULES.md 6 admin CRUD contract).
-// These were previously accepted by the frontend and then silently stripped by
-// Zod's default unknown-key handling, so the admin UI reported success while
-// discarding the values. Declared before use in the schemas below.
+// Presentation and lifecycle metadata fields
 const categoryIcon = z
   .string()
   .trim()

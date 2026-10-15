@@ -121,10 +121,7 @@ export async function fetchCategories(): Promise<Category[]> {
   return []
 }
 
-// `icon`, `displayOrder` and `isActive` are part of the FRONTEND_RULES.md 6
-// admin CRUD contract. They were previously sent here while the backend Category
-// model had no such columns, so Zod stripped them and the API replied 200/201
-// while silently discarding the values. The backend now stores and returns them.
+// Admin category creation with presentation fields (icon, displayOrder, isActive)
 export async function createAdminCategory(data: {
   slug: string
   name: string

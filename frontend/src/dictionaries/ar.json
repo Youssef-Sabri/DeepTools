@@ -336,7 +336,8 @@
     "navigate": "تنقل",
     "category": "القسم",
     "searchEmptyHint": "جرب البحث باسم الأداة (مثل n8n، Postgres، Python) أو أعد ضبط التصنيف المختار.",
-    "assetsCount": "أصول ({count})"
+    "assetsCount": "أصول ({count})",
+    "searching": "جاري البحث في الأدوات..."
   },
   "guest": {
     "downloadFailedPleaseTryAgain": "فشل التنزيل. يرجى المحاولة مرة أخرى.",

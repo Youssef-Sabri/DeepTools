@@ -44,16 +44,11 @@ services:
       - PORT=4000
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/dataforge_db
       - UPLOAD_DIR=/app/uploads
-      # This image is BUILT from ./backend (only ./uploads is bind-mounted), so
-      # after changing backend code you MUST run:
-      #   docker compose build api && docker compose up -d --force-recreate api
-      #
-      # POSTGRES_PASSWORD comes from the project-root .env (git-ignored) and only
-      # applies when the pgdata volume is first initialised -- see
-      # backend/.env.example to rotate an existing volume.
-      #
-      # For production override NODE_ENV/JWT_SECRET/DATABASE_URL here; env.ts
-      # rejects placeholder secrets and refuses EXPOSE_ERROR_DETAILS=true.
+      # Built from ./backend (only ./uploads is bind-mounted), so backend changes
+      # require `docker compose build api && docker compose up -d --force-recreate api`.
+      # POSTGRES_PASSWORD comes from the root .env and only applies to a fresh volume.
+      # For production override NODE_ENV/JWT_SECRET/DATABASE_URL here; env.ts rejects
+      # placeholder secrets and EXPOSE_ERROR_DETAILS=true.
     ports:
       - "4000:4000"
     volumes:

@@ -336,7 +336,8 @@
     "navigate": "Navigate",
     "category": "Category",
     "searchEmptyHint": "Try searching by workflow keyword, language, or clear the category filter.",
-    "assetsCount": "ASSETS ({count})"
+    "assetsCount": "ASSETS ({count})",
+    "searching": "Searching assets..."
   },
   "guest": {
     "downloadFailedPleaseTryAgain": "Download failed. Please try again.",

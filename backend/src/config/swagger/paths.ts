@@ -52,10 +52,7 @@ const LangQueryParam = z
     },
     example: "ar",
   });
-
-// ==========================================
 // 1. Auth Endpoints
-// ==========================================
 registry.registerPath({
   method: "post",
   path: "/auth/register",
@@ -211,10 +208,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 2. Product Endpoints
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/products",
@@ -473,10 +467,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 3. Admin Endpoints
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/admin/users",
@@ -778,10 +769,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 7. Seller Uploads Endpoints
-// ==========================================
 registry.registerPath({
   method: "post",
   path: "/uploads",
@@ -973,10 +961,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 8. Settings Endpoints
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/settings/commission",
@@ -1071,10 +1056,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 9. Orders & Sales Endpoints
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/orders/mine",
@@ -1118,10 +1100,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 10. Admin Insights Endpoints
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/admin/insights/marketplace",
@@ -1147,10 +1126,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 11. User Profile Endpoints (Engineer A)
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/users/me",
@@ -1268,10 +1244,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 12. Dynamic Categories Endpoints (Public & Admin)
-// ==========================================
 registry.registerPath({
   method: "get",
   path: "/categories",
@@ -1447,10 +1420,7 @@ registry.registerPath({
     },
   },
 });
-
-// ==========================================
 // 12. Guest Checkout & Returning Access Endpoints
-// ==========================================
 registry.registerPath({
   method: "post",
   path: "/orders/guest-purchase",

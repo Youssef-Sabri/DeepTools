@@ -17,10 +17,7 @@ export class AuthController {
     const result = await this.service.register(input);
     setSession(res, result.token);
 
-    // FRONTEND_RULES.md 5.3: registration seamlessly upgrades the guest session
-    // to a permanent account, so the guest cookie is cleared. Leaving it in
-    // place would keep a guest-scoped session alive for its remaining lifetime
-    // even though its purchases are now owned by the authenticated account.
+    // Registration upgrades guest purchases to the account; clear guest session.
     clearGuestSession(res);
 
     res.status(201).json({

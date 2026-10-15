@@ -2,10 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AnyZodObject, ZodError, ZodSchema } from "zod";
 import { ApiError } from "../utils/apiError";
 
-/**
- * Turn a ZodError into the flat, field-annotated message shape the API
- * contract expects: `{ "field": "...", "message": "..." }`.
- */
+/** Formats a ZodError into flat `{ field, message }` items. */
 function formatIssues(
   error: ZodError,
 ): Array<{ field: string; message: string }> {

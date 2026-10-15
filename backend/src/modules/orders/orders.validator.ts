@@ -16,10 +16,7 @@ export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
 
 export const guestPurchaseSchema = z.object({
   productId: z.string().uuid("Invalid product ID format"),
-  // Transform order matters: Zod applies refinements left-to-right, so trim and
-  // lowercase MUST precede .email(), otherwise a padded or mixed-case address is
-  // rejected outright. Canonical lowercase output also keeps the value aligned
-  // with the licenses_buyer_email_product_active_key unique index.
+  // Trim and lowercase before validation to align with unique active license index.
   buyerEmail: z
     .string()
     .trim()
