@@ -3,6 +3,9 @@ import { Prisma, ProductStatus, OrderStatus } from "@prisma/client";
 import { splitCommission } from "../../utils/commission";
 import { normalizeArabicText } from "../../utils/localization";
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class ProductsRepository {
   async findAll(params?: {
     page?: number;
@@ -27,7 +30,9 @@ export class ProductsRepository {
         ? {
             OR: [
               { category: params.category },
-              { categoryId: params.category },
+              ...(UUID_REGEX.test(params.category)
+                ? [{ categoryId: params.category }]
+                : []),
               { categoryRel: { slug: params.category } },
             ],
           }
