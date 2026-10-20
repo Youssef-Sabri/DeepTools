@@ -20,7 +20,6 @@
     "db:preflight": "ts-node src/db/migration-preflight.ts",
     "db:audit-storage": "ts-node src/db/audit-storage.ts",
     "db:normalize-arabic": "ts-node src/db/normalize-arabic.ts",
-    "db:reconcile-orders": "ts-node src/db/reconcile-duplicate-orders.ts",
     "create:admin": "ts-node src/db/create-admin.ts"
   },
   "dependencies": {

@@ -652,7 +652,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                             `${order.productName || order.product?.name || 'asset'}${order.fileExtension || ''}`
                           )
                         }
-                        className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-colors"
+                        className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:brightness-110 text-white flex items-center justify-center gap-2 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>{dict.common.downloadAssetFile}</span>
@@ -732,7 +732,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       id="asset-upload-file"
                       ref={fileInputRef}
                       type="file"
-                      className="mt-4 block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-bright)] transition-colors"
+                      className="mt-4 block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-hover)] transition-colors"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setUploadFile(e.target.files[0])
@@ -861,7 +861,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg"
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg"
                 >
                   {uploading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1127,7 +1127,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white transition-colors disabled:opacity-50"
                 >
                   {savingProfile ? (dict.dashboard.saving) : (dict.dashboard.saveChanges)}
                 </button>
@@ -1305,7 +1305,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       setEditFile(e.target.files[0])
                     }
                   }}
-                  className="block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-bright)] transition-colors"
+                  className="block w-full cursor-pointer rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-2 text-xs text-[var(--muted)] file:me-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--blue)] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[var(--blue-hover)] transition-colors"
                 />
               </div>
 
@@ -1320,7 +1320,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <button
                   type="submit"
                   disabled={submittingEdit}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white"
                 >
                   {submittingEdit ? (dict.dashboard.submitting) : (dict.dashboard.resubmit)}
                 </button>

@@ -18,9 +18,6 @@ jest.mock("../../config/database", () => ({
     product: {
       count: jest.fn(),
     },
-    guestMagicLinkToken: {
-      create: jest.fn(),
-    },
     order: {
       findMany: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
@@ -124,20 +121,11 @@ describe("Bilingual API Integration Tests", () => {
       expect(res.body.message).toBe("Invalid email or password");
     });
 
-    it("returns Arabic response message when query ?lang=ar is used", async () => {
-      (prisma.order.count as jest.Mock).mockResolvedValue(0);
-
-      const res = await request(app)
-        .post("/api/v1/orders/guest/request-access?lang=ar")
-        .send({
-          email: "guest@example.com",
-        });
-
-      expect(res.status).toBe(200);
-      expect(res.headers["content-language"]).toBe("ar");
-      expect(res.body.message).toBe(
-        "إذا كانت هناك مشتريات مرتبطة بهذا البريد، فقد تم إرسال رابط الوصول الآمن",
-      );
+    it("does not expose removed guest purchase routes", async () => {
+      const purchase = await request(app).post("/api/v1/orders/guest-purchase").send({ productId: "00000000-0000-4000-8000-000000000001" });
+      const lookup = await request(app).get("/api/v1/orders/guest/purchases");
+      expect(purchase.status).toBe(404);
+      expect(lookup.status).toBe(404);
     });
   });
 });

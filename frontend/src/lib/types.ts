@@ -1,5 +1,18 @@
 export type Role = 'USER' | 'ADMIN'
 
+export interface Notification {
+  id: string
+  userId: string
+  title: string
+  titleAr: string
+  message: string
+  messageAr: string
+  type: 'UPLOAD' | 'APPROVAL' | 'REJECTION' | 'SYSTEM'
+  productId: string | null
+  isRead: boolean
+  createdAt: string
+}
+
 export interface User {
   id: string
   name: string
@@ -74,7 +87,7 @@ export interface License {
 
 export interface Order {
   id: string
-  userId?: string
+  userId: string
   productId?: string | null
   productName?: string | null
   fileExtension?: string | null

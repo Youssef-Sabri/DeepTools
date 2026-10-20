@@ -6,8 +6,6 @@ import { mockAdmin, mockUser, createToken } from "../../../test/test-helpers";
 import { csrfForSession } from "../session";
 
 jest.mock("../../../config/database", () => {
-  // Registration runs account creation and guest-purchase linking inside a
-  // single $transaction, so the double must expose one.
   const prisma = {
     $transaction: jest.fn(async (callback: (tx: unknown) => unknown) =>
       callback(prisma),
@@ -107,50 +105,6 @@ describe("Engineer A: Auth, Users, & Admin Users Tests (Tasks A-1 to A-7)", () =
         expect.objectContaining({
           data: expect.objectContaining({
             role: "USER", // Server strictly enforces USER
-          }),
-        }),
-      );
-    });
-
-    it("creates the account and links guest purchases in ONE transaction (Rule 11)", async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.user.create as jest.Mock).mockResolvedValue({
-        id: "new-user-2",
-        name: "Converter",
-        email: "convert@example.com",
-        role: "USER",
-        deletedAt: null,
-        tokenVersion: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      (prisma.order.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
-      (prisma.license.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
-
-      const res = await request(app).post("/api/v1/auth/register").send({
-        name: "Converter",
-        email: "convert@example.com",
-        password: "Password123!",
-      });
-
-      expect(res.status).toBe(201);
-
-      // Atomicity: both writes must run inside the same $transaction so a
-      // failure can never orphan paid guest purchases.
-      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      expect(prisma.order.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            buyerEmail: "convert@example.com",
-            userId: null,
-          }),
-        }),
-      );
-      expect(prisma.license.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            buyerEmail: "convert@example.com",
-            userId: null,
           }),
         }),
       );

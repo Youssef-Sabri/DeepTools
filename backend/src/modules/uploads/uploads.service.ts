@@ -14,6 +14,7 @@ import {
 } from "../../utils/apiError";
 import { normalizeArabicText } from "../../utils/localization";
 import { Product, ProductStatus } from "@prisma/client";
+import { categoriesRepository } from "../categories/categories.repository";
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -37,6 +38,7 @@ export class UploadsService {
     if (!file || !file.buffer) {
       throw new ValidationError("A solution file is required for upload");
     }
+    const categoryId = await this.resolveCategoryId(input.category, input.categoryId);
 
     const fileChecksum = crypto
       .createHash("sha256")
@@ -66,7 +68,7 @@ export class UploadsService {
           ? normalizeArabicText(input.descriptionAr)
           : null,
         category: input.category,
-        categoryId: input.categoryId ?? null,
+        categoryId,
         price: input.price,
         version: input.version || "1.0.0",
         status: ProductStatus.PENDING,
@@ -126,6 +128,11 @@ export class UploadsService {
     file?: Express.Multer.File,
   ): Promise<Product> {
     const existing = await this.findMyUploadById(sellerId, id);
+    const categoryId = await this.resolveCategoryId(
+      input.category ?? existing.category ?? "",
+      input.categoryId,
+      existing.categoryId,
+    );
 
     let newFileKey: string | undefined;
     let newFileSize: number | undefined;
@@ -188,6 +195,9 @@ export class UploadsService {
             }
           : {}),
         ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.category !== undefined || input.categoryId !== undefined
+          ? { categoryId }
+          : {}),
         ...(input.price !== undefined ? { price: input.price } : {}),
         ...(input.version ? { version: input.version } : {}),
         status,
@@ -256,6 +266,36 @@ export class UploadsService {
       .catch((error) =>
         console.error("Unreferenced file cleanup failed", error),
       );
+  }
+
+  private async resolveCategoryId(
+    categorySlug: string,
+    requestedId?: string,
+    currentId?: string | null,
+  ): Promise<string | null> {
+    if (requestedId) {
+      const category = await categoriesRepository.findById(requestedId);
+      if (!category || category.deletedAt || !category.isActive) {
+        throw new NotFoundError("Category not found or inactive");
+      }
+      if (category.slug !== categorySlug) {
+        throw new ValidationError("categoryId does not match category");
+      }
+      return category.id;
+    }
+
+    const category = categorySlug
+      ? await categoriesRepository.findBySlug(categorySlug)
+      : null;
+    if (category && category.deletedAt === null && category.isActive) {
+      return category.id;
+    }
+    if (currentId && categorySlug) {
+      const current = await categoriesRepository.findById(currentId);
+      if (current?.slug !== categorySlug) return null;
+      return currentId;
+    }
+    return null;
   }
 }
 

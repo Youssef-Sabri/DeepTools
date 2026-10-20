@@ -99,9 +99,8 @@ async function downloadFile(url: string, fallbackFileName: string): Promise<void
   a.remove()
 }
 
-export function downloadProductFile(productId: string, fallbackFileName: string = 'asset', guestToken?: string): Promise<void> {
-  const query = guestToken ? `?token=${encodeURIComponent(guestToken)}` : ''
-  return downloadFile(`${API_BASE_URL}/products/${encodeURIComponent(productId)}/download${query}`, fallbackFileName)
+export function downloadProductFile(productId: string, fallbackFileName: string = 'asset'): Promise<void> {
+  return downloadFile(`${API_BASE_URL}/products/${encodeURIComponent(productId)}/download`, fallbackFileName)
 }
 
 export function downloadAdminUploadFile(productId: string, fallbackFileName: string = 'asset-review.zip'): Promise<void> {

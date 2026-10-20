@@ -27,7 +27,7 @@ export const createProductSchema = z.object({
   nameAr: z.string().nullable().optional(),
   description: z.string().min(1, "Description is required"),
   descriptionAr: z.string().nullable().optional(),
-  category: z.string().min(1, "Category is required"),
+  category: z.string().trim().min(1, "Category is required").max(50),
   // Bounded to the Postgres INTEGER range; without this an out-of-range price
   // passes z.number().int() and surfaces as an opaque 500.
   price: z
@@ -35,9 +35,9 @@ export const createProductSchema = z.object({
     .int("Price must be an integer in cents")
     .nonnegative("Price must be a non-negative integer")
     .max(MAX_PRICE_CENTS, "Price exceeds the maximum supported amount"),
-  version: z.string().optional(),
-  badge: z.string().nullable().optional(),
-  badgeAr: z.string().nullable().optional(),
+  version: z.string().max(20).optional(),
+  badge: z.string().max(20).nullable().optional(),
+  badgeAr: z.string().max(30).nullable().optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();

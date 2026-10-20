@@ -474,7 +474,7 @@ export function OmnisearchModal({
                       handleClose()
                       router.push(`/${locale}/products`)
                     }}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors flex items-center gap-1.5 shadow-sm"
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white transition-colors flex items-center gap-1.5 shadow-sm"
                   >
                     <span>{dict.search.browseCatalog}</span>
                     <ExternalLink className="w-3 h-3" />

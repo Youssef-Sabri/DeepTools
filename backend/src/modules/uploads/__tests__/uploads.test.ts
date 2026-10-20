@@ -9,6 +9,7 @@ jest.mock("../../../config/database", () => ({
     user: {
       findUnique: jest.fn(),
     },
+    category: { findUnique: jest.fn() },
     product: {
       create: jest.fn(),
       findUnique: jest.fn(),

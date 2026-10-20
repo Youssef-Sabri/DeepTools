@@ -20,7 +20,6 @@ export const messages = {
     "auth.unauthorized": "Not authenticated",
     "auth.forbidden": "Authenticated but not allowed",
     "auth.emailInUse": "Email already in use",
-    "auth.accountConverted": "Guest orders successfully linked to user account",
 
     // User Profile
     "users.profileRetrieved": "User profile retrieved successfully",
@@ -49,16 +48,7 @@ export const messages = {
       "You do not have permission to download this asset",
     "products.orderPending": "Order pending payment verification",
 
-    // Orders & Guest Checkout
-    "orders.guestPurchaseSuccess": "Guest purchase completed successfully",
-    "orders.guestSessionUnlocked":
-      "Guest session unlocked successfully for 7 days",
-    "orders.magicLinkSent":
-      "If there are purchases associated with this email, we have sent a secure access link to your inbox.",
-    "orders.magicLinkInvalid": "Invalid or expired guest access token",
-    "orders.sessionRetrieved": "Guest session retrieved successfully",
-    "orders.orderNotFound": "Order not found",
-    "orders.licenseNotFound": "License not found",
+    // Orders
 
     // Uploads & Moderation
     "uploads.created": "Upload created successfully",
@@ -111,7 +101,6 @@ export const messages = {
     "auth.unauthorized": "غير مصرح، يرجى تسجيل الدخول أولاً",
     "auth.forbidden": "ليس لديك صلاحية كافية لتنفيذ هذا الإجراء",
     "auth.emailInUse": "البريد الإلكتروني مسجل بالفعل",
-    "auth.accountConverted": "تم ربط مشتريات الزائر بحسابك الجديد بنجاح",
 
     // User Profile
     "users.profileRetrieved": "تم جلب الملف الشخصي بنجاح",
@@ -139,17 +128,7 @@ export const messages = {
     "products.downloadUnauthorized": "ليس لديك ترخيص معتمد لتنزيل هذا الملف",
     "products.orderPending": "الطلب قيد التحقق من الدفع",
 
-    // Orders & Guest Checkout
-    "orders.guestPurchaseSuccess": "تم إتمام شراء الزائر بنجاح",
-    "orders.guestSessionUnlocked": "تم فتح جلسة الزائر بنجاح لمدة 7 أيام",
-    "orders.magicLinkSent":
-      "إذا كانت هناك مشتريات مرتبطة بهذا البريد، فقد تم إرسال رابط الوصول الآمن",
-    "orders.magicLinkInvalid": "رمز الوصول للزائر غير صالح أو منتهي الصلاحية",
-    "orders.sessionRetrieved": "تم استرجاع جلسة الزائر بنجاح",
-    "orders.orderNotFound": "الطلب غير موجود",
-    "orders.licenseNotFound": "الترخيص غير موجود",
-
-    // Uploads & Moderation
+    // Orders`r`n`r`n    // Uploads & Moderation
     "uploads.created": "تم رفع الأداة بنجاح",
     "uploads.deleted": "تم حذف الملف المرفوع بنجاح",
     "uploads.approved": "تمت الموافقة على المنتج بنجاح",

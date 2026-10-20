@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
-/* ===== DEEPTOOLS DESIGN TOKENS (LIGHT ENGINEERING AESTHETIC - SKILLS/SKILL.md) ===== */
+/* ===== DEEPTOOLS SLATE DARK DESIGN TOKENS ===== */
 :root {
-  /* High-Precision Light Surfaces */
-  --bg: #f8fafc;
-  --bg-soft: #f1f5f9;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --surface-3: #eef2f6;
-  --line: #e2e8f0;
-  --line-bright: #cbd5e1;
-  --text: #0f172a;
-  --muted: #475569;
-  --muted-2: #64748b;
+  --bg: #090d14;
+  --bg-soft: #0d131d;
+  --surface: #111925;
+  --surface-2: #172231;
+  --surface-3: #202d3e;
+  --line: #29384a;
+  --line-bright: #3a4b61;
+  --text: #e7edf5;
+  --muted: #b1bdcc;
+  --muted-2: #8b9aae;
 
   /* Semantic Developer Accents */
   --blue: #2563eb;
-  --blue-bright: #1d4ed8;
-  --purple: #7c3aed;
-  --green: #059669;
-  --orange: #d97706;
-  --rose: #e11d48;
+  --blue-bright: #8ab4ff;
+  --blue-hover: #1d4ed8;
+  --purple: #a78bfa;
+  --green: #34d399;
+  --orange: #fbbf24;
+  --rose: #fb7185;
 
   /* Mapped default aliases */
   --background: var(--bg);
@@ -30,18 +30,25 @@
   --border: var(--line);
 }
 
-/* Enforce pure light mode across all contexts */
+/* Keep token values stable for dark-theme utility classes and portals. */
 .dark {
-  --bg: #f8fafc;
-  --bg-soft: #f1f5f9;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --surface-3: #eef2f6;
-  --line: #e2e8f0;
-  --line-bright: #cbd5e1;
-  --text: #0f172a;
-  --muted: #475569;
-  --muted-2: #64748b;
+  --bg: #090d14;
+  --bg-soft: #0d131d;
+  --surface: #111925;
+  --surface-2: #172231;
+  --surface-3: #202d3e;
+  --line: #29384a;
+  --line-bright: #3a4b61;
+  --text: #e7edf5;
+  --muted: #b1bdcc;
+  --muted-2: #8b9aae;
+  --blue: #2563eb;
+  --blue-bright: #8ab4ff;
+  --blue-hover: #1d4ed8;
+  --purple: #a78bfa;
+  --green: #34d399;
+  --orange: #fbbf24;
+  --rose: #fb7185;
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface);
@@ -63,6 +70,7 @@
 
   --color-blue: var(--blue);
   --color-blue-bright: var(--blue-bright);
+  --color-blue-hover: var(--blue-hover);
   --color-purple: var(--purple);
   --color-green: var(--green);
   --color-orange: var(--orange);
@@ -83,8 +91,9 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
-  color: #0f172a;
+  color-scheme: dark;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 body {
@@ -95,7 +104,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar for Light Engineering Theme */
+/* Custom scrollbar tuned to the slate surfaces. */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -112,8 +121,8 @@ body {
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.18);
-  color: #1e3a8a;
+  background: rgba(96, 165, 250, 0.35);
+  color: #ffffff;
 }
 
 :focus-visible {
@@ -135,9 +144,9 @@ select:focus-visible {
 
 /* ===== ATMOSPHERIC ARCHITECTURAL GRID & LIGHTING ===== */
 .blueprint-grid {
-  background-image: 
-    linear-gradient(#e2e8f080 1px, transparent 1px),
-    linear-gradient(90deg, #e2e8f080 1px, transparent 1px);
+  background-image:
+    linear-gradient(#29384a55 1px, transparent 1px),
+    linear-gradient(90deg, #29384a55 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -146,7 +155,7 @@ select:focus-visible {
   width: 500px;
   height: 500px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
   filter: blur(100px);
   pointer-events: none;
 }
@@ -156,7 +165,7 @@ select:focus-visible {
   width: 500px;
   height: 500px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.14) 0%, transparent 70%);
   filter: blur(100px);
   pointer-events: none;
 }
@@ -166,7 +175,7 @@ select:focus-visible {
   width: 450px;
   height: 450px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(5, 150, 105, 0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.12) 0%, transparent 70%);
   filter: blur(100px);
   pointer-events: none;
 }
@@ -182,30 +191,30 @@ select:focus-visible {
   pointer-events: none;
 }
 
-/* ===== PRODUCT CARD VISUAL BACKDROPS (LIGHT MODE) ===== */
+/* ===== PRODUCT CARD CATEGORY BACKDROPS ===== */
 .visual-blue {
-  background: radial-gradient(circle at 50% 30%, #dbeafe 0%, #eff6ff 60%, #f8fafc 100%);
+  background: radial-gradient(circle at 50% 30%, #1e3a5f 0%, #17283d 60%, #111925 100%);
 }
 
 .visual-purple {
-  background: radial-gradient(circle at 50% 30%, #ede9fe 0%, #f5f3ff 60%, #f8fafc 100%);
+  background: radial-gradient(circle at 50% 30%, #392d5b 0%, #28233f 60%, #111925 100%);
 }
 
 .visual-green {
-  background: radial-gradient(circle at 50% 30%, #d1fae5 0%, #ecfdf5 60%, #f8fafc 100%);
+  background: radial-gradient(circle at 50% 30%, #164a43 0%, #17352f 60%, #111925 100%);
 }
 
 .visual-orange {
-  background: radial-gradient(circle at 50% 30%, #fef3c7 0%, #fffbeb 60%, #f8fafc 100%);
+  background: radial-gradient(circle at 50% 30%, #5a3a1d 0%, #392b1f 60%, #111925 100%);
 }
 
 /* Frosted glass product glyph container */
 .product-glyph {
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(226, 232, 240, 0.16);
+  background: rgba(9, 13, 20, 0.52);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 /* File format tag badge */
@@ -215,17 +224,17 @@ select:focus-visible {
   letter-spacing: 0.05em;
   padding: 0.2rem 0.5rem;
   border-radius: 0.375rem;
-  background: #ffffff;
+  background: var(--surface-2);
   border: 1px solid var(--line);
   color: var(--muted);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
 }
 
 /* ===== CARD ELEVATION & HOVER ===== */
 .deeptools-card {
   background-color: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.24), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
               border-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -234,7 +243,7 @@ select:focus-visible {
 .deeptools-card:hover {
   transform: translateY(-3px);
   border-color: var(--line-bright);
-  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.25);
 }
 
 /* ===== TERMINAL MODAL & CODE PLAYGROUND ===== */

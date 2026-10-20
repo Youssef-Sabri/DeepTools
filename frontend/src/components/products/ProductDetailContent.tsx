@@ -9,10 +9,6 @@ import {
   HardDrive,
   User,
   ArrowLeft,
-  Mail,
-  X,
-  Loader2,
-  Check,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Product, License } from '@/lib/types'
@@ -36,7 +32,6 @@ export default function ProductDetailContent({
   const { user } = useAuth()
   const [cartOpen, setCartOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
-  const [isGuestOwned, setIsGuestOwned] = useState(false)
 
   const isCreator = Boolean(user && user.id === product.sellerId)
   const isOwned = isCreator || hasPurchased
@@ -44,60 +39,32 @@ export default function ProductDetailContent({
   useEffect(() => {
     let ignore = false
 
-    const checkProductOwnership = () => {
-      if (user) {
-        if (user.id === product.sellerId) return
-        fetchApi<License[]>('/products/my/licenses')
-          .then((data) => {
-            if (ignore) return
-            setIsGuestOwned(false)
-            setHasPurchased(
-              data.some(
-                (license) =>
-                  license.productId === product.id &&
-                  license.isActive &&
-                  (!license.expiresAt || new Date(license.expiresAt) > new Date())
-              )
-            )
-          })
-          .catch(() => {})
-      } else {
-        // Check if current guest session owns this product
-        fetchApi<{ email: string; purchases: Array<{ productId: string }> }>(
-          '/orders/guest/purchases'
+    if (!user || user.id === product.sellerId) {
+      setHasPurchased(false)
+      return () => { ignore = true }
+    }
+
+    fetchApi<License[]>('/products/my/licenses')
+      .then((data) => {
+        if (ignore) return
+        setHasPurchased(
+          data.some(
+            (license) =>
+              license.productId === product.id &&
+              license.isActive &&
+              (!license.expiresAt || new Date(license.expiresAt) > new Date())
+          )
         )
-          .then((data) => {
-            if (ignore) return
-            const owned = data.purchases?.some((p) => p.productId === product.id) ?? false
-            setHasPurchased(owned)
-            setIsGuestOwned(owned)
-          })
-          .catch(() => {
-            if (ignore) return
-            setHasPurchased(false)
-            setIsGuestOwned(false)
-          })
-      }
-    }
-
-    checkProductOwnership()
-
-    const handleSessionUpdate = () => {
-      checkProductOwnership()
-    }
-    window.addEventListener('guest:session_updated', handleSessionUpdate)
+      })
+      .catch(() => {
+        if (!ignore) setHasPurchased(false)
+      })
 
     return () => {
       ignore = true
-      window.removeEventListener('guest:session_updated', handleSessionUpdate)
     }
   }, [user, product.id, product.sellerId])
 
-  const [lookupOpen, setLookupOpen] = useState(false)
-  const [lookupEmail, setLookupEmail] = useState('')
-  const [lookupLoading, setLookupLoading] = useState(false)
-  const [lookupSent, setLookupSent] = useState(false)
-  const [lookupError, setLookupError] = useState<string | null>(null)
   const [downloadState, setDownloadState] = useState<{
     isVisible: boolean
     fileName: string
@@ -240,16 +207,10 @@ export default function ProductDetailContent({
                 <div className="text-3xl font-extrabold font-mono text-[var(--text)]">
                   {isOwned ? (
                     <span
-                      className={`text-lg flex items-center gap-2 font-semibold ${
-                        isGuestOwned ? 'text-emerald-600' : 'text-[var(--blue-bright)]'
-                      }`}
+                      className="text-lg flex items-center gap-2 font-semibold text-[var(--blue-bright)]"
                     >
                       <CheckCircle2 className="w-5 h-5 shrink-0" />
-                      {isCreator
-                        ? (dict.product.yourAssetCreator)
-                        : isGuestOwned
-                          ? (dict.product.ownedLifetime)
-                          : (dict.product.ownedInLibrary)}
+                      {isCreator ? dict.product.yourAssetCreator : dict.product.ownedInLibrary}
                     </span>
                   ) : (
                     formatCents(product.price)
@@ -257,10 +218,8 @@ export default function ProductDetailContent({
                 </div>
                 <span className="text-[11px] text-[var(--muted-2)] font-mono block mt-1">
                   {isOwned
-                    ? (isGuestOwned
-                        ? (dict.product.guestLicenseNote)
-                        : (dict.product.accountLicenseNote))
-                    : (dict.product.singlePaymentNoRecurringCharges)}
+                    ? dict.product.accountLicenseNote
+                    : dict.product.singlePaymentNoRecurringCharges}
                 </span>
               </div>
 
@@ -268,11 +227,7 @@ export default function ProductDetailContent({
                 {isOwned ? (
                   <button
                     onClick={handleDownload}
-                    className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-md ${
-                      isGuestOwned
-                        ? 'bg-emerald-600 hover:bg-emerald-700'
-                        : 'bg-[var(--blue)] hover:bg-[var(--blue-bright)]'
-                    }`}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all shadow-md bg-[var(--blue)] hover:bg-[var(--blue-hover)]"
                   >
                     <Download className="w-4 h-4" />
                     <span>{dict.product.downloadDigitalAsset}</span>
@@ -280,23 +235,10 @@ export default function ProductDetailContent({
                 ) : (
                   <button
                     onClick={() => setCartOpen(true)}
-                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg"
+                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 transition-all shadow-lg"
                   >
                     <ShoppingCart className="w-4 h-4" />
                     <span>{dict.product.buyAssetLicense}</span>
-                  </button>
-                )}
-                {!isOwned && !user && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLookupOpen(true)
-                      setLookupSent(false)
-                      setLookupError(null)
-                    }}
-                    className="text-xs text-[var(--muted-2)] hover:text-[var(--blue-bright)] transition-colors underline font-mono text-center w-full block pt-1.5"
-                  >
-                    {dict.product.alreadyBoughtAsGuestUnlockDownload}
                   </button>
                 )}
               </div>
@@ -319,13 +261,6 @@ export default function ProductDetailContent({
         onClose={() => setCartOpen(false)}
         locale={locale}
         isOwned={isOwned}
-        isGuestOwned={isGuestOwned}
-        onOrderCompleted={() => {
-          setHasPurchased(true)
-          if (!user) {
-            setIsGuestOwned(true)
-          }
-        }}
       />
 
       {/* Floating Download Overlay */}
@@ -336,94 +271,6 @@ export default function ProductDetailContent({
         onClose={() => setDownloadState((prev) => ({ ...prev, isVisible: false }))}
       />
 
-      {/* Guest Purchases Unlock Modal */}
-      {lookupOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative w-full max-w-md bg-[var(--surface)] border border-[var(--line-bright)] rounded-2xl p-6 md:p-8 shadow-2xl">
-            <button
-              onClick={() => setLookupOpen(false)}
-              className="absolute top-5 end-5 p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-2">
-              <Mail className="w-5 h-5 text-[var(--blue-bright)]" />
-              <h3 className="text-lg font-bold text-[var(--text)]">
-                {dict.product.unlockGuestPurchases}
-              </h3>
-            </div>
-            <p className="text-xs text-[var(--muted)] leading-relaxed mb-6">
-              {dict.product.lookupEmailHint}
-            </p>
-
-            {lookupSent ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-[var(--green)]/15 border border-[var(--green)]/30 text-xs text-[var(--green)] font-semibold flex items-center gap-2.5">
-                  <Check className="w-5 h-5 shrink-0" />
-                  <span>
-                    {dict.product.linkSentNote}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setLookupOpen(false)}
-                  className="w-full py-3 rounded-xl font-bold text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] transition-colors"
-                >
-                  {dict.common.close}
-                </button>
-              </div>
-            ) : (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  if (!lookupEmail) return
-                  setLookupLoading(true)
-                  setLookupError(null)
-                  try {
-                    await fetchApi('/orders/guest/request-access', {
-                      method: 'POST',
-                      body: JSON.stringify({ email: lookupEmail.trim().toLowerCase() }),
-                    })
-                    setLookupSent(true)
-                  } catch (err: unknown) {
-                    setLookupError(err instanceof Error ? err.message : 'Request failed')
-                  } finally {
-                    setLookupLoading(false)
-                  }
-                }}
-                className="space-y-4"
-              >
-                {lookupError && (
-                  <div className="p-3 rounded-lg bg-[var(--rose)]/10 border border-[var(--rose)]/30 text-xs text-[var(--rose)]">
-                    {lookupError}
-                  </div>
-                )}
-                <div>
-                  <label className="text-[11px] font-mono text-[var(--muted-2)] block mb-1">
-                    {dict.common.emailAddress}
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={lookupEmail}
-                    onChange={(e) => setLookupEmail(e.target.value)}
-                    placeholder="buyer@example.com"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-[var(--text)] focus:border-[var(--blue-bright)] focus:outline-none font-mono"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={lookupLoading}
-                  className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50"
-                >
-                  {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  <span>{dict.product.sendInstantAccessLink}</span>
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

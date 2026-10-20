@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-type Theme = 'light' | 'dark'
+type Theme = 'dark'
 
 interface ThemeContextType {
   theme: Theme
@@ -12,17 +12,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
     const root = document.documentElement
-    root.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
+    root.classList.add('dark')
+    localStorage.setItem('theme', 'dark')
   }, [])
 
   const toggleTheme = () => {
-    // Light mode only
-    setTheme('light')
+    setTheme('dark')
   }
 
   return (

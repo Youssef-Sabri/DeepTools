@@ -20,4 +20,4 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p /app/uploads
 
 EXPOSE 4000
-CMD ["sh", "-c", "node dist/db/migration-preflight.js && npx prisma migrate deploy && node dist/db/seed.js && node dist/server"]
+CMD ["sh", "-c", "node dist/db/migration-preflight.js && npx prisma migrate deploy && node dist/server"]

@@ -12,7 +12,11 @@ import {
   HAS_LATIN_LETTER_REGEX,
 } from "../../utils/localization";
 
-export const uploadCategoryEnum = z.string().min(1, "Category is required");
+export const uploadCategoryEnum = z
+  .string()
+  .trim()
+  .min(1, "Category is required")
+  .max(50, "Category cannot exceed 50 characters");
 
 export const uploadStatusEnum = z.nativeEnum(ProductStatus);
 
@@ -84,7 +88,11 @@ export const createUploadSchema = z.object({
   category: uploadCategoryEnum,
   categoryId: z.string().uuid("Invalid categoryId format").optional(),
   price: priceInCents,
-  version: z.string().default("1.0.0").optional(),
+  version: z
+    .string()
+    .max(20, "Version cannot exceed 20 characters")
+    .default("1.0.0")
+    .optional(),
 });
 
 export const updateUploadSchema = createUploadSchema.partial();

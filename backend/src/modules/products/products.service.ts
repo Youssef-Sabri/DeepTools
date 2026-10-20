@@ -6,7 +6,6 @@ import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
-  UnauthorizedError,
   InternalServerError,
 } from "../../utils/apiError";
 import { settingsService, SettingsService } from "../settings/settings.service";
@@ -241,24 +240,12 @@ export class ProductsService {
   }
 
   async downloadProduct(
-    auth:
-      string | { userId?: string; guestEmail?: string; downloadToken?: string },
+    userId: string,
     productId: string,
     res: Response,
     headOnly = false,
   ): Promise<void> {
-    const userId = typeof auth === "string" ? auth : auth.userId;
-    const guestEmail = typeof auth === "object" ? auth.guestEmail : undefined;
-    const downloadToken =
-      typeof auth === "object" ? auth.downloadToken : undefined;
-
-    if (!userId && !guestEmail && !downloadToken) {
-      throw new UnauthorizedError(
-        "Authentication or valid purchase access is required to download this file.",
-      );
-    }
-
-    if (userId) {
+    {
       const ownedProduct = await this.repo.findById(productId, "");
       if (ownedProduct?.sellerId === userId) {
         const ownFileKey = ownedProduct.fileKey;
@@ -290,20 +277,9 @@ export class ProductsService {
       }
     }
 
-    // Flexible license check (User ID, Guest Session Email, or Direct Guest Access Token)
-    const license = await this.repo.findLicenseFlexible({
-      productId,
-      userId,
-      buyerEmail: guestEmail,
-      guestAccessToken: downloadToken,
-    });
+    const license = await this.repo.findLicense(userId, productId);
 
     if (!license) {
-      if (downloadToken || guestEmail) {
-        throw new UnauthorizedError(
-          "Invalid or unauthorized download access for this file.",
-        );
-      }
       throw new ForbiddenError(
         "You do not have a license to download this product",
       );

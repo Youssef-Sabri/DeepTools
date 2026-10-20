@@ -185,29 +185,10 @@ export class ProductsRepository {
 
   async findLicense(userId: string, productId: string) {
     return prisma.license.findFirst({
-      where: { userId, productId },
-      include: { product: true },
-    });
-  }
-
-  async findLicenseFlexible(params: {
-    productId: string;
-    userId?: string;
-    buyerEmail?: string;
-    guestAccessToken?: string;
-  }) {
-    const conditions: Array<Record<string, unknown>> = [];
-    if (params.userId) conditions.push({ userId: params.userId });
-    if (params.buyerEmail) conditions.push({ buyerEmail: params.buyerEmail });
-    if (params.guestAccessToken)
-      conditions.push({ guestAccessToken: params.guestAccessToken });
-    if (conditions.length === 0) return null;
-
-    return prisma.license.findFirst({
       where: {
-        productId: params.productId,
+        productId,
+        userId,
         isActive: true,
-        OR: conditions,
       },
       include: { product: true },
     });

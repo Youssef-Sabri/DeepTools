@@ -9,6 +9,9 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Database seeding is disabled in production environments");
+  }
   const existingCategories = await prisma.category.count().catch(() => 0);
   const existingProducts = await prisma.product.count().catch(() => 0);
 
@@ -29,7 +32,6 @@ async function main() {
 
   // 1. Clean up existing operational records in correct foreign-key dependency order
   await prisma.paymentEvent.deleteMany().catch(() => {});
-  await prisma.guestMagicLinkToken.deleteMany().catch(() => {});
   await prisma.order.deleteMany();
   await prisma.license.deleteMany();
   await prisma.product.deleteMany();

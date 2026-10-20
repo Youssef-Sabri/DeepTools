@@ -6,7 +6,6 @@ import {
   UpdateProductInput,
   listPublicProductsQuerySchema,
 } from "./products.validator";
-import { readGuestEmail } from "../auth/session";
 
 export class ProductsController {
   constructor(private readonly service: ProductsService = productsService) {}
@@ -62,15 +61,8 @@ export class ProductsController {
 
   download = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
-    const userId = req.user?.id;
-    const guestEmail = readGuestEmail(req);
-    const downloadToken =
-      (req.query.token as string) ||
-      (req.header("X-Guest-Token") as string) ||
-      undefined;
-
     await this.service.downloadProduct(
-      { userId, guestEmail, downloadToken },
+      req.user!.id,
       id,
       res,
       req.method === "HEAD",

@@ -117,6 +117,14 @@ const envSchema = z
         message: "EXPOSE_ERROR_DETAILS must be false in production",
       });
     }
+
+    if (value.PASSWORD_RESET_URL && !value.PASSWORD_RESET_URL.startsWith("https://")) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["PASSWORD_RESET_URL"],
+        message: "PASSWORD_RESET_URL must use HTTPS in production",
+      });
+    }
   });
 
 const parseEnv = () => {

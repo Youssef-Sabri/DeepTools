@@ -82,10 +82,7 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(input.password);
 
-    // Account creation and guest-purchase migration share ONE transaction, so a
-    // failure can never leave the buyer registered while their paid orders and
-    // licenses stay unlinked (BACKEND_RULES.md rule 11).
-    const newUser = await this.repo.createUserAndLinkGuestPurchases({
+    const newUser = await this.repo.createUser({
       email,
       name: input.name,
       passwordHash,

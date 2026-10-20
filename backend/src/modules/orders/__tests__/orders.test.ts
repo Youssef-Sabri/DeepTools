@@ -185,7 +185,10 @@ describe("Orders & Sales & Insights Endpoints (Task B-7)", () => {
       });
       expect(res.body.data.sellers.total).toBe(28);
       expect(prisma.user.count).toHaveBeenCalledWith({
-        where: { sellerProducts: { some: {} } },
+        where: {
+          deletedAt: null,
+          sellerProducts: { some: { deletedAt: null } },
+        },
       });
       expect(prisma.product.groupBy).not.toHaveBeenCalled();
       expect(res.body.data.topProducts).toHaveLength(2);

@@ -25,7 +25,6 @@ export default function HomeContent({ locale }: HomeContentProps) {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [ownedProductIds, setOwnedProductIds] = useState<string[]>([])
-  const [guestOwnedProductIds, setGuestOwnedProductIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [homeError, setHomeError] = useState(false)
 
@@ -74,49 +73,25 @@ export default function HomeContent({ locale }: HomeContentProps) {
   useEffect(() => {
     let ignore = false
 
-    const checkOwnership = () => {
-      if (user) {
-        fetchApi<License[]>('/products/my/licenses')
-          .then((data) => {
-            if (ignore) return
-            setOwnedProductIds(
-              data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
-                .map((license) => license.productId)
-            )
-            setGuestOwnedProductIds([])
-          })
-          .catch(() => {})
-      } else {
-        fetchApi<{ email: string; purchases: Array<{ productId: string }> }>('/orders/guest/purchases')
-          .then((data) => {
-            if (ignore) return
-            if (data?.purchases && Array.isArray(data.purchases)) {
-              const ids = data.purchases.map((p) => p.productId)
-              setOwnedProductIds(ids)
-              setGuestOwnedProductIds(ids)
-            } else {
-              setOwnedProductIds([])
-              setGuestOwnedProductIds([])
-            }
-          })
-          .catch(() => {
-            if (ignore) return
-            setOwnedProductIds([])
-            setGuestOwnedProductIds([])
-          })
-      }
+    if (!user) {
+      setOwnedProductIds([])
+      return () => { ignore = true }
     }
 
-    checkOwnership()
-
-    const handleSessionUpdate = () => {
-      checkOwnership()
-    }
-    window.addEventListener('guest:session_updated', handleSessionUpdate)
+    fetchApi<License[]>('/products/my/licenses')
+      .then((data) => {
+        if (ignore) return
+        setOwnedProductIds(
+          data.filter((license) => license.isActive && (!license.expiresAt || new Date(license.expiresAt) > new Date()))
+            .map((license) => license.productId)
+        )
+      })
+      .catch(() => {
+        if (!ignore) setOwnedProductIds([])
+      })
 
     return () => {
       ignore = true
-      window.removeEventListener('guest:session_updated', handleSessionUpdate)
     }
   }, [user])
 
@@ -191,7 +166,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href={`/${locale}/products`}
-              className="px-6 py-3.5 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
+              className="px-6 py-3.5 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
             >
               <span>{dict.home.exploreCatalog}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -280,15 +255,12 @@ export default function HomeContent({ locale }: HomeContentProps) {
               const isOwned =
                 ownedProductIds.includes(product.id) ||
                 (Boolean(user) && user?.id === product.sellerId)
-              const isGuestOwned = !user && guestOwnedProductIds.includes(product.id)
-
               return (
                 <ProductCard
                   key={product.id}
                   product={product}
                   locale={locale}
                   isOwned={isOwned}
-                  isGuestOwned={isGuestOwned}
                   onBuy={(p) => setSelectedProductForCart(p)}
                   onDownload={(id) => handleDownload(id)}
                 />
@@ -323,17 +295,6 @@ export default function HomeContent({ locale }: HomeContentProps) {
               (Boolean(user) && user?.id === selectedProductForCart.sellerId)
             : false
         }
-        isGuestOwned={
-          selectedProductForCart
-            ? !user && guestOwnedProductIds.includes(selectedProductForCart.id)
-            : false
-        }
-        onOrderCompleted={(newProductId) => {
-          setOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
-          if (!user) {
-            setGuestOwnedProductIds((prev) => [...new Set([...prev, newProductId])])
-          }
-        }}
       />
 
       {/* Floating Download Overlay */}

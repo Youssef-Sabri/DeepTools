@@ -537,7 +537,7 @@ export default function AdminPage() {
                                   <button
                                     onClick={() => handleApprove(item.id)}
                                     disabled={actionLoading === item.id}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--green)] hover:brightness-110 text-white flex items-center gap-1 transition-colors"
                                   >
                                     <Check className="w-3.5 h-3.5" />
                                     <span>Approve</span>
@@ -549,7 +549,7 @@ export default function AdminPage() {
                                       setRejectReason('')
                                     }}
                                     disabled={actionLoading === item.id}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:bg-rose-600 text-white flex items-center gap-1 transition-colors"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:brightness-110 text-white flex items-center gap-1 transition-colors"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                     <span>Reject</span>
@@ -759,7 +759,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={savingCommission}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white transition-colors disabled:opacity-50"
+                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white transition-colors disabled:opacity-50"
                 >
                   {savingCommission ? 'Saving Changes...' : 'Save Commission Settings'}
                 </button>
@@ -881,7 +881,7 @@ export default function AdminPage() {
 
               <button
                 onClick={handleOpenCreateCategory}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center gap-1.5 shadow-sm transition-colors"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center gap-1.5 shadow-sm transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Category</span>
@@ -944,11 +944,11 @@ export default function AdminPage() {
                           </td>
                           <td className="px-4 py-3.5 text-center">
                             {cat.isActive !== false ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">
                                 Active
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[var(--surface-2)] text-[var(--muted-2)] border border-[var(--line)]">
                                 Inactive
                               </span>
                             )}
@@ -964,7 +964,7 @@ export default function AdminPage() {
                               </button>
                               <button
                                 onClick={() => handleDeleteCategory(cat)}
-                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                className="p-1.5 rounded-lg text-rose-300 hover:text-rose-200 hover:bg-rose-400/10 transition-colors"
                                 title="Delete Category"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1016,7 +1016,7 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={actionLoading === rejectModalProduct.id}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:bg-rose-600 text-white transition-colors"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-[var(--rose)] hover:brightness-110 text-white transition-colors"
                 >
                   Confirm Rejection
                 </button>
@@ -1049,8 +1049,8 @@ export default function AdminPage() {
             </div>
 
             {categoryError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+              <div className="p-3 rounded-xl bg-rose-400/10 border border-rose-400/25 text-xs text-rose-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-300" />
                 <span>{categoryError}</span>
               </div>
             )}

@@ -38,6 +38,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       duplex: 'half',
       cache: 'no-store',
       redirect: 'manual',
+      signal: request.signal,
     } as RequestInit & { duplex: 'half' })
     const responseHeaders = new Headers(upstream.headers)
     for (const name of ['connection', 'content-length', 'content-encoding', 'transfer-encoding', 'set-cookie']) responseHeaders.delete(name)

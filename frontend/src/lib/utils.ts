@@ -33,15 +33,20 @@ export function formatBytes(bytes: number | undefined | null): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
-/** Format ISO date string into readable date */
+/** Format ISO date strings as a readable UTC date and time. */
 export function formatDate(dateString: string | undefined | null, locale: string = 'en'): string {
   if (!dateString) return ''
   try {
     const date = new Date(dateString)
-    return date.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
+    if (!Number.isFinite(date.getTime())) return dateString
+    return date.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hourCycle: 'h12',
+      timeZoneName: 'short',
       timeZone: 'UTC',
     })
   } catch {

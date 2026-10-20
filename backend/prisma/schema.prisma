@@ -26,28 +26,37 @@ enum OrderStatus {
   FAILED
 }
 
+enum NotificationType {
+  UPLOAD
+  APPROVAL
+  REJECTION
+  SYSTEM
+}
+
 // ================= Models ================= //
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
-  email         String   @unique
-  name          String
-  passwordHash  String   @map("password_hash")
-  role          Role     @default(USER)
-  tokenVersion  Int      @default(0) @map("token_version")
-  
-  // حقل الحذف الوهمي (Soft Delete)
-  deletedAt     DateTime? @map("deleted_at")
+  id           String @id @default(uuid()) @db.Uuid
+  email        String @unique
+  name         String
+  passwordHash String @map("password_hash")
+  role         Role   @default(USER)
+  tokenVersion Int    @default(0) @map("token_version")
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  // حقل الحذف الوهمي (Soft Delete)
+  deletedAt DateTime? @map("deleted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   licenses            License[]
   orders              Order[]
-  sellerProducts      Product[] @relation("SellerProducts")
+  sellerProducts      Product[]            @relation("SellerProducts")
   passwordResetTokens PasswordResetToken[]
+  notifications        Notification[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_name_trgm_idx")
   @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_email_trgm_idx")
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -57,12 +66,12 @@ model PasswordResetToken {
   tokenHash String   @unique @map("token_hash")
   expiresAt DateTime @map("expires_at")
   isUsed    Boolean  @default(false) @map("is_used")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // هنا يمكننا ترك Cascade لأن حذف المستخدم نهائياً يعني عدم حاجته لتوكنات الاستعادة
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("password_reset_tokens")
@@ -79,11 +88,11 @@ model Category {
   icon          String?   @db.VarChar(60)
   displayOrder  Int       @default(0) @map("display_order")
   isActive      Boolean   @default(true) @map("is_active")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  deletedAt   DateTime?  @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  products      Product[]
+  products Product[]
 
   @@index([slug])
   @@index([isActive, displayOrder])
@@ -94,47 +103,50 @@ model Category {
 }
 
 model Product {
-  id            String    @id @default(uuid()) @db.Uuid
-  sellerId      String    @map("seller_id") @db.Uuid
-  name          String
-  nameAr        String?   @map("name_ar")
-  description   String
-  descriptionAr String?   @map("description_ar")
-  nameArNorm        String?   @map("name_ar_norm")
-  descriptionArNorm String?   @map("description_ar_norm")
-  category      String?   @db.VarChar(50)
-  categoryId    String?   @map("category_id") @db.Uuid
-  price         Int
-  version       String    @default("1.0.0") @db.VarChar(20)
-  status        ProductStatus @default(PENDING) // تم التعديل لاستخدام Enum
-  fileKey       String?   @map("file_key")
-  fileSize      Int?      @map("file_size")
-  fileMime      String?   @map("file_mime") @db.VarChar(100)
-  fileChecksum  String?   @map("file_checksum")
-  approvedFileKey String? @map("approved_file_key")
-  approvedFileMime String? @map("approved_file_mime") @db.VarChar(100)
-  rejectionNote String?   @map("rejection_note")
-  reviewedAt    DateTime? @map("reviewed_at")
-  
-  badge         String?   @db.VarChar(20)
-  badgeAr       String?   @map("badge_ar") @db.VarChar(30)
-  
-  // حقل الحذف الوهمي (Soft Delete)
-  deletedAt     DateTime? @map("deleted_at")
+  id                String        @id @default(uuid()) @db.Uuid
+  sellerId          String        @map("seller_id") @db.Uuid
+  name              String
+  nameAr            String?       @map("name_ar")
+  description       String
+  descriptionAr     String?       @map("description_ar")
+  nameArNorm        String?       @map("name_ar_norm")
+  descriptionArNorm String?       @map("description_ar_norm")
+  category          String?       @db.VarChar(50)
+  categoryId        String?       @map("category_id") @db.Uuid
+  price             Int
+  version           String        @default("1.0.0") @db.VarChar(20)
+  status            ProductStatus @default(PENDING) // تم التعديل لاستخدام Enum
+  fileKey           String?       @map("file_key")
+  fileSize          Int?          @map("file_size")
+  fileMime          String?       @map("file_mime") @db.VarChar(100)
+  fileChecksum      String?       @map("file_checksum")
+  approvedFileKey   String?       @map("approved_file_key")
+  approvedFileMime  String?       @map("approved_file_mime") @db.VarChar(100)
+  rejectionNote     String?       @map("rejection_note")
+  reviewedAt        DateTime?     @map("reviewed_at")
 
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  badge   String? @db.VarChar(20)
+  badgeAr String? @map("badge_ar") @db.VarChar(30)
+
+  // حقل الحذف الوهمي (Soft Delete)
+  deletedAt DateTime? @map("deleted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // تم التعديل إلى Restrict لحماية المنتجات من الحذف العشوائي إذا تم حذف البائع
-  seller        User      @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Restrict)
-  categoryRel   Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  licenses      License[]
-  orders        Order[]
+  seller      User      @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Restrict)
+  categoryRel Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  licenses    License[]
+  orders      Order[]
+  notifications Notification[]
 
   @@index([sellerId])
   @@index([status])
   @@index([category])
   @@index([categoryId])
+  @@index([deletedAt, status, createdAt])
+  @@index([sellerId, deletedAt, createdAt])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
   @@index([nameAr(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_ar_trgm_idx")
   @@index([nameArNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_ar_norm_trgm_idx")
@@ -145,34 +157,30 @@ model Product {
 }
 
 model License {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String?   @map("user_id") @db.Uuid
-  productId        String    @map("product_id") @db.Uuid
-  licenseKey       String    @unique @map("license_key")
-  fileKey          String?   @map("file_key")
-  fileMime         String?   @map("file_mime") @db.VarChar(100)
-  buyerEmail       String?   @map("buyer_email") @db.VarChar(255)
-  guestAccessToken String?   @unique @map("guest_access_token")
-  isActive         Boolean   @default(true) @map("is_active")
-  expiresAt        DateTime? @map("expires_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  productId  String    @map("product_id") @db.Uuid
+  licenseKey String    @unique @map("license_key")
+  fileKey    String?   @map("file_key")
+  fileMime   String?   @map("file_mime") @db.VarChar(100)
+  isActive   Boolean   @default(true) @map("is_active")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   // حماية التراخيص المدفوعة
-  user    User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
+  @@unique([userId, productId])
   @@index([userId])
-  @@index([buyerEmail])
   @@index([productId])
   @@map("licenses")
 }
 
 model Order {
   id                String      @id @default(uuid()) @db.Uuid
-  userId            String?     @map("user_id") @db.Uuid
-  buyerEmail        String?     @map("buyer_email") @db.VarChar(255)
-  buyerName         String?     @map("buyer_name") @db.VarChar(100)
+  userId            String      @map("user_id") @db.Uuid
   productId         String?     @map("product_id") @db.Uuid
   sellerId          String?     @map("seller_id") @db.Uuid
   productName       String?     @map("product_name")
@@ -189,27 +197,15 @@ model Order {
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
-  product Product? @relation(fields: [productId], references: [id], onDelete: Restrict)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product       Product?       @relation(fields: [productId], references: [id], onDelete: Restrict)
   paymentEvents PaymentEvent[]
 
   @@index([userId])
-  @@index([buyerEmail])
   @@index([productId])
-  @@index([sellerId, status])
+  @@index([userId, createdAt])
+  @@index([sellerId, status, createdAt])
   @@map("orders")
-}
-
-model GuestMagicLinkToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @db.VarChar(255)
-  tokenHash String   @unique @map("token_hash")
-  expiresAt DateTime @map("expires_at")
-  isUsed    Boolean  @default(false) @map("is_used")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([email])
-  @@map("guest_magic_link_tokens")
 }
 
 model PaymentEvent {
@@ -242,4 +238,25 @@ model RateLimitBucket {
 
   @@index([resetAt])
   @@map("rate_limit_buckets")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  title     String           @db.VarChar(160)
+  titleAr   String           @map("title_ar") @db.VarChar(160)
+  message   String
+  messageAr String           @map("message_ar")
+  type      NotificationType
+  productId String?          @map("product_id") @db.Uuid
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, isRead])
+  @@index([productId])
+  @@map("notifications")
 }

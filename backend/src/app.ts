@@ -20,19 +20,20 @@ import ordersRoutes from "./modules/orders/orders.routes";
 import paymentsRoutes from "./modules/payments/payments.routes";
 import publicSettingsRoutes from "./modules/settings/public-settings.routes";
 import categoriesRoutes from "./modules/categories/categories.routes";
+import notificationsRoutes from "./modules/notifications/notifications.routes";
 
 export const createApp = (): Application => {
   const app: Application = express();
 
-  // Set security headers to mitigate common web vulnerabilities while permitting Swagger UI
+  // Keep the application-wide policy free of inline scripts and styles.
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:", "validator.swagger.io"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", "data:"],
         },
       },
     }),
@@ -94,6 +95,22 @@ export const createApp = (): Application => {
     customSiteTitle: "DeepTools API Documentation",
   });
 
+  // swagger-ui-express emits an inline initialization script and inline styles.
+  // Limit that compatibility exception to the documentation pages and assets.
+  app.use(
+    ["/api/docs", "/api/v1/docs", "/api-docs"],
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "validator.swagger.io"],
+        },
+      },
+    }),
+  );
+
   app.get(
     ["/api/docs.json", "/api/v1/docs.json"],
     (_req: Request, res: Response) => {
@@ -142,6 +159,7 @@ export const createApp = (): Application => {
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/uploads", uploadsRoutes);
   app.use("/api/v1/orders", ordersRoutes);
+  app.use("/api/v1/notifications", notificationsRoutes);
 
   // Fallback handlers for unmatched routes and centralized errors
   app.use(notFoundHandler);

@@ -55,8 +55,8 @@ export default async function LocaleLayout({
             __html: `
               (function() {
                 try {
-                  document.documentElement.classList.remove('dark');
-                  localStorage.setItem('theme', 'light');
+                  document.documentElement.classList.add('dark');
+                  localStorage.setItem('theme', 'dark');
                 } catch(e) {}
               })();
             `,

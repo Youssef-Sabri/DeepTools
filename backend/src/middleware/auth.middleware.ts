@@ -18,6 +18,8 @@ declare global {
         id: string;
         role: Role;
       };
+      authTokenVersion?: number;
+      authExpiresAt?: number;
     }
   }
 }
@@ -73,6 +75,8 @@ export const authenticate = async (
       return next(ApiError.unauthorized("Invalid or expired token"));
     }
     req.user = { id: user.id, role: user.role };
+    req.authTokenVersion = decoded.tokenVersion;
+    req.authExpiresAt = (decoded as JwtPayload & { exp?: number }).exp;
     next();
   } catch (error) {
     next(error);
@@ -106,7 +110,7 @@ export const authorize = (allowedRoles: string[] | string) => {
 
 export const requireRole = authorize;
 
-// Optional authentication middleware: attaches req.user if a valid token is present, but never blocks guests
+// Optional authentication middleware: attaches req.user when a valid token is present and otherwise continues.
 export const optionalAuthenticate = async (
   req: Request,
   _res: Response,
@@ -139,7 +143,7 @@ export const optionalAuthenticate = async (
       }
     }
   } catch {
-    // Silently continue for guests with expired or invalid tokens
+    // Silently continue for unauthenticated callers with expired or invalid tokens.
   }
   next();
 };

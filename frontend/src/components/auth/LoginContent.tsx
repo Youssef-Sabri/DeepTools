@@ -126,7 +126,7 @@ export default function LoginContent({ dict, locale }: LoginContentProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50 mt-6"
+            className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50 mt-6"
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />

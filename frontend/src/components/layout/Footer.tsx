@@ -106,14 +106,6 @@ export default function Footer({ locale, dict }: FooterProps) {
                   {dict.footer.sellerPayouts}
                 </Link>
               </li>
-              <li>
-                <Link
-                  href={`/${locale}/guest/purchases`}
-                  className="hover:text-[var(--blue-bright)] text-[var(--blue-bright)]/90 transition-colors flex items-center gap-1 font-medium"
-                >
-                  <span>{dict.footer.guestPurchasesLookup}</span>
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

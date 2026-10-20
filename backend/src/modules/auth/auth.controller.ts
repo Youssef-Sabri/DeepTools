@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { authService, AuthService } from "./auth.service";
-import { clearGuestSession, clearSession, setSession } from "./session";
+import { clearSession, setSession } from "./session";
 import {
   RegisterInput,
   LoginInput,
@@ -16,9 +16,6 @@ export class AuthController {
     const input = req.body as RegisterInput;
     const result = await this.service.register(input);
     setSession(res, result.token);
-
-    // Registration upgrades guest purchases to the account; clear guest session.
-    clearGuestSession(res);
 
     res.status(201).json({
       success: true,
@@ -44,9 +41,6 @@ export class AuthController {
 
   logout = (_req: Request, res: Response): void => {
     clearSession(res);
-    // End the guest session too, so signing out does not silently leave a
-    // separate 1-hour guest-scoped session active in the same browser.
-    clearGuestSession(res);
     res.status(204).end();
   };
 

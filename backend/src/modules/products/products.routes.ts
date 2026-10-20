@@ -3,7 +3,6 @@ import { productsController } from "./products.controller";
 import {
   authenticate,
   requireRole,
-  optionalAuthenticate,
 } from "../../middleware/auth.middleware";
 import {
   validateBody,
@@ -79,16 +78,16 @@ router.post(
   asyncHandler(productsController.purchase),
 );
 
-// Stream purchased file (dual authorization: session or guest token)
+// Stream product file for its seller or an authenticated licensed buyer.
 router.head(
   "/:id/download",
-  optionalAuthenticate,
+  authenticate,
   validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.download),
 );
 router.get(
   "/:id/download",
-  optionalAuthenticate,
+  authenticate,
   validateParams(uuidIdParamsSchema),
   asyncHandler(productsController.download),
 );

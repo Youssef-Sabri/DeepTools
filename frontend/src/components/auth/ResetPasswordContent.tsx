@@ -170,7 +170,7 @@ export default function ResetPasswordContent({ dict, locale }: ResetPasswordCont
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-bright)] text-white flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50 mt-6"
+            className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50 mt-6"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

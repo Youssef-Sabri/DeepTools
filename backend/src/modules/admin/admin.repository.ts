@@ -61,8 +61,10 @@ export class AdminRepository {
 
   async countUserInsights(since: Date) {
     const [totalUsers, newUsers] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { createdAt: { gte: since } } }),
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.user.count({
+        where: { deletedAt: null, createdAt: { gte: since } },
+      }),
     ]);
     return { totalUsers, newUsers };
   }
@@ -151,19 +153,28 @@ export class AdminRepository {
       totalSellers,
       topProductOrders,
     ] = await Promise.all([
-      prisma.product.count(),
-      prisma.product.count({ where: { status: ProductStatus.PENDING } }),
-      prisma.product.count({ where: { status: ProductStatus.APPROVED } }),
-      prisma.product.count({ where: { status: ProductStatus.REJECTED } }),
+      prisma.product.count({ where: { deletedAt: null } }),
+      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.PENDING } }),
+      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.APPROVED } }),
+      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.REJECTED } }),
       prisma.order.aggregate({
         _sum: { amount: true, commissionAmount: true, sellerAmount: true },
         where: { status: OrderStatus.COMPLETED },
       }),
       prisma.order.count({ where: { status: OrderStatus.COMPLETED } }),
-      prisma.user.count({ where: { sellerProducts: { some: {} } } }),
+      prisma.user.count({
+        where: {
+          deletedAt: null,
+          sellerProducts: { some: { deletedAt: null } },
+        },
+      }),
       prisma.order.groupBy({
         by: ["productId"],
-        where: { productId: { not: null }, status: OrderStatus.COMPLETED },
+        where: {
+          productId: { not: null },
+          status: OrderStatus.COMPLETED,
+          product: { deletedAt: null },
+        },
         _count: { id: true },
         orderBy: { _count: { id: "desc" } },
         take: 10,
@@ -177,7 +188,7 @@ export class AdminRepository {
     const products =
       productIds.length > 0
         ? await prisma.product.findMany({
-            where: { id: { in: productIds } },
+            where: { id: { in: productIds }, deletedAt: null },
             select: { id: true, name: true },
           })
         : [];
