@@ -102,6 +102,10 @@
     }
   },
   "dashboard": {
+    "fileStep": "1. Upload file",
+    "detailsStep": "2. Asset details",
+    "descriptionStep": "3. Descriptions",
+    "payoutStep": "4. Estimated payout",
     "title": "Dashboard",
     "orders": "Orders",
     "completed": "Completed",
@@ -212,6 +216,9 @@
     "intro": "Explore approved digital assets from sellers and review their details before purchasing."
   },
   "catalog": {
+    "results": "assets",
+    "clearSearch": "Clear search",
+    "sortResults": "Sort results",
     "couldNotLoadProducts": "Could not load products.",
     "couldNotLoadMoreProducts": "Could not load more products.",
     "couldNotLoadCategories": "Could not load categories.",
@@ -229,6 +236,14 @@
     "noResultsHint": "Try adjusting your search criteria or switch to another canonical category."
   },
   "product": {
+    "overview": "Overview",
+    "technicalFacts": "Technical details",
+    "category": "Category",
+    "fileType": "File type",
+    "version": "Version",
+    "createdDate": "Created",
+    "purchasePanel": "Purchase options",
+    "approvedAsset": "Approved asset",
     "sizeUnavailable": "Size unavailable",
     "backToMarketplace": "Back to Marketplace",
     "seller": "Seller",
@@ -305,9 +320,12 @@
   },
   "footer": {
     "theDeveloperMarketplaceForAutomationEngi": "The developer marketplace for automation engineers. Production-ready workflows, scripts, agentic skills, and robust digital tools.",
-    "systemOperationalLatency14ms": "SYSTEM OPERATIONAL // LATENCY 14MS",
-    "canonicalCategories": "CANONICAL CATEGORIES",
-    "developerConsole": "DEVELOPER CONSOLE",
+    "canonicalCategories": "Explore categories",
+    "developerConsole": "Your account",
+    "workflows": "Workflows",
+    "agents": "AI agents",
+    "scripts": "Automation scripts",
+    "codeTemplates": "Code templates",
     "submitTool": "Submit Tool",
     "purchasedTools": "Purchased Tools",
     "sellerPayouts": "Seller Payouts",

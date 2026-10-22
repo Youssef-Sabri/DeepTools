@@ -103,7 +103,7 @@ export function CartDrawer({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-hidden bg-black/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 overflow-hidden bg-[var(--bg)]/80 backdrop-blur-sm">
         <button
           type="button"
           className="absolute inset-0 h-full w-full cursor-default"
@@ -119,7 +119,7 @@ export function CartDrawer({
             animate={{ x: 0 }}
             exit={{ x: isArabic ? -460 : 460 }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="flex w-screen max-w-lg flex-col border-s border-[var(--line)] bg-[var(--surface)] text-[var(--text)] shadow-2xl"
+            className="flex w-screen max-w-lg flex-col border-s border-[var(--line-bright)] bg-[var(--surface)] text-[var(--text)] shadow-[0_25px_80px_rgba(2,8,19,0.5)]"
           >
             <header className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="flex items-center gap-3">
@@ -136,7 +136,7 @@ export function CartDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-2 text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
                 aria-label={dict.common.close}
               >
                 <X className="h-5 w-5" />

@@ -61,30 +61,27 @@ export default function Navbar({ locale, dict }: NavbarProps) {
       <nav
         lang={locale}
         dir={isAr ? 'rtl' : 'ltr'}
-        className={`fixed top-0 inset-x-0 z-40 transition-all duration-250 ${
+        className={`sticky top-0 inset-x-0 z-40 border-b backdrop-blur-xl transition-all duration-250 ${
           scrolled
-            ? 'bg-[var(--surface)]/90 backdrop-blur-md border-b border-[var(--line)] shadow-xs'
-            : 'bg-transparent border-b border-transparent'
+            ? 'bg-[var(--bg)]/95 border-[var(--line-bright)] shadow-[0_12px_30px_rgba(3,8,19,0.18)]'
+            : 'bg-[var(--bg)]/80 border-[var(--line)]'
         }`}
       >
         <div className="container-custom">
-          <div className="flex items-center justify-between h-16 md:h-18">
+          <div className="flex items-center justify-between gap-4 h-18 md:h-20">
             {/* Logo */}
-            <div className="flex items-center gap-8">
+            <div className="flex min-w-0 items-center gap-6 xl:gap-9">
               <Link
                 href={`/${locale}`}
-                className="flex items-center gap-2.5 group"
+                className="flex min-h-11 shrink-0 items-center gap-2.5 group"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="w-8 h-8 rounded-lg bg-[var(--surface-2)] border border-[var(--line-bright)] flex items-center justify-center group-hover:border-[var(--blue-bright)] transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[var(--surface-2)] border border-[var(--line-bright)] flex items-center justify-center group-hover:border-[var(--blue-bright)] transition-colors">
                   <span className="font-mono font-bold text-sm text-[var(--blue-bright)]">DT</span>
                 </div>
-                <div className="flex flex-col">
+                <div className="hidden sm:flex flex-col">
                   <span className="text-base font-bold tracking-tight text-[var(--text)]">
                     Deep<span className="text-[var(--blue-bright)]">Tools</span>
-                  </span>
-                  <span className="text-[9px] font-mono tracking-widest text-[var(--muted-2)] uppercase">
-                    ENGINEERING
                   </span>
                 </div>
               </Link>
@@ -93,7 +90,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
               <div className="hidden md:flex items-center gap-1">
                 <Link
                   href={`/${locale}/products`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex min-h-11 items-center px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                     pathname.startsWith(`/${locale}/products`)
                       ? 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]'
                       : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
@@ -104,7 +101,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
 
                 <Link
                   href={`/${locale}/dashboard`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex min-h-11 items-center px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                     pathname.startsWith(`/${locale}/dashboard`)
                       ? 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]'
                       : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]/60'
@@ -116,7 +113,7 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 {isAdmin && (
                   <Link
                     href={`/${locale}/admin`}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 text-[var(--orange)] ${
+                    className={`min-h-11 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 text-[var(--orange)] ${
                       pathname.startsWith(`/${locale}/admin`)
                         ? 'bg-[var(--orange)]/10 border border-[var(--orange)]/30'
                         : 'hover:bg-[var(--surface-2)]/60'
@@ -130,15 +127,18 @@ export default function Navbar({ locale, dict }: NavbarProps) {
             </div>
 
             {/* Omnisearch Trigger & Right Actions */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
               {/* Omnisearch Button */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
+                type="button"
+                aria-label={dict.nav.omnisearch}
+                aria-expanded={searchOpen}
+                className="nav-search-trigger hidden md:flex min-h-11 min-w-11 lg:min-w-60 xl:min-w-68 items-center justify-center lg:justify-start gap-2.5 px-3 lg:px-4 rounded-full text-sm text-[var(--muted)] hover:text-[var(--text)]"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>{dict.nav.omnisearch}</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[10px] font-mono border border-[var(--line)] text-[var(--muted-2)]">
+                <Search className="w-4 h-4 shrink-0 text-[var(--blue-bright)]" />
+                <span className="hidden lg:inline">{dict.nav.omnisearch}</span>
+                <kbd dir="ltr" className="nav-search-key ms-auto hidden lg:inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-mono text-[var(--muted)]">
                   ⌘K
                 </kbd>
               </button>
@@ -146,11 +146,12 @@ export default function Navbar({ locale, dict }: NavbarProps) {
               {/* Language Switcher */}
               <Link
                 href={alternateUrl}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-                title={dict.nav.switchToArabic}
+                className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+                title={dict.nav.switchLanguage}
+                aria-label={dict.nav.switchLanguage}
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>{dict.nav.switchLanguage}</span>
+                <span className="hidden xl:inline">{dict.nav.switchLanguage}</span>
               </Link>
 
 
@@ -161,13 +162,15 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen((prev) => !prev)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
+                    className="flex min-h-11 items-center gap-2 px-2.5 lg:px-3 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-sm text-[var(--text)] hover:border-[var(--line-bright)] transition-colors"
+                    aria-expanded={userMenuOpen}
+                    aria-label={user.name}
                   >
                     <div className="w-5 h-5 rounded-full bg-[var(--blue)]/20 text-[var(--blue-bright)] font-mono text-[10px] flex items-center justify-center font-bold">
                       {user.name ? user.name.slice(0, 2).toUpperCase() : 'U'}
                     </div>
-                    <span className="font-medium max-w-[100px] truncate">{user.name}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-2)]" />
+                    <span className="hidden xl:inline font-medium max-w-[100px] truncate">{user.name}</span>
+                    <ChevronDown className="hidden xl:block w-3.5 h-3.5 text-[var(--muted-2)]" />
                   </button>
 
                   {userMenuOpen && (
@@ -237,16 +240,16 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2">
                   <Link
                     href={`/${locale}/auth/login`}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+                    className="inline-flex min-h-11 items-center px-3 rounded-xl text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                   >
                     {dict.nav.login}
                   </Link>
                   <Link
                     href={`/${locale}/auth/register`}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white transition-colors shadow-sm"
+                    className="premium-button inline-flex items-center px-4 text-sm font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white"
                   >
                     {dict.nav.register}
                   </Link>
@@ -256,7 +259,8 @@ export default function Navbar({ locale, dict }: NavbarProps) {
               {/* Mobile Hamburger */}
               <button
                 onClick={() => setIsOpen((prev) => !prev)}
-                className="md:hidden p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                className="md:hidden flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+                aria-expanded={isOpen}
                 aria-label="Toggle Navigation Menu"
               >
                 {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

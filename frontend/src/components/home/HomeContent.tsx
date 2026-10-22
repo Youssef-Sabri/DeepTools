@@ -132,41 +132,40 @@ export default function HomeContent({ locale }: HomeContentProps) {
   }
 
   return (
-    <div className="relative overflow-hidden blueprint-grid">
+    <div className="marketplace-page relative overflow-hidden blueprint-grid">
       {/* Ambient Lighting Orbs */}
       <div className="ambient-glow-blue top-[-100px] start-[10%]" />
       <div className="ambient-glow-purple top-[400px] end-[15%]" />
-      <div className="center-hairline hidden lg:block" />
 
       {/* ===== HERO THESIS SECTION ===== */}
-      <section className="relative z-10 pt-16 md:pt-28 pb-20 container-custom">
-        <div className="max-w-4xl mx-auto text-center mb-12">
+      <section className="hero-workbench relative z-10 container-custom pb-20 pt-20 md:pb-28 md:pt-32">
+        <div className="max-w-4xl mx-auto text-center mb-16">
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-6 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--surface-2)]/70 border border-[var(--line)] text-xs font-medium text-[var(--blue-bright)] mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)]" />
             <span>
               {dict.home.verifiedBanner}
             </span>
           </div>
 
           {/* Thesis Headline */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[var(--text)] leading-[1.08]">
+          <h1 className="text-4xl sm:text-6xl md:text-[4.5rem] font-extrabold tracking-[-0.045em] text-[var(--text)] leading-[1.08]">
             {dict.home.theAutomationEngineerS}{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--blue-bright)] via-[#a78bfa] to-[var(--green)]">
+            <span className="hero-gradient-text">
               {dict.home.workbench}
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-6 text-base sm:text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-7 text-base sm:text-lg text-[var(--muted)] max-w-2xl mx-auto leading-8">
             {dict.home.intro}
           </p>
 
           {/* Primary CTA Buttons */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               href={`/${locale}/products`}
-              className="px-6 py-3.5 rounded-xl font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
+              className="premium-button px-7 py-3.5 font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center gap-2"
             >
               <span>{dict.home.exploreCatalog}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -174,22 +173,22 @@ export default function HomeContent({ locale }: HomeContentProps) {
 
             <Link
               href={`/${locale}/dashboard?tab=upload`}
-              className="px-6 py-3.5 rounded-xl font-semibold text-sm bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] border border-[var(--line-bright)] flex items-center gap-2 transition-colors"
+              className="premium-button-outline px-7 py-3.5 font-semibold text-sm text-[var(--text)] flex items-center gap-2"
             >
-              <Code2 className="w-4 h-4 text-[var(--purple)]" />
+              <Code2 className="w-4 h-4 text-[var(--teal)]" />
               <span>{dict.home.sellYourCode}</span>
             </Link>
           </div>
         </div>
 
-        {!loading && products[0] && (
-          <div className="max-w-4xl mx-auto deeptools-card rounded-2xl p-6 md:p-8 border border-[var(--line)]">
-            <span className="text-xs font-mono text-[var(--blue-bright)] uppercase">
+        {!loading && user && products[0] && user.id === products[0].sellerId && (
+          <div className="max-w-4xl mx-auto premium-panel p-6 md:p-9">
+            <span className="text-sm font-semibold text-[var(--blue-bright)]">
               {dict.home.latestApprovedAsset}
             </span>
-            <div className="mt-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
               <div>
-                <h2 className="text-xl font-bold text-[var(--text)]">
+                <h2 className="text-2xl font-bold text-[var(--text)]">
                   {products[0].displayName || (isAr && products[0].nameAr ? products[0].nameAr : products[0].name)}
                 </h2>
                 <p className="mt-2 text-sm text-[var(--muted)] line-clamp-3">
@@ -205,8 +204,8 @@ export default function HomeContent({ locale }: HomeContentProps) {
                 </div>
               </div>
               <div className="flex sm:flex-col items-center sm:items-end gap-3 shrink-0">
-                <span className="text-lg font-bold font-mono text-[var(--text)]">{formatCents(products[0].price)}</span>
-                <Link href={`/${locale}/products/${products[0].id}`} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-xs font-semibold">
+                <span className="text-xl font-bold font-mono text-[var(--text)]">{formatCents(products[0].price)}</span>
+                <Link href={`/${locale}/products/${products[0].id}`} className="premium-button inline-flex items-center justify-center px-5 bg-[var(--blue)] text-white text-sm font-semibold">
                   {dict.home.viewAsset}
                 </Link>
               </div>
@@ -215,10 +214,10 @@ export default function HomeContent({ locale }: HomeContentProps) {
         )}
       </section>
       {/* ===== FEATURED WORKBENCH ASSETS ===== */}
-      <section className="py-20 container-custom">
+      <section className="container-custom py-16 md:py-24">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-[var(--blue-bright)] font-semibold block mb-2">
+            <span className="text-sm text-[var(--blue-bright)] font-semibold block mb-2">
               {dict.home.approvedEngineeringTools}
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
@@ -228,7 +227,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
 
           <Link
             href={`/${locale}/products`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--blue-bright)] hover:underline"
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-[var(--blue-bright)] hover:underline"
           >
             <span>{dict.home.browseAllAssets}</span>
             <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />

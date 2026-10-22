@@ -34,6 +34,7 @@ import {
 import type { Product, User, MarketplaceInsights, UserInsights, Category } from '@/lib/types'
 import { formatCents, formatBytes, formatDate, getFileExtensionPill } from '@/lib/utils'
 import { SectionLoader } from '@/components/ui/SectionLoader'
+import { PremiumSelect } from '@/components/ui/PremiumSelect'
 
 type AdminTab = 'uploads' | 'users' | 'commission' | 'insights' | 'categories'
 type UploadStatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -368,20 +369,20 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="relative overflow-hidden blueprint-grid min-h-screen py-10 md:py-16">
+    <div className="admin-workspace relative overflow-hidden blueprint-grid min-h-screen py-12 md:py-20">
       {/* Ambient glows */}
       <div className="ambient-glow-purple top-[5%] start-[10%]" />
       <div className="ambient-glow-blue top-[40%] end-[10%]" />
 
       <div className="container-custom relative z-10">
         {/* Console Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--line)] pb-6">
+        <div className="mb-9 flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-[var(--line)] pb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--orange)]/10 border border-[var(--orange)]/30 text-[11px] font-mono text-[var(--orange)] mb-2 font-semibold">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--orange)]/10 border border-[var(--orange)]/30 text-xs text-[var(--orange)] mb-3 font-semibold">
               <Shield className="w-3.5 h-3.5" />
-              <span>HIGH-PRIVILEGE ADMIN CONSOLE</span>
+              <span>Admin workspace</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text)]">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[var(--text)]">
               DeepTools Platform Management
             </h1>
           </div>
@@ -394,7 +395,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
+        <div className="workspace-tabs mb-9" role="tablist" aria-label="Admin workspace sections">
           {[
             { id: 'uploads', label: 'Asset Review', icon: CheckCircle },
             { id: 'users', label: 'User Directory & Roles', icon: Users },
@@ -407,12 +408,11 @@ export default function AdminPage() {
             return (
               <button
                 key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-semibold shrink-0 transition-all ${
-                  isActive
-                    ? 'bg-[var(--blue)] text-white shadow-md shadow-[var(--blue)]/20 border border-[var(--blue-bright)]'
-                    : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] border border-[var(--line)]'
-                }`}
+                className="flex items-center gap-2"
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -430,21 +430,23 @@ export default function AdminPage() {
               </h2>
               <div className="flex items-center gap-2">
                 <label htmlFor="admin-asset-status" className="text-xs text-[var(--muted)]">Status</label>
-                <select
+                <PremiumSelect
                   id="admin-asset-status"
                   value={uploadStatusFilter}
-                  onChange={(event) => {
+                  onChange={(nextStatus) => {
                     setLoadingUploads(true)
                     setUploadPage(1)
-                    setUploadStatusFilter(event.target.value as UploadStatusFilter)
+                    setUploadStatusFilter(nextStatus)
                   }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] text-[var(--text)] border border-[var(--line)]"
-                >
-                  <option value="ALL">All</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
+                  options={[
+                    { value: 'ALL', label: 'All' },
+                    { value: 'PENDING', label: 'Pending' },
+                    { value: 'APPROVED', label: 'Approved' },
+                    { value: 'REJECTED', label: 'Rejected' },
+                  ]}
+                  className="min-w-36"
+                  ariaLabel="Asset status"
+                />
                 <button
                   onClick={() => { setLoadingUploads(true); setRefreshCount((c) => c + 1) }}
                   className="px-3 py-1.5 rounded-lg text-xs font-mono bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--line)]"
@@ -460,7 +462,7 @@ export default function AdminPage() {
               <div className="space-y-3">
               <div className="deeptools-card rounded-xl overflow-hidden border border-[var(--line)]">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
+                  <table className="w-full text-sm text-start">
                     <thead className="bg-[var(--surface-2)] border-b border-[var(--line)] text-[var(--muted-2)] font-mono uppercase text-[10px]">
                       <tr>
                         <th className="px-4 py-3">Asset Name & File</th>
@@ -469,7 +471,7 @@ export default function AdminPage() {
                         <th className="px-4 py-3">Price</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Submitted</th>
-                        <th className="px-4 py-3 text-right">File & Moderation Actions</th>
+                        <th className="px-4 py-3 text-end">File & Moderation Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--line)]">
@@ -506,7 +508,7 @@ export default function AdminPage() {
                           <td className="px-4 py-3 font-mono text-[var(--muted-2)]">
                             {formatDate(item.createdAt)}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-end">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               <button
                                 type="button"
@@ -625,21 +627,23 @@ export default function AdminPage() {
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && setRefreshCount((c) => c + 1)}
                   placeholder="Search user name or email..."
-                  className="w-full ps-9 pe-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
+                  className="w-full ps-9 pe-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-mono"
                 />
               </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono text-[var(--muted-2)]">Role:</span>
-                <select
+                <PremiumSelect
                   value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value as 'ALL' | 'USER' | 'ADMIN')}
-                  className="bg-[var(--surface-2)] text-xs text-[var(--text)] border border-[var(--line)] rounded-lg px-3 py-2 focus:outline-none font-mono"
-                >
-                  <option value="ALL">All Roles</option>
-                  <option value="USER">USER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
+                  onChange={setRoleFilter}
+                  options={[
+                    { value: 'ALL', label: 'All Roles' },
+                    { value: 'USER', label: 'USER' },
+                    { value: 'ADMIN', label: 'ADMIN' },
+                  ]}
+                  className="min-w-36"
+                  ariaLabel="User role"
+                />
 
                 <button
                   onClick={() => setRefreshCount((c) => c + 1)}
@@ -1002,7 +1006,7 @@ export default function AdminPage() {
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="e.g. Missing required environment variables in README, or invalid node schema syntax..."
-                className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--rose)] font-sans"
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--rose)] font-sans"
               />
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--line)]">
@@ -1072,7 +1076,7 @@ export default function AdminPage() {
                     }))
                   }
                   placeholder="e.g. voice-agents or rag-tools"
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono focus:outline-none focus:border-[var(--blue)] disabled:opacity-60"
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)] disabled:opacity-60"
                 />
                 <p className="text-[11px] text-[var(--muted-2)] mt-1">
                   Unique URL path identifier. Lowercase letters, numbers, and hyphens only.
@@ -1090,7 +1094,7 @@ export default function AdminPage() {
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g. Voice Agents"
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
                 <div>
@@ -1104,7 +1108,7 @@ export default function AdminPage() {
                     value={categoryForm.nameAr}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, nameAr: e.target.value }))}
                     placeholder="مثال: وكلاء الصوت الذكية"
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
               </div>
@@ -1119,7 +1123,7 @@ export default function AdminPage() {
                     value={categoryForm.description}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="Short description for SEO and category page..."
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
                 <div>
@@ -1132,7 +1136,7 @@ export default function AdminPage() {
                     value={categoryForm.descriptionAr}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, descriptionAr: e.target.value }))}
                     placeholder="وصف مختصر للتصنيف..."
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
               </div>
@@ -1147,7 +1151,7 @@ export default function AdminPage() {
                     value={categoryForm.icon}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
                     placeholder="e.g. Cpu, Layers, Bot"
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
                 <div>
@@ -1160,7 +1164,7 @@ export default function AdminPage() {
                     onChange={(e) =>
                       setCategoryForm((prev) => ({ ...prev, displayOrder: parseInt(e.target.value, 10) || 0 }))
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue)]"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue)]"
                   />
                 </div>
                 <div className="pt-4">

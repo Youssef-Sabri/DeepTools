@@ -42,14 +42,14 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
   }
 
   return (
-    <div className="relative min-h-[85vh] flex items-center justify-center py-16 px-4 blueprint-grid">
+    <div className="auth-page relative min-h-[85vh] flex items-center justify-center py-16 px-4 blueprint-grid">
       <div className="ambient-glow-blue top-[20%] start-[20%]" />
 
       <motion.div
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative w-full max-w-md deeptools-card rounded-2xl p-8 sm:p-10 border border-[var(--line-bright)] shadow-2xl z-10"
+        className="auth-panel relative w-full max-w-md deeptools-card rounded-2xl p-8 sm:p-10 border border-[var(--line-bright)] z-10"
       >
         <div className="text-center mb-8">
           <Link href={`/${locale}/auth/login`} className="inline-flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--text)] mb-4">
@@ -90,7 +90,7 @@ export default function ForgotPasswordContent({ locale }: ForgotPasswordContentP
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="developer@example.com"
-                className="w-full ps-10 pe-4 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue-bright)] font-mono"
+                className="w-full ps-10 pe-4 py-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue-bright)] font-mono"
               />
             </div>
           </div>

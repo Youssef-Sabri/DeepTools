@@ -23,6 +23,7 @@ import { fetchApi, downloadProductFile, fetchCategories } from '@/lib/api'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { DownloadOverlay } from '@/components/marketplace/DownloadOverlay'
 import { useDictionary } from '@/components/providers/DictionaryProvider'
+import { PremiumSelect } from '@/components/ui/PremiumSelect'
 
 interface DashboardContentProps {
   locale: string
@@ -59,21 +60,21 @@ function PayoutBreakdown({ priceCents, commissionPercent, commissionLoading, com
   const sellerCents = commissionCents === null ? null : priceCents - commissionCents
 
   return (
-    <div className="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] space-y-2 text-xs font-mono">
-      <div className="text-[10px] uppercase text-[var(--muted-2)] font-semibold">
+    <div className="p-5 rounded-xl bg-[var(--surface-2)] border border-[var(--line)] space-y-3 text-sm">
+      <div className="text-sm text-[var(--text)] font-semibold">
         {dict.dashboard.estimatedPayoutBreakdown}
       </div>
       <div className="flex justify-between text-[var(--muted)]">
         <span>{dict.dashboard.customerPrice}</span>
-        <span className="text-[var(--text)]">{formatCents(priceCents)} USD ({priceCents} cents)</span>
+        <span className="font-mono text-[var(--text)]">{formatCents(priceCents)}</span>
       </div>
       <div className="flex justify-between text-[var(--muted)] gap-3">
         <span>{dict.dashboard.platformCommission}{commissionPercent === null ? ':' : ` (${commissionPercent}%):`}</span>
-        <span className="text-[var(--orange)]">{commissionCents === null ? '—' : `-${formatCents(commissionCents)} USD`}</span>
+        <span className="font-mono text-[var(--orange)]">{commissionCents === null ? '—' : `-${formatCents(commissionCents)}`}</span>
       </div>
       <div className="border-t border-[var(--line)] pt-2 flex justify-between font-bold text-[var(--green)]">
         <span>{dict.dashboard.yourNetPayout}</span>
-        <span>{sellerCents === null ? '—' : `${formatCents(sellerCents)} USD`}</span>
+        <span className="font-mono">{sellerCents === null ? '—' : formatCents(sellerCents)}</span>
       </div>
       {commissionPercent === null && (
         <div className="text-[var(--muted-2)]" aria-live="polite">
@@ -188,9 +189,13 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   // Route protection
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push(`/${locale}/auth/login`)
+      const tab = tabFromUrl && ['purchases', 'upload', 'uploads', 'sales', 'profile'].includes(tabFromUrl)
+        ? tabFromUrl
+        : 'purchases'
+      const destination = `/${locale}/dashboard?tab=${tab}`
+      router.push(`/${locale}/auth/login?next=${encodeURIComponent(destination)}`)
     }
-  }, [user, authLoading, router, locale])
+  }, [user, authLoading, router, locale, tabFromUrl])
 
   useEffect(() => {
     if (!user) return
@@ -544,20 +549,20 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
   ]
 
   return (
-    <div className="relative overflow-hidden blueprint-grid min-h-screen py-10 md:py-16">
+    <div className="dashboard-workspace relative overflow-hidden blueprint-grid min-h-screen py-12 md:py-20">
       {/* Ambient lighting */}
       <div className="ambient-glow-blue top-[10%] start-[5%]" />
       <div className="ambient-glow-purple top-[45%] end-[5%]" />
 
       <div className="container-custom relative z-10">
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--line)] pb-6">
+        <div className="mb-9 flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-[var(--line)] pb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line-bright)] text-[11px] font-mono text-[var(--blue-bright)] mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--line)] text-xs font-medium text-[var(--blue-bright)] mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal)]" />
               <span>{dict.dashboard.developerWorkbenchConsole}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
+            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text)]">
               {dict.dashboard.welcomeBack} {user.name}
             </h1>
           </div>
@@ -573,24 +578,23 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
+        <div className="workspace-tabs mb-9" role="tablist" aria-label={dict.dashboard.developerWorkbenchConsole}>
           {navTabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
             return (
               <button
                 key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => {
                   const newTab = tab.id as TabType
                   setActiveTab(newTab)
                   const targetUrl = newTab === 'purchases' ? `/${locale}/dashboard` : `/${locale}/dashboard?tab=${newTab}`
                   router.replace(targetUrl, { scroll: false })
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-semibold shrink-0 transition-all ${
-                  isActive
-                    ? 'bg-[var(--blue)] text-white shadow-md shadow-[var(--blue)]/20 border border-[var(--blue-bright)]'
-                    : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] border border-[var(--line)]'
-                }`}
+                className="flex items-center gap-2"
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -621,7 +625,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
             ) : purchases.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {purchases.map((order) => (
-                  <div key={order.id} className="deeptools-card rounded-xl p-5 flex flex-col justify-between">
+                  <div key={order.id} className="deeptools-card rounded-xl p-6 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-3">
                         <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--line)] text-[var(--blue-bright)]">
@@ -652,7 +656,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                             `${order.productName || order.product?.name || 'asset'}${order.fileExtension || ''}`
                           )
                         }
-                        className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-[var(--green)] hover:brightness-110 text-white flex items-center justify-center gap-2 transition-colors"
+                        className="premium-button w-full px-3 text-sm font-semibold bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>{dict.common.downloadAssetFile}</span>
@@ -679,13 +683,13 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
         {/* TAB 2: UPLOAD STUDIO */}
         {activeTab === 'upload' && (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="deeptools-card rounded-2xl p-6 md:p-8">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="premium-panel p-6 md:p-10">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-[var(--text)]">
                   {dict.dashboard.sellerAssetUploadStudio}
                 </h2>
-                <p className="text-xs text-[var(--muted)] mt-1">
+                <p className="text-sm text-[var(--muted)] mt-2">
                   {dict.dashboard.moderationNotice}
                 </p>
               </div>
@@ -708,7 +712,8 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
 
               <form onSubmit={handleUploadSubmit} className="space-y-5">
                 {/* Drag Drop File Zone */}
-                <div>
+                <section className="studio-step">
+                  <h3 className="studio-step-heading">{dict.dashboard.fileStep}</h3>
                   <label htmlFor="asset-upload-file" className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-2">
                     {dict.dashboard.digitalAssetFile}
                   </label>
@@ -740,9 +745,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       }}
                     />
                   </div>
-                </div>
+                </section>
 
                 {/* Name */}
+                <section className="studio-step space-y-5">
+                  <h3 className="studio-step-heading">{dict.dashboard.detailsStep}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
@@ -754,7 +761,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       value={uploadName}
                       onChange={(e) => setUploadName(e.target.value)}
                       placeholder="e.g. Stripe Webhook Sync to Postgres"
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue-bright)] font-sans"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue-bright)] font-sans"
                     />
                   </div>
 
@@ -769,7 +776,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       value={uploadNameAr}
                       onChange={(e) => setUploadNameAr(e.target.value)}
                       placeholder="مثال: مزامنة أحداث سترايب مع بوستجرس"
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue-bright)] font-sans"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue-bright)] font-sans"
                     />
                   </div>
                 </div>
@@ -780,23 +787,15 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
                       {dict.dashboard.category}
                     </label>
-                    <select
+                    <PremiumSelect
                       value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value as ProductCategory)}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
-                    >
-                      {dynamicCategories.length > 0 ? (
-                        dynamicCategories.map((cat) => (
-                          <option key={cat.id} value={cat.slug}>
-                            {cat.slug} ({isAr && cat.nameAr ? cat.nameAr : cat.name})
-                          </option>
-                        ))
-                      ) : (
-                        categoryOptions.map(({ value, label }) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))
-                      )}
-                    </select>
+                      onChange={setUploadCategory}
+                      className="w-full"
+                      ariaLabel={dict.dashboard.category}
+                      options={dynamicCategories.length > 0
+                        ? dynamicCategories.map((cat) => ({ value: cat.slug, label: `${cat.slug} (${isAr && cat.nameAr ? cat.nameAr : cat.name})` }))
+                        : categoryOptions}
+                    />
                   </div>
 
                   <div>
@@ -812,13 +811,17 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                         required
                         value={uploadPriceDollars}
                         onChange={(e) => setUploadPriceDollars(e.target.value)}
-                        className="w-full ps-9 pe-3 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
+                        className="w-full ps-9 pe-3 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-mono"
                       />
                     </div>
                   </div>
                 </div>
 
+                </section>
+
                 {/* Description Bilingual */}
+                <section className="studio-step">
+                  <h3 className="studio-step-heading">{dict.dashboard.descriptionStep}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-[var(--muted-2)] mb-1.5">
@@ -830,7 +833,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       value={uploadDesc}
                       onChange={(e) => setUploadDesc(e.target.value)}
                       placeholder="Explain setup steps, environment variables, nodes included, and execution guide..."
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-sans"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-sans"
                     />
                   </div>
 
@@ -845,11 +848,14 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                       value={uploadDescAr}
                       onChange={(e) => setUploadDescAr(e.target.value)}
                       placeholder="اشرح خطوات الإعداد، المتغيرات البيئية المطلوبة، والعقد البرمجية المضمنة..."
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-sans"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-sans"
                     />
                   </div>
                 </div>
+                </section>
 
+                <section className="studio-step">
+                  <h3 className="studio-step-heading">{dict.dashboard.payoutStep}</h3>
                 <PayoutBreakdown
                   priceCents={Math.max(0, dollarsToCents(uploadPriceDollars))}
                   commissionPercent={commissionPercent}
@@ -858,10 +864,11 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                   dict={dict}
                   onRetry={() => setCommissionRefreshKey((key) => key + 1)}
                 />
+                </section>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg"
+                  className="premium-button w-full py-3 px-4 font-bold text-sm bg-[var(--blue)] hover:bg-[var(--blue-hover)] text-white flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {uploading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1120,7 +1127,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     required
                     value={nameInput !== '' ? nameInput : (user?.name || '')}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--blue-bright)] font-sans"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] focus:border-[var(--blue-bright)] font-sans"
                   />
                 </div>
 
@@ -1162,7 +1169,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-mono"
                   />
                 </div>
 
@@ -1176,7 +1183,7 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                     minLength={8}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-bright)] font-mono"
                   />
                 </div>
 
@@ -1229,24 +1236,16 @@ export default function DashboardContent({ locale }: DashboardContentProps) {
                 <label htmlFor="asset-edit-category" className="block text-xs font-mono text-[var(--muted-2)] mb-1">
                   {dict.dashboard.category}
                 </label>
-                <select
+                <PremiumSelect
                   id="asset-edit-category"
                   value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value as ProductCategory)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--line)] text-xs text-[var(--text)] font-mono"
-                >
-                  {dynamicCategories.length > 0 ? (
-                    dynamicCategories.map((cat) => (
-                      <option key={cat.id} value={cat.slug}>
-                        {cat.slug} ({isAr && cat.nameAr ? cat.nameAr : cat.name})
-                      </option>
-                    ))
-                  ) : (
-                    categoryOptions.map(({ value, label }) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))
-                  )}
-                </select>
+                  onChange={setEditCategory}
+                  className="w-full"
+                  ariaLabel={dict.dashboard.category}
+                  options={dynamicCategories.length > 0
+                    ? dynamicCategories.map((cat) => ({ value: cat.slug, label: `${cat.slug} (${isAr && cat.nameAr ? cat.nameAr : cat.name})` }))
+                    : categoryOptions}
+                />
               </div>
 
               <div>

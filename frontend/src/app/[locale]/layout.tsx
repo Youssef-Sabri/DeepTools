@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Script from 'next/script'
-import { Inter, Cairo } from 'next/font/google'
+import { Inter, IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google'
 import { getDictionary, hasLocale, isRtl, locales, type Locale } from '@/dictionaries'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
@@ -14,9 +14,16 @@ const inter = Inter({
   display: 'swap',
 })
 
-const cairo = Cairo({
-  subsets: ['arabic', 'latin'],
-  variable: '--font-cairo',
+const arabicSans = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-arabic',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
   display: 'swap',
 })
 
@@ -44,7 +51,7 @@ export default async function LocaleLayout({
       lang={validLocale}
       dir={direction}
       translate="no"
-      className={`${inter.variable} ${cairo.variable} antialiased notranslate`}
+      className={`${inter.variable} ${arabicSans.variable} ${jetbrainsMono.variable} antialiased notranslate`}
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-background text-foreground">
@@ -66,7 +73,7 @@ export default async function LocaleLayout({
           <AuthProvider>
             <DictionaryProvider dict={dict}>
               <Navbar locale={validLocale} dict={dict} />
-              <main id="main-content" className="flex-1 pt-18 md:pt-20">
+              <main id="main-content" className="flex-1">
                 {children}
               </main>
               <Footer locale={validLocale} dict={dict} />

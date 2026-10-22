@@ -86,16 +86,16 @@ export function NotificationBell({ userId, role, locale }: { userId: string; rol
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted)] transition-colors hover:border-[var(--line-bright)] hover:text-[var(--text)]"
+        className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted)] transition-colors hover:border-[var(--line-bright)] hover:text-[var(--text)]"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && <span className="absolute -end-1 -top-1 min-w-4 rounded-full bg-[var(--blue)] px-1 text-center text-[10px] font-semibold leading-4 text-white tabular-nums">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
       {open && <>
         <button type="button" className="fixed inset-0 z-40 cursor-default" aria-label={labels.title} onClick={() => setOpen(false)} />
-        <section role="dialog" aria-label={labels.title} className="absolute end-0 z-50 mt-2 w-[min(22rem,92vw)] overflow-hidden rounded-xl border border-[var(--line-bright)] bg-[var(--surface)] shadow-xl">
+        <section role="dialog" aria-label={labels.title} className="notification-panel premium-panel absolute end-0 z-50 mt-2 w-[min(24rem,92vw)] overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
-            <h2 className="text-sm font-semibold text-[var(--text)]">{labels.title}</h2>
+            <h2 className="text-base font-semibold text-[var(--text)]">{labels.title}</h2>
             {unreadCount > 0 && <span className="rounded-full bg-[var(--blue)]/15 px-2 py-0.5 text-xs font-semibold tabular-nums text-[var(--blue-bright)]">{unreadCount}</span>}
           </div>
           <div className="max-h-96 overflow-y-auto">
@@ -104,8 +104,8 @@ export function NotificationBell({ userId, role, locale }: { userId: string; rol
                 items.map((item) => <button key={item.id} type="button" onClick={() => { void select(item) }} className={`flex w-full gap-3 border-b border-[var(--line)] px-4 py-3 text-start transition-colors last:border-0 hover:bg-[var(--surface-2)] ${item.isRead ? '' : 'bg-[var(--blue)]/5'}`} aria-label={`${locale === 'ar' ? item.titleAr : item.title}. ${item.isRead ? '' : labels.read}`}>
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.isRead ? 'bg-[var(--line-bright)]' : 'bg-[var(--blue-bright)]'}`} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-[var(--text)]">{locale === 'ar' ? item.titleAr : item.title}</span>
-                    <span className="mt-1 block break-words text-xs leading-5 text-[var(--muted)]">{locale === 'ar' ? item.messageAr : item.message}</span>
+                    <span className="block text-sm font-semibold text-[var(--text)]">{locale === 'ar' ? item.titleAr : item.title}</span>
+                    <span className="mt-1 block break-words text-sm leading-6 text-[var(--muted)]">{locale === 'ar' ? item.messageAr : item.message}</span>
                     <span className="mt-1 block text-[10px] text-[var(--muted-2)]">{formatDate(item.createdAt, locale)}</span>
                   </span>
                   {!item.isRead && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-[var(--blue-bright)]" aria-hidden="true" />}

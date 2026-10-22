@@ -24,6 +24,7 @@ import {
 } from '@/lib/utils'
 import { fetchApi, fetchCategories } from '@/lib/api'
 import { getCategoryIcon } from '@/lib/categoryIcons'
+import { getCategoryFilters } from '@/lib/categoryFilters'
 import { interpolate } from '@/lib/interpolate'
 import { useDictionary } from '@/components/providers/DictionaryProvider'
 
@@ -109,17 +110,15 @@ export function OmnisearchModal({
   }, [isOpen, locale, query, activeCategory])
 
   const categoryChips = useMemo(() => {
-    // FRONTEND_RULES.md 2.8: categories come from GET /api/v1/categories; the UI
-    // must never hardcode a static list.
     return [
       { id: 'all', label: allAssetsLabel, icon: Layers },
-      ...categories.map((cat: Category) => ({
-        id: cat.slug,
-        label: isAr && cat.nameAr ? cat.nameAr : cat.name,
-        icon: getCategoryIcon(cat.slug),
+      ...getCategoryFilters(categories, dict, isAr).map((category) => ({
+        id: category.slug,
+        label: category.label,
+        icon: getCategoryIcon(category.slug),
       })),
     ]
-  }, [categories, isAr, allAssetsLabel])
+  }, [categories, dict, isAr, allAssetsLabel])
 
   const filtered = results
   const safeSelectedIndex = selectedIndex >= filtered.length ? 0 : selectedIndex
@@ -232,7 +231,7 @@ export function OmnisearchModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-slate-950/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 md:pt-20 px-4 bg-[var(--bg)]/80 backdrop-blur-sm">
         {/* Backdrop click to dismiss */}
         <div className="fixed inset-0" onClick={handleClose} />
 
@@ -241,10 +240,10 @@ export function OmnisearchModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: -12 }}
           transition={{ duration: 0.16, ease: 'easeOut' }}
-          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--line-bright)] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
+          className="premium-panel relative w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
         >
           {/* Search Input Bar - High-End Spotlight / Raycast Style */}
-          <div className="relative flex items-center px-4 h-[60px] border-b border-[var(--line)] bg-[var(--surface)]">
+          <div className="omnisearch-input-wrap relative flex items-center px-4 h-[60px] border-b border-[var(--line)] bg-[var(--surface)] transition-colors duration-200">
             {isSearching ? (
               <Loader2 className="w-5 h-5 text-[var(--blue-bright)] ms-1 shrink-0 animate-spin" />
             ) : (
@@ -256,8 +255,7 @@ export function OmnisearchModal({
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder={dict.search.searchWorkflowsScriptsOrAgentSkillsK}
-              className="w-full h-full bg-transparent px-3 text-sm text-[var(--text)] placeholder-[var(--muted-2)] outline-none border-0 focus:outline-none focus:ring-0 focus:border-0 font-sans shadow-none"
-              style={{ outline: 'none', boxShadow: 'none' }}
+              className="omnisearch-input w-full h-full bg-transparent px-3 text-sm text-[var(--text)] placeholder-[var(--muted-2)] border-0 outline-none focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 font-sans shadow-none"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
@@ -269,7 +267,7 @@ export function OmnisearchModal({
                   handleQueryChange('')
                   inputRef.current?.focus()
                 }}
-                className="p-1.5 rounded-lg text-[var(--muted-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] me-1 transition-colors"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--muted-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] me-1 transition-colors"
                 title={dict.search.clearSearch}
               >
                 <X className="w-4 h-4" />
@@ -293,7 +291,7 @@ export function OmnisearchModal({
           </div>
 
           {/* Canonical Category Filter Chips */}
-          <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--surface-2)]/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div dir={isAr ? 'rtl' : 'ltr'} className="px-4 py-2 border-b border-[var(--line)] bg-[var(--surface-2)]/60 flex flex-wrap items-center gap-1.5">
             {categoryChips.map((cat) => {
               const Icon = cat.icon
               const isActive = activeCategory === cat.id
@@ -302,7 +300,7 @@ export function OmnisearchModal({
                   key={cat.id}
                   type="button"
                   onClick={() => handleCategoryChange(cat.id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium shrink-0 transition-all ${
+                  className={`flex min-h-11 items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
                     isActive
                       ? 'bg-[var(--blue)] text-white shadow-sm shadow-[var(--blue)]/30 border border-transparent'
                       : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] border border-[var(--line)]'

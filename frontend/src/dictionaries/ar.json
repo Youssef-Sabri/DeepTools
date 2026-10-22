@@ -102,6 +102,10 @@
     }
   },
   "dashboard": {
+    "fileStep": "١. رفع الملف",
+    "detailsStep": "٢. تفاصيل الأصل الرقمي",
+    "descriptionStep": "٣. الأوصاف",
+    "payoutStep": "٤. العائد المتوقع",
     "title": "لوحة التحكم",
     "orders": "الطلبات",
     "completed": "مكتمل",
@@ -212,6 +216,9 @@
     "intro": "اكتشف الأصول الرقمية المعتمدة من البائعين، وراجع تفاصيلها قبل الشراء."
   },
   "catalog": {
+    "results": "أصل رقمي",
+    "clearSearch": "مسح البحث",
+    "sortResults": "ترتيب النتائج",
     "couldNotLoadProducts": "تعذر تحميل الأدوات.",
     "couldNotLoadMoreProducts": "تعذر تحميل المزيد.",
     "couldNotLoadCategories": "تعذر تحميل التصنيفات.",
@@ -229,6 +236,14 @@
     "noResultsHint": "جرب البحث بكلمات أخرى أو اختر قسماً مختلفاً من الأعلى."
   },
   "product": {
+    "overview": "نظرة عامة",
+    "technicalFacts": "التفاصيل التقنية",
+    "category": "التصنيف",
+    "fileType": "نوع الملف",
+    "version": "الإصدار",
+    "createdDate": "تاريخ الإنشاء",
+    "purchasePanel": "خيارات الشراء",
+    "approvedAsset": "أصل رقمي معتمد",
     "sizeUnavailable": "حجم الملف غير متاح",
     "backToMarketplace": "العودة إلى الكتالوج",
     "seller": "الناشر",
@@ -305,9 +320,12 @@
   },
   "footer": {
     "theDeveloperMarketplaceForAutomationEngi": "منصة هندسية مخصصة لمهندسي الأتمتة والمطورين. سيناريوهات n8n وMake، نصوص Python، مهارات وكلاء الذكاء الاصطناعي، وقوالب برمجية موثوقة.",
-    "systemOperationalLatency14ms": "النظام التشغيلي يعمل بكفاءة: 14ms",
     "canonicalCategories": "الأقسام المعتمدة",
     "developerConsole": "لوحة المطورين",
+    "workflows": "سير العمل",
+    "agents": "وكلاء الذكاء الاصطناعي",
+    "scripts": "نصوص الأتمتة",
+    "codeTemplates": "قوالب برمجية",
     "submitTool": "نشر أداة برمجية",
     "purchasedTools": "مكتبة مشترياتي",
     "sellerPayouts": "أرباح ومبيعات البائع",
