@@ -7,10 +7,12 @@ DeepTools is a modern, bilingual SaaS marketplace for developers and data engine
 ## ⚡ Tech Stack
 
 - **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS, Framer Motion
-- **Backend**: Express.js, TypeScript, Prisma ORM, Zod, Helmet
-- **Database**: PostgreSQL 16
+- **Backend**: Express.js, TypeScript, Prisma ORM, PostgreSQL, Zod, Helmet
+- **Database**: PostgreSQL 16 (with `pg_trgm` extension for trigram search)
+- **Real-Time**: Server-Sent Events (SSE) notification streaming
 - **Documentation**: Interactive OpenAPI 3.0 (Swagger UI)
-- **Localization**: Full English & Arabic (RTL) support
+- **Localization**: Full English & Arabic (RTL) support with Unicode validation
+- **Theme**: Pure Light Mode high-contrast design system
 
 ---
 
@@ -52,12 +54,14 @@ npm run dev:frontend
 
 ## ✨ Key Platform Features
 
-- **Authenticated Account Purchases**: Checkout requires a signed-in account; orders remain pending until payment verification completes.
-- **Account-Based Ownership**: Marketplace and product pages reflect licenses attached to the signed-in account, with downloads available to licensed users.
-- **Full-Surface Card Navigation**: Cards are wrapped in high-performance Next.js links with `cursor-pointer`, enabling effortless navigation from image banners, glyphs, and descriptions with dedicated `loading.tsx` skeletons.
-- **Authenticated Private Downloads**: Secure streaming endpoints (`GET /api/v1/products/:id/download`) verify the account session and its license before streaming a purchased asset.
+- **Mandatory Authenticated Checkout**: Purchasing digital assets strictly requires a registered user account (`Role.USER`), ensuring immutable order ownership (`user_id UUID NOT NULL`) and eliminating anonymous race conditions.
+- **Real-Time Notification Engine**: Instant in-app alerts via Server-Sent Events (`GET /api/v1/notifications/stream`) and PostgreSQL review triggers (`notify_product_review()`) for product approval and rejection decisions.
+- **Interactive Notification Bell**: Navbar-mounted `NotificationBell` displaying live unread badges, rich notification previews with reviewer notes, and optimistic read-state toggling.
+- **Authenticated Private Downloads**: Direct binary streaming (`GET /api/v1/products/:id/download`) verified strictly against buyer license ownership or product seller authorization.
 - **Dynamic Categories Engine**: Real-time database-driven categories with localized titles, live product counts, and administrator CRUD management with conflict guards.
-- **Native Bilingual Engine (English & Arabic RTL)**: Full bidirectional support (`en` and `ar`) with genuine Arabic Unicode validation, trigram search indexing, and automated locale resolution.
+- **Native Bilingual Engine (English & Arabic RTL)**: Full bidirectional support (`en` and `ar`) with genuine Arabic Unicode validation (`[\u0600-\u06FF]`), trigram search indexing, and automated locale resolution.
+- **Pure Light Mode Aesthetics**: Curated high-contrast daylight engineering palette, clean card surfaces, and crisp borders with zero dark mode leakage.
+- **Full-Surface Card Navigation**: Cards are wrapped in high-performance Next.js links with `cursor-pointer`, enabling effortless navigation from image banners, glyphs, and descriptions with dedicated `loading.tsx` skeletons.
 - **Unified Creator Role**: Single account role allowing users to purchase tools and upload their own assets with admin moderation workflows.
 
 ---
@@ -74,13 +78,16 @@ npm run dev:frontend
 
 ---
 
-## 📜 Database Scripts
+## 📜 Database & Operational Scripts
 
 ```bash
-npm run db:push       # Push Prisma schema to PostgreSQL
-npm run db:seed       # Seed bilingual demo catalog
-npm run create:admin  # Provision administrator account
-npm run db:studio     # Open Prisma Studio GUI
+# In backend directory:
+npm run db:preflight        # Verify migrations and database schema consistency
+npm run db:audit-storage    # Audit physical upload files against database records
+npm run db:seed             # Seed canonical bilingual categories and catalog products
+npm run db:normalize-arabic # Backfill normalized Arabic search projections
+npm run create:admin        # Provision administrator account
+npm run db:studio           # Open visual Prisma Studio GUI
 ```
 
 ---
@@ -88,17 +95,15 @@ npm run db:studio     # Open Prisma Studio GUI
 ## 🧪 Testing & Code Quality
 
 ```bash
-# Run Backend Test Suite (15 suites, 139 tests passed)
+# Run Backend Test Suite (15 suites, 138 tests passing)
 cd backend && npm test
+
+# Run Backend Linter (0 errors, 0 warnings)
+cd backend && npm run lint
 
 # Run Frontend Linter (0 errors, 0 warnings)
 cd frontend && npm run lint
 
-# Build Frontend Production Bundle (21/21 static & dynamic routes)
+# Build Frontend Production Bundle
 cd frontend && npm run build
 ```
-
----
-
-## 📄 License
-MIT
