@@ -73,4 +73,5 @@ pids
 backend/uploads/
 # Specification and rules reference docs (local only - do not push)
 files/
-
+frontend/SKILLS/
+SKILLS/

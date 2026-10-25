@@ -75,7 +75,6 @@ export class OrdersRepository {
       earnings: result._sum.sellerAmount || 0,
     };
   }
-
 }
 
 export const ordersRepository = new OrdersRepository();

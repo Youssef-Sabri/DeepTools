@@ -154,9 +154,15 @@ export class AdminRepository {
       topProductOrders,
     ] = await Promise.all([
       prisma.product.count({ where: { deletedAt: null } }),
-      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.PENDING } }),
-      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.APPROVED } }),
-      prisma.product.count({ where: { deletedAt: null, status: ProductStatus.REJECTED } }),
+      prisma.product.count({
+        where: { deletedAt: null, status: ProductStatus.PENDING },
+      }),
+      prisma.product.count({
+        where: { deletedAt: null, status: ProductStatus.APPROVED },
+      }),
+      prisma.product.count({
+        where: { deletedAt: null, status: ProductStatus.REJECTED },
+      }),
       prisma.order.aggregate({
         _sum: { amount: true, commissionAmount: true, sellerAmount: true },
         where: { status: OrderStatus.COMPLETED },

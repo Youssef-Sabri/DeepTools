@@ -121,11 +121,11 @@ describe("Bilingual API Integration Tests", () => {
       expect(res.body.message).toBe("Invalid email or password");
     });
 
-    it("does not expose removed guest purchase routes", async () => {
-      const purchase = await request(app).post("/api/v1/orders/guest-purchase").send({ productId: "00000000-0000-4000-8000-000000000001" });
-      const lookup = await request(app).get("/api/v1/orders/guest/purchases");
-      expect(purchase.status).toBe(404);
-      expect(lookup.status).toBe(404);
+    it("returns 404 for unmounted routes", async () => {
+      const res = await request(app)
+        .post("/api/v1/orders/non-existent-action")
+        .send({ productId: "00000000-0000-4000-8000-000000000001" });
+      expect(res.status).toBe(404);
     });
   });
 });

@@ -38,7 +38,10 @@ export class UploadsService {
     if (!file || !file.buffer) {
       throw new ValidationError("A solution file is required for upload");
     }
-    const categoryId = await this.resolveCategoryId(input.category, input.categoryId);
+    const categoryId = await this.resolveCategoryId(
+      input.category,
+      input.categoryId,
+    );
 
     const fileChecksum = crypto
       .createHash("sha256")

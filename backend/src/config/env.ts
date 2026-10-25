@@ -118,7 +118,10 @@ const envSchema = z
       });
     }
 
-    if (value.PASSWORD_RESET_URL && !value.PASSWORD_RESET_URL.startsWith("https://")) {
+    if (
+      value.PASSWORD_RESET_URL &&
+      !value.PASSWORD_RESET_URL.startsWith("https://")
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["PASSWORD_RESET_URL"],

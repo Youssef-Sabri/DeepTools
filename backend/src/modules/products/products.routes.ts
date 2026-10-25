@@ -1,9 +1,6 @@
 import { Router } from "express";
 import { productsController } from "./products.controller";
-import {
-  authenticate,
-  requireRole,
-} from "../../middleware/auth.middleware";
+import { authenticate, requireRole } from "../../middleware/auth.middleware";
 import {
   validateBody,
   validateQuery,
