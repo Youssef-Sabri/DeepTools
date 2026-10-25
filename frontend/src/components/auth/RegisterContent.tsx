@@ -57,14 +57,14 @@ export default function RegisterContent({ dict, locale }: RegisterContentProps) 
   }
 
   return (
-    <div className="auth-page auth-page-clean relative flex flex-1 items-center justify-center overflow-hidden bg-slate-950 py-16 px-4">
+    <div className="auth-page auth-page-clean relative flex flex-1 items-center justify-center overflow-hidden bg-[var(--bg)] py-16 px-4">
       <div aria-hidden="true" className="auth-card-glow" />
 
       <motion.div
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="auth-panel relative z-10 w-full max-w-md rounded-2xl border border-slate-800/50 p-8 sm:p-10"
+        className="auth-panel relative z-10 w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-10"
       >
         <div className="text-center mb-8">
           <Link href={`/${locale}`} className="inline-flex items-center gap-2 mb-4">

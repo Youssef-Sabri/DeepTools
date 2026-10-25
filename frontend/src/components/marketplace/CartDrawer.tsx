@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -47,22 +47,21 @@ export function CartDrawer({
   const isArabic = locale === 'ar'
   const isCreator = Boolean(user && product && user.id === product.sellerId)
 
+  const handleClose = useCallback(() => {
+    setCompletedOrder(null)
+    setError(null)
+    setLoading(false)
+    onClose()
+  }, [onClose])
+
   useEffect(() => {
     if (!completedOrder) return
     const timeout = window.setTimeout(() => {
-      onClose()
+      handleClose()
       router.push(`/${locale}/dashboard?tab=purchases`)
     }, 1400)
     return () => window.clearTimeout(timeout)
-  }, [completedOrder, locale, onClose, router])
-
-  useEffect(() => {
-    if (!isOpen) {
-      setCompletedOrder(null)
-      setError(null)
-      setLoading(false)
-    }
-  }, [isOpen])
+  }, [completedOrder, locale, handleClose, router])
 
   if (!isOpen || !product) return null
 
@@ -107,7 +106,7 @@ export function CartDrawer({
         <button
           type="button"
           className="absolute inset-0 h-full w-full cursor-default"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label={dict.common.close}
         />
         <div className="fixed inset-y-0 end-0 flex max-w-full">
@@ -135,7 +134,7 @@ export function CartDrawer({
               </div>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
                 aria-label={dict.common.close}
               >

@@ -154,7 +154,6 @@ export default function Navbar({ locale, dict }: NavbarProps) {
                 <span className="hidden xl:inline">{dict.nav.switchLanguage}</span>
               </Link>
 
-
               {/* Auth Session / Action */}
               {user ? (
                 <div className="flex items-center gap-2">

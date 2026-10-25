@@ -71,12 +71,8 @@ export default function HomeContent({ locale }: HomeContentProps) {
   }, [locale])
 
   useEffect(() => {
+    if (!user) return
     let ignore = false
-
-    if (!user) {
-      setOwnedProductIds([])
-      return () => { ignore = true }
-    }
 
     fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
@@ -252,7 +248,7 @@ export default function HomeContent({ locale }: HomeContentProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => {
               const isOwned =
-                ownedProductIds.includes(product.id) ||
+                (Boolean(user) && ownedProductIds.includes(product.id)) ||
                 (Boolean(user) && user?.id === product.sellerId)
               return (
                 <ProductCard

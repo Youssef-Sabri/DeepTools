@@ -32,15 +32,11 @@ export default function ProductDetailContent({
   const [hasPurchased, setHasPurchased] = useState(false)
 
   const isCreator = Boolean(user && user.id === product.sellerId)
-  const isOwned = isCreator || hasPurchased
+  const isOwned = isCreator || (Boolean(user) && hasPurchased)
 
   useEffect(() => {
+    if (!user || user.id === product.sellerId) return
     let ignore = false
-
-    if (!user || user.id === product.sellerId) {
-      setHasPurchased(false)
-      return () => { ignore = true }
-    }
 
     fetchApi<License[]>('/products/my/licenses')
       .then((data) => {

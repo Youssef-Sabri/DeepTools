@@ -42,10 +42,11 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'priceAsc' | 'priceDesc'>('newest')
 
-  // Footer category links can navigate within the mounted catalog page.
-  useEffect(() => {
+  const [prevInitialCategory, setPrevInitialCategory] = useState(initialCategory)
+  if (prevInitialCategory !== initialCategory) {
+    setPrevInitialCategory(initialCategory)
     setActiveCategory(initialCategory)
-  }, [initialCategory])
+  }
 
   // Modals & Drawers state
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null)
@@ -114,12 +115,8 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
   }
 
   useEffect(() => {
+    if (!user) return
     let ignore = false
-
-    if (!user) {
-      setOwnedProductIds([])
-      return () => { ignore = true }
-    }
 
     fetchApi<License[]>('/products/my/licenses')
       .then((data) => {
@@ -322,7 +319,7 @@ export default function ProductsContent({ locale }: ProductsContentProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => {
               const isOwned =
-                ownedProductIds.includes(product.id) ||
+                (Boolean(user) && ownedProductIds.includes(product.id)) ||
                 (Boolean(user) && user?.id === product.sellerId)
               return (
                 <ProductCard
