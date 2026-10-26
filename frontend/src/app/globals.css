@@ -392,13 +392,9 @@ body:has(.auth-page-clean) footer {
   pointer-events: none;
 }
 
-.auth-page-clean .auth-panel {
+.auth-panel {
   background: #ffffff;
   border: 1px solid var(--line);
-  box-shadow: 0 20px 48px -16px rgba(15, 23, 42, 0.08), inset 0 1px rgba(255, 255, 255, 0.9);
-}
-
-.auth-panel {
   box-shadow: 0 20px 48px -16px rgba(15, 23, 42, 0.08), inset 0 1px rgba(255, 255, 255, 0.9);
 }
 

@@ -176,7 +176,7 @@ export class ProductsRepository {
   }
 
   async delete(id: string) {
-    // التعديل: تحويل الحذف النهائي لحذف وهمي
+    // Soft delete product record
     await prisma.product.update({
       where: { id },
       data: { deletedAt: new Date() },

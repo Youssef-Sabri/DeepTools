@@ -128,7 +128,7 @@ export const messages = {
     "products.downloadUnauthorized": "ليس لديك ترخيص معتمد لتنزيل هذا الملف",
     "products.orderPending": "الطلب قيد التحقق من الدفع",
 
-    // Orders`r`n`r`n    // Uploads & Moderation
+    // Uploads & Moderation
     "uploads.created": "تم رفع الأداة بنجاح",
     "uploads.deleted": "تم حذف الملف المرفوع بنجاح",
     "uploads.approved": "تمت الموافقة على المنتج بنجاح",

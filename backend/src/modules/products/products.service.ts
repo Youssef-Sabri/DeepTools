@@ -190,7 +190,7 @@ export class ProductsService {
   }
 
   async purchase(userId: string, userRole: string, productId: string) {
-    // التعديل: مقارنة مع الـ Enum الصحيح
+    // Enforce role check: admins cannot purchase marketplace items
     if (userRole === Role.ADMIN) {
       throw new ForbiddenError("Admins cannot purchase marketplace products");
     }

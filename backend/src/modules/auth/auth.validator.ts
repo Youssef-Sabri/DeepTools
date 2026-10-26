@@ -3,7 +3,7 @@ import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 
 extendZodWithOpenApi(z);
 
-// التعديل: إنشاء قاعدة موحدة للباسوورد القوي لمنع التكرار
+// Unified strong password validation schema
 const strongPasswordSchema = z
   .string({ required_error: "Password is required" })
   .min(8, "Password must be at least 8 characters")
